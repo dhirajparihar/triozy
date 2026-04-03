@@ -1,0 +1,188 @@
+import 'package:flutter/material.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:provider/provider.dart';
+import 'firebase_options.dart';
+import 'theme/app_theme.dart';
+import 'theme/app_colors.dart';
+import 'services/auth_service.dart';
+import 'services/database_service.dart';
+import 'services/location_service.dart';
+import 'providers/location_provider.dart';
+import 'screens/welcome_screen.dart';
+import 'screens/role_selection_screen.dart';
+import 'screens/main_shell.dart';
+import 'screens/worker_setup_screen.dart';
+
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  if (Firebase.apps.isEmpty) {
+    try {
+      if (kIsWeb) {
+        await Firebase.initializeApp(
+          options: DefaultFirebaseOptions.currentPlatform,
+        );
+      } else {
+        await Firebase.initializeApp();
+      }
+    } on FirebaseException catch (e) {
+      if (e.code != 'duplicate-app') {
+        rethrow;
+      }
+    }
+  }
+  // Seed sample workers for development
+  DatabaseService().seedWorkers();
+  runApp(const TriozyApp());
+}
+
+class TriozyApp extends StatelessWidget {
+  const TriozyApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MultiProvider(
+      providers: [
+        // Singleton services — available everywhere via context.read<T>()
+        Provider<AuthService>(create: (_) => AuthService()),
+        Provider<DatabaseService>(create: (_) => DatabaseService()),
+        Provider<LocationService>(create: (_) => LocationService()),
+
+        // Shared location state — depends on LocationService
+        ChangeNotifierProxyProvider<LocationService, LocationProvider>(
+          create: (ctx) => LocationProvider(ctx.read<LocationService>()),
+          update: (_, locationService, previous) =>
+              previous ?? LocationProvider(locationService),
+        ),
+      ],
+      child: MaterialApp(
+        title: 'Triozy',
+        debugShowCheckedModeBanner: false,
+        theme: AppTheme.lightTheme,
+        home: const AuthGate(),
+      ),
+    );
+  }
+}
+
+/// AuthGate listens to Firebase auth state and routes accordingly
+class AuthGate extends StatelessWidget {
+  const AuthGate({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<User?>(
+      stream: FirebaseAuth.instance.authStateChanges(),
+      builder: (context, snapshot) {
+        // Loading state
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            body: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Triozy',
+                    style: AppTheme.headline(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w900,
+                      color: AppColors.blue700,
+                      letterSpacing: -1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 24),
+                  const CircularProgressIndicator(color: AppColors.primary),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // Not logged in → Welcome screen
+        if (!snapshot.hasData || snapshot.data == null) {
+          return const WelcomeScreen();
+        }
+
+        // Logged in → check role and redirect
+        return const _RoleRouter();
+      },
+    );
+  }
+}
+
+/// Streams the user doc from Firestore and routes based on role/profile state.
+/// Only rebuilds the child widget when the routing decision actually changes
+/// (role or isProfileComplete), preventing unnecessary MainShell rebuilds
+/// that would reset the current tab index.
+class _RoleRouter extends StatefulWidget {
+  const _RoleRouter();
+
+  @override
+  State<_RoleRouter> createState() => _RoleRouterState();
+}
+
+class _RoleRouterState extends State<_RoleRouter> {
+  // Cache the last route key so we only rebuild when the route changes
+  String? _lastRouteKey;
+  Widget? _currentScreen;
+
+  /// Derive a simple key from the routing-relevant fields
+  String _routeKey(Map<String, dynamic>? userData) {
+    if (userData == null) return 'no_user';
+    final role = userData['role'] as String? ?? 'customer';
+    final isComplete = userData['isProfileComplete'] as bool? ?? false;
+    return '${role}_$isComplete';
+  }
+
+  Widget _buildScreen(Map<String, dynamic>? userData) {
+    if (userData == null) return const RoleSelectionScreen();
+
+    final role = userData['role'] as String? ?? 'customer';
+    final isProfileComplete =
+        userData['isProfileComplete'] as bool? ?? false;
+
+    if (role == 'worker') {
+      if (!isProfileComplete) {
+        return const WorkerSetupScreen();
+      } else {
+        return const MainShell(isWorker: true);
+      }
+    } else {
+      return const MainShell(isWorker: false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final authService = context.read<AuthService>();
+    final uid = FirebaseAuth.instance.currentUser!.uid;
+
+    return StreamBuilder<Map<String, dynamic>?>(
+      stream: authService.userDataStream(uid),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting &&
+            _currentScreen == null) {
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            body: const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
+          );
+        }
+
+        final userData = snapshot.data;
+        final newKey = _routeKey(userData);
+
+        // Only rebuild if the routing decision changed
+        if (newKey != _lastRouteKey) {
+          _lastRouteKey = newKey;
+          _currentScreen = _buildScreen(userData);
+        }
+
+        return _currentScreen!;
+      },
+    );
+  }
+}

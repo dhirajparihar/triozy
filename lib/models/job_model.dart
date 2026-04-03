@@ -1,0 +1,91 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+
+class JobModel {
+  final String id;
+  final String userId;
+  final String category;
+  final String description;
+  final String location;
+  final String time;
+  final String budgetRange; // 'Economy', 'Standard', 'Premium'
+  final String status; // 'Finding', 'Assigned', 'On Way', 'Completed'
+  final double? price;
+  final String? photoUrl;
+  final DateTime? createdAt;
+
+  JobModel({
+    required this.id,
+    required this.userId,
+    required this.category,
+    required this.description,
+    required this.location,
+    required this.time,
+    required this.budgetRange,
+    this.status = 'Finding',
+    this.price,
+    this.photoUrl,
+    this.createdAt,
+  });
+
+  factory JobModel.fromMap(Map<String, dynamic> map, String id) {
+    return JobModel(
+      id: id,
+      userId: map['userId'] ?? '',
+      category: map['category'] ?? '',
+      description: map['description'] ?? '',
+      location: map['location'] ?? '',
+      time: map['time'] ?? '',
+      budgetRange: map['budgetRange'] ?? 'Standard',
+      status: map['status'] ?? 'Finding',
+      price: (map['price'] as num?)?.toDouble(),
+      photoUrl: map['photoUrl'] as String?,
+      createdAt: map['createdAt'] is Timestamp
+          ? (map['createdAt'] as Timestamp).toDate()
+          : null,
+    );
+  }
+
+  /// Convert to Firestore map. Set [includeCreatedAt] to true only on first create.
+  Map<String, dynamic> toMap({bool includeCreatedAt = false}) {
+    final map = <String, dynamic>{
+      'userId': userId,
+      'category': category,
+      'description': description,
+      'location': location,
+      'time': time,
+      'budgetRange': budgetRange,
+      'status': status,
+      'price': price,
+      'photoUrl': photoUrl,
+    };
+    if (includeCreatedAt) {
+      map['createdAt'] = FieldValue.serverTimestamp();
+    }
+    return map;
+  }
+
+  JobModel copyWith({
+    String? category,
+    String? description,
+    String? location,
+    String? time,
+    String? budgetRange,
+    String? status,
+    double? price,
+    String? photoUrl,
+  }) {
+    return JobModel(
+      id: id,
+      userId: userId,
+      category: category ?? this.category,
+      description: description ?? this.description,
+      location: location ?? this.location,
+      time: time ?? this.time,
+      budgetRange: budgetRange ?? this.budgetRange,
+      status: status ?? this.status,
+      price: price ?? this.price,
+      photoUrl: photoUrl ?? this.photoUrl,
+      createdAt: createdAt,
+    );
+  }
+}

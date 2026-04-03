@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "552703049298",
+    "project_id": "triozy-app",
+    "storage_bucket": "triozy-app.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:552703049298:android:957656fc1388180b52698b",
+        "android_client_info": {
+          "package_name": "com.triozy.triozy_app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "552703049298-tffl2t8201h4vtbdr4r3ut8qr8phkjth.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBNQkp9PIZrLPN36NgGIh_oK-XgdR5Tej4"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "552703049298-sojetjnnsj2o7bku4kk06rph7jmjdnk6.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
