@@ -9,6 +9,7 @@ class JobModel {
   final String time;
   final String budgetRange; // 'Economy', 'Standard', 'Premium'
   final String status; // 'Finding', 'Assigned', 'On Way', 'Completed'
+  final String phone;
   final double? price;
   final String? photoUrl;
   final DateTime? createdAt;
@@ -22,6 +23,7 @@ class JobModel {
     required this.time,
     required this.budgetRange,
     this.status = 'Finding',
+    this.phone = '',
     this.price,
     this.photoUrl,
     this.createdAt,
@@ -37,6 +39,7 @@ class JobModel {
       time: map['time'] ?? '',
       budgetRange: map['budgetRange'] ?? 'Standard',
       status: map['status'] ?? 'Finding',
+      phone: map['phone'] ?? '',
       price: (map['price'] as num?)?.toDouble(),
       photoUrl: map['photoUrl'] as String?,
       createdAt: map['createdAt'] is Timestamp
@@ -55,6 +58,7 @@ class JobModel {
       'time': time,
       'budgetRange': budgetRange,
       'status': status,
+      'phone': phone,
       'price': price,
       'photoUrl': photoUrl,
     };
@@ -71,6 +75,7 @@ class JobModel {
     String? time,
     String? budgetRange,
     String? status,
+    String? phone,
     double? price,
     String? photoUrl,
   }) {
@@ -83,6 +88,7 @@ class JobModel {
       time: time ?? this.time,
       budgetRange: budgetRange ?? this.budgetRange,
       status: status ?? this.status,
+      phone: phone ?? this.phone,
       price: price ?? this.price,
       photoUrl: photoUrl ?? this.photoUrl,
       createdAt: createdAt,

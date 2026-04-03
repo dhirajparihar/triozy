@@ -231,44 +231,52 @@ class _RoleCard extends StatelessWidget {
       onTap: onTap,
       child: Container(
         width: double.infinity,
-        padding: const EdgeInsets.all(28),
+        padding: const EdgeInsets.all(24),
         decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.transparent, width: 2),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.2)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 16,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 56,
-              height: 56,
+              width: 48,
+              height: 48,
               decoration: BoxDecoration(
                 color: iconBgColor,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(14),
               ),
-              child: Icon(icon, color: iconColor, size: 28),
+              child: Icon(icon, color: iconColor, size: 24),
             ),
-            const SizedBox(height: 28),
-            Text(title, style: AppTheme.headline(fontSize: 22)),
-            const SizedBox(height: 8),
+            const SizedBox(height: 20),
+            Text(title, style: AppTheme.headline(fontSize: 20)),
+            const SizedBox(height: 6),
             Text(
               description,
               style: AppTheme.body(
                 fontSize: 14,
                 color: AppColors.onSurfaceVariant,
+                height: 1.5,
               ),
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 20),
             Row(
               children: [
                 Text(ctaText,
                     style: AppTheme.body(
-                        fontSize: 16,
+                        fontSize: 15,
                         fontWeight: FontWeight.w700,
                         color: ctaColor)),
-                const SizedBox(width: 8),
-                Icon(Icons.arrow_forward, size: 20, color: ctaColor),
+                const SizedBox(width: 6),
+                Icon(Icons.arrow_forward_rounded, size: 18, color: ctaColor),
               ],
             ),
           ],

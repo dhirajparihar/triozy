@@ -87,9 +87,9 @@ class _HomeScreenState extends State<HomeScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildSearchSection(context),
-            const SizedBox(height: 48),
+            const SizedBox(height: 36),
             _buildCategoriesSection(context),
-            const SizedBox(height: 48),
+            const SizedBox(height: 36),
             _buildTopWorkersSection(context),
           ],
         ),
@@ -106,12 +106,12 @@ class _HomeScreenState extends State<HomeScreen> {
             children: [
               TextSpan(
                 text: 'Find expert help\n',
-                style: AppTheme.headline(fontSize: 36, letterSpacing: -1.0),
+                style: AppTheme.headline(fontSize: 30, letterSpacing: -1.0),
               ),
               TextSpan(
                 text: 'in seconds.',
                 style: AppTheme.headline(
-                  fontSize: 36,
+                  fontSize: 30,
                   color: AppColors.primary,
                   letterSpacing: -1.0,
                 ),
@@ -119,26 +119,34 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ),
-        const SizedBox(height: 24),
+        const SizedBox(height: 20),
         GestureDetector(
           onTap: widget.onSearchTapped,
           child: Container(
-            height: 64,
+            height: 52,
             decoration: BoxDecoration(
-              color: AppColors.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(16),
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
             ),
             child: Row(
               children: [
-                const SizedBox(width: 20),
-                const Icon(Icons.search, color: AppColors.outline),
-                const SizedBox(width: 12),
+                const SizedBox(width: 16),
+                const Icon(Icons.search_rounded, color: AppColors.outline, size: 22),
+                const SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Search for plumbers, electricians...',
                     style: AppTheme.body(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w400,
                       color: AppColors.outline.withValues(alpha: 0.6),
                     ),
                     maxLines: 1,
@@ -286,19 +294,34 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         const SizedBox(height: 24),
         if (_loading)
-          const SizedBox(
+          SizedBox(
             height: 340,
-            child: Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: 3,
+              separatorBuilder: (_, _) => const SizedBox(width: 24),
+              itemBuilder: (_, _) => _buildSkeletonCard(),
             ),
           )
         else if (_topWorkers.isEmpty)
           SizedBox(
             height: 200,
             child: Center(
-              child: Text(
-                'No professionals available yet',
-                style: AppTheme.body(fontSize: 16, color: AppColors.outline),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.person_search, size: 48, color: AppColors.outlineVariant.withValues(alpha: 0.5)),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No professionals nearby yet',
+                    style: AppTheme.body(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.outline),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Try expanding your search area',
+                    style: AppTheme.body(fontSize: 13, color: AppColors.outlineVariant),
+                  ),
+                ],
               ),
             ),
           )
@@ -338,6 +361,60 @@ class _HomeScreenState extends State<HomeScreen> {
 
 }
 
+class _SkeletonBox extends StatelessWidget {
+  final double width;
+  final double height;
+  const _SkeletonBox({required this.width, required this.height});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(8),
+      ),
+    );
+  }
+}
+
+Widget _buildSkeletonCard() {
+  return Container(
+    width: 280,
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(16),
+      border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.15)),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          height: 160,
+          decoration: BoxDecoration(
+            color: AppColors.surfaceContainerHigh,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: const [
+              _SkeletonBox(width: 140, height: 16),
+              SizedBox(height: 8),
+              _SkeletonBox(width: 90, height: 12),
+              SizedBox(height: 16),
+              _SkeletonBox(width: 180, height: 12),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
+}
+
 class _CategoryCard extends StatelessWidget {
   final String label;
   final String imageUrl;
@@ -358,7 +435,7 @@ class _CategoryCard extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
@@ -464,7 +541,7 @@ class _WorkerCard extends StatelessWidget {
       child: Container(
         width: 280,
         decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: AppColors.outlineVariant.withValues(alpha: 0.15),

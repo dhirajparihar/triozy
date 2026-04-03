@@ -707,23 +707,38 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                         children: [
                           Expanded(
                             child: Container(
-                              padding: const EdgeInsets.all(24),
+                              padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
-                                color: AppColors.surfaceContainerLow,
+                                color: Colors.white,
                                 borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.15)),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.03),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: Column(
                                 children: [
-                                  const Icon(
-                                    Icons.verified_user,
-                                    color: AppColors.secondary,
-                                    size: 28,
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.green50,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.verified_user_rounded,
+                                      color: AppColors.secondary,
+                                      size: 22,
+                                    ),
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 10),
                                   Text(
                                     'Verified Badge',
                                     style: AppTheme.body(
-                                      fontSize: 14,
+                                      fontSize: 13,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
@@ -731,26 +746,41 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(width: 16),
+                          const SizedBox(width: 12),
                           Expanded(
                             child: Container(
-                              padding: const EdgeInsets.all(24),
+                              padding: const EdgeInsets.all(20),
                               decoration: BoxDecoration(
-                                color: AppColors.surfaceContainerLow,
+                                color: Colors.white,
                                 borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.15)),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.03),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
                               child: Column(
                                 children: [
-                                  const Icon(
-                                    Icons.payments,
-                                    color: AppColors.tertiary,
-                                    size: 28,
+                                  Container(
+                                    padding: const EdgeInsets.all(10),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.blue50,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: const Icon(
+                                      Icons.workspace_premium_rounded,
+                                      color: AppColors.primary,
+                                      size: 22,
+                                    ),
                                   ),
-                                  const SizedBox(height: 8),
+                                  const SizedBox(height: 10),
                                   Text(
-                                    'Secure Payouts',
+                                    'Premium Listing',
                                     style: AppTheme.body(
-                                      fontSize: 14,
+                                      fontSize: 13,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
@@ -794,14 +824,15 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
         ),
         Container(
           decoration: BoxDecoration(
-            color: AppColors.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(16),
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
           ),
           child: Row(
             children: [
               Padding(
                 padding: const EdgeInsets.only(left: 16),
-                child: Icon(icon, color: AppColors.outline, size: 20),
+                child: Icon(icon, color: AppColors.primary, size: 20),
               ),
               Expanded(child: child),
             ],

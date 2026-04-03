@@ -29,6 +29,7 @@ class _AddJobScreenState extends State<AddJobScreen> {
 
   late final TextEditingController _descriptionController;
   late final TextEditingController _locationController;
+  late final TextEditingController _phoneController;
 
   String? _selectedCategory;
   bool _isLoading = false;
@@ -65,6 +66,7 @@ class _AddJobScreenState extends State<AddJobScreen> {
     _auth = context.read<AuthService>();
     _descriptionController = TextEditingController(text: widget.jobToEdit?.description ?? '');
     _locationController = TextEditingController(text: widget.jobToEdit?.location ?? '');
+    _phoneController = TextEditingController(text: widget.jobToEdit?.phone ?? '');
     _selectedCategory = widget.jobToEdit?.category;
   }
 
@@ -72,6 +74,7 @@ class _AddJobScreenState extends State<AddJobScreen> {
   void dispose() {
     _descriptionController.dispose();
     _locationController.dispose();
+    _phoneController.dispose();
     super.dispose();
   }
 
@@ -176,6 +179,7 @@ class _AddJobScreenState extends State<AddJobScreen> {
         category: _selectedCategory!,
         description: _descriptionController.text.trim(),
         location: _locationController.text.trim(),
+        phone: _phoneController.text.trim(),
         time: '',
         budgetRange: '',
         status: widget.jobToEdit?.status ?? 'Finding',
@@ -234,14 +238,13 @@ class _AddJobScreenState extends State<AddJobScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: AppColors.surfaceContainerLow,
-                    borderRadius: BorderRadius.circular(16),
+                    color: _jobImage != null ? Colors.white : AppColors.blue50.withValues(alpha: 0.5),
+                    borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: _jobImage != null
-                          ? AppColors.primary.withValues(alpha: 0.5)
-                          : AppColors.outlineVariant.withValues(alpha: 0.3),
-                      width: 2,
-                      strokeAlign: BorderSide.strokeAlignInside,
+                          ? AppColors.primary.withValues(alpha: 0.3)
+                          : AppColors.primary.withValues(alpha: 0.15),
+                      width: 1.5,
                     ),
                   ),
                   child: _jobImage != null
@@ -297,7 +300,7 @@ class _AddJobScreenState extends State<AddJobScreen> {
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.handyman, color: AppColors.primary, size: 20),
                   hintText: 'Select a service category',
-                  fillColor: AppColors.surfaceContainerHighest,
+                  fillColor: Colors.white,
                   filled: true,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
@@ -312,6 +315,24 @@ class _AddJobScreenState extends State<AddJobScreen> {
               const SizedBox(height: 32),
 
               // Description
+              // Phone
+              Text('PHONE NUMBER', style: AppTheme.label(color: AppColors.onSurfaceVariant, letterSpacing: 1.5)),
+              const SizedBox(height: 12),
+              TextFormField(
+                controller: _phoneController,
+                keyboardType: TextInputType.phone,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.phone_rounded, color: AppColors.primary, size: 20),
+                  hintText: 'Your contact number',
+                  fillColor: Colors.white,
+                  filled: true,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                ),
+                validator: (v) => v!.isEmpty ? 'Required' : null,
+              ),
+              const SizedBox(height: 32),
+
               Text('PROBLEM DESCRIPTION', style: AppTheme.label(color: AppColors.onSurfaceVariant, letterSpacing: 1.5)),
               const SizedBox(height: 16),
               TextFormField(
@@ -319,7 +340,7 @@ class _AddJobScreenState extends State<AddJobScreen> {
                 maxLines: 5,
                 decoration: InputDecoration(
                   hintText: 'Briefly describe what needs to be fixed or installed...',
-                  fillColor: AppColors.surfaceContainerHighest,
+                  fillColor: Colors.white,
                   filled: true,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.all(20),
@@ -336,7 +357,7 @@ class _AddJobScreenState extends State<AddJobScreen> {
                 decoration: InputDecoration(
                   prefixIcon: const Icon(Icons.location_on, color: AppColors.primary, size: 20),
                   hintText: 'Enter your address',
-                  fillColor: AppColors.surfaceContainerHighest,
+                  fillColor: Colors.white,
                   filled: true,
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),

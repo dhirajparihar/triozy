@@ -172,8 +172,6 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildHeroSection(),
-            const SizedBox(height: 24),
             _buildSearchBar(),
             const SizedBox(height: 32),
             ..._filteredSections().map((section) => _buildSection(context, section)),
@@ -186,16 +184,24 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
 
   Widget _buildSearchBar() {
     return Container(
-      height: 56,
+      height: 52,
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          const SizedBox(width: 20),
-          const Icon(Icons.search, color: AppColors.outline),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
+          const Icon(Icons.search_rounded, color: AppColors.outline, size: 22),
+          const SizedBox(width: 10),
           Expanded(
             child: TextField(
               controller: _searchController,
@@ -244,37 +250,6 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
         })
         .whereType<_ServiceSection>()
         .toList();
-  }
-
-  Widget _buildHeroSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: 'Expert Help,\n',
-                style: AppTheme.headline(fontSize: 36, letterSpacing: -1.0),
-              ),
-              TextSpan(
-                text: 'Just a Tap Away.',
-                style: AppTheme.headline(
-                  fontSize: 36,
-                  color: AppColors.primary,
-                  letterSpacing: -1.0,
-                ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
-        Text(
-          'Select a service to find verified professionals in your area.',
-          style: AppTheme.body(fontSize: 16, color: AppColors.outline),
-        ),
-      ],
-    );
   }
 
   Widget _buildSection(BuildContext context, _ServiceSection section) {
@@ -333,7 +308,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
       child: Container(
         padding: const EdgeInsets.all(12),
         decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLowest,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(

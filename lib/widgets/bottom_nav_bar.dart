@@ -18,66 +18,38 @@ class AppBottomNavBar extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(40),
-          topRight: Radius.circular(40),
+          topLeft: Radius.circular(28),
+          topRight: Radius.circular(28),
         ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 32,
-            offset: const Offset(0, -8),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, -4),
           ),
         ],
       ),
       child: ClipRRect(
         borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(40),
-          topRight: Radius.circular(40),
+          topLeft: Radius.circular(28),
+          topRight: Radius.circular(28),
         ),
         child: SafeArea(
           top: false,
           child: Padding(
             padding: const EdgeInsets.only(
-              left: 10,
-              right: 10,
-              top: 10,
-              bottom: 14,
+              left: 8,
+              right: 8,
+              top: 8,
+              bottom: 8,
             ),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
-                  child: _NavItem(
-                    icon: Icons.home,
-                    label: 'HOME',
-                    isSelected: currentIndex == 0,
-                    onTap: () => onTap(0),
-                  ),
-                ),
-                Expanded(
-                  child: _NavItem(
-                    icon: Icons.search,
-                    label: 'SEARCH',
-                    isSelected: currentIndex == 1,
-                    onTap: () => onTap(1),
-                  ),
-                ),
-                Expanded(
-                  child: _NavItem(
-                    icon: Icons.work_outline,
-                    label: 'JOBS',
-                    isSelected: currentIndex == 2,
-                    onTap: () => onTap(2),
-                  ),
-                ),
-                Expanded(
-                  child: _NavItem(
-                    icon: Icons.person,
-                    label: 'PROFILE',
-                    isSelected: currentIndex == 3,
-                    onTap: () => onTap(3),
-                  ),
-                ),
+                Expanded(child: _NavItem(icon: Icons.home_rounded, label: 'Home', isSelected: currentIndex == 0, onTap: () => onTap(0))),
+                Expanded(child: _NavItem(icon: Icons.search_rounded, label: 'Search', isSelected: currentIndex == 1, onTap: () => onTap(1))),
+                Expanded(child: _NavItem(icon: Icons.work_outline_rounded, label: 'Jobs', isSelected: currentIndex == 2, onTap: () => onTap(2))),
+                Expanded(child: _NavItem(icon: Icons.person_outline_rounded, label: 'Profile', isSelected: currentIndex == 3, onTap: () => onTap(3))),
               ],
             ),
           ),
@@ -104,36 +76,34 @@ class _NavItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Center(
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          decoration: BoxDecoration(
-            color: isSelected ? AppColors.blue50 : Colors.transparent,
-            borderRadius: BorderRadius.circular(24),
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                icon,
-                color: isSelected ? AppColors.blue700 : AppColors.slate400,
-                size: 24,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 200),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected ? AppColors.primary.withValues(alpha: 0.08) : Colors.transparent,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              icon,
+              color: isSelected ? AppColors.primary : AppColors.slate400,
+              size: 22,
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.inter(
+                fontSize: 11,
+                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                color: isSelected ? AppColors.primary : AppColors.slate400,
               ),
-              const SizedBox(height: 4),
-              Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: GoogleFonts.inter(
-                  fontSize: 10,
-                  fontWeight: FontWeight.w600,
-                  color: isSelected ? AppColors.blue700 : AppColors.slate400,
-                  letterSpacing: 0.8,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

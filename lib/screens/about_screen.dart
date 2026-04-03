@@ -169,20 +169,22 @@ class AboutScreen extends StatelessWidget {
 
   Widget _statCard(String value, String label, IconData icon) {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 12),
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.15)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 16,
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
       child: Column(
         children: [
-          Icon(icon, color: AppColors.primary, size: 24),
+          Icon(icon, color: AppColors.primary, size: 22),
           const SizedBox(height: 12),
           Text(
             value,
@@ -208,20 +210,28 @@ class AboutScreen extends StatelessWidget {
 
   Widget _infoTile(IconData icon, String label) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.15)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceContainerLowest,
-              shape: BoxShape.circle,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.blue50,
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: AppColors.primary, size: 22),
+            child: Icon(icon, color: AppColors.primary, size: 20),
           ),
           const SizedBox(width: 16),
           Expanded(

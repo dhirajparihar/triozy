@@ -396,12 +396,12 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         children: [
           TextSpan(
             text: 'Find the perfect\n',
-            style: AppTheme.headline(fontSize: 36, letterSpacing: -1.0),
+            style: AppTheme.headline(fontSize: 28, letterSpacing: -1.0),
           ),
           TextSpan(
             text: 'service professional.',
             style: AppTheme.headline(
-              fontSize: 36,
+              fontSize: 28,
               color: AppColors.primary,
               letterSpacing: -1.0,
             ),
@@ -413,16 +413,24 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
 
   Widget _buildSearchBar() {
     return Container(
-      height: 56,
+      height: 52,
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
-          const SizedBox(width: 20),
-          const Icon(Icons.search, color: AppColors.outline),
-          const SizedBox(width: 12),
+          const SizedBox(width: 16),
+          const Icon(Icons.search_rounded, color: AppColors.outline, size: 22),
+          const SizedBox(width: 10),
           Expanded(
             child: TextField(
               controller: _searchController,
@@ -542,7 +550,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
       decoration: BoxDecoration(
-        color: selected ? AppColors.primary : AppColors.surfaceContainerLowest,
+        color: selected ? AppColors.primary : Colors.white,
         borderRadius: BorderRadius.circular(9999),
         boxShadow: selected
             ? [
@@ -699,186 +707,162 @@ class _SearchResultCard extends StatelessWidget {
 
   const _SearchResultCard({required this.worker});
 
+  String _getInitials(String name) {
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    return parts[0].isNotEmpty ? parts[0][0].toUpperCase() : '?';
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => WorkerProfileScreen(workerId: worker.uid),
+        ),
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Stack(
-            clipBehavior: Clip.none,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.network(
-                  worker.imageUrl,
-                  width: 96,
-                  height: 96,
-                  fit: BoxFit.cover,
-                  errorBuilder: (_, _, _) => Container(
-                    width: 96,
-                    height: 96,
-                    color: AppColors.surfaceContainerHighest,
-                    child: const Icon(
-                      Icons.person,
-                      size: 36,
-                      color: AppColors.outline,
-                    ),
-                  ),
-                ),
-              ),
-              if (worker.verified)
-                Positioned(
-                  bottom: -8,
-                  right: -8,
-                  child: Container(
-                    width: 32,
-                    height: 32,
-                    decoration: BoxDecoration(
-                      color: AppColors.secondaryContainer,
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: AppColors.surfaceContainerLowest,
-                        width: 4,
-                      ),
-                    ),
-                    child: const Icon(
-                      Icons.verified,
-                      size: 14,
-                      color: AppColors.onSecondaryContainer,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-          const SizedBox(width: 20),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.15)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            // Avatar
+            Stack(
+              clipBehavior: Clip.none,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            worker.name,
-                            style: AppTheme.headline(fontSize: 18),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            worker.role,
-                            style: AppTheme.label(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: AppColors.secondary,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: worker.imageUrl.isNotEmpty
+                      ? Image.network(
+                          worker.imageUrl,
+                          width: 72,
+                          height: 72,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => _avatarFallback(),
+                        )
+                      : _avatarFallback(),
+                ),
+                if (worker.verified)
+                  Positioned(
+                    bottom: -4,
+                    right: -4,
+                    child: Container(
+                      padding: const EdgeInsets.all(2),
                       decoration: BoxDecoration(
-                        color: AppColors.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(9999),
+                        color: AppColors.secondary,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Icon(
-                            Icons.star,
-                            size: 14,
-                            color: AppColors.tertiary,
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            worker.rating,
-                            style: AppTheme.body(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
-                      ),
+                      child: const Icon(Icons.check, size: 10, color: Colors.white),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: worker.tags
-                      .map(
-                        (tag) => Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 8,
-                            vertical: 2,
-                          ),
-                          decoration: BoxDecoration(
-                            color: AppColors.surfaceContainerHigh,
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            tag.toUpperCase(),
-                            style: AppTheme.label(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.onSurfaceVariant,
-                              letterSpacing: 0.8,
-                            ),
-                          ),
-                        ),
-                      )
-                      .toList(),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    GestureDetector(
-                      onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              WorkerProfileScreen(workerId: worker.uid),
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Text(
-                            'View Profile',
-                            style: AppTheme.body(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          const Icon(
-                            Icons.chevron_right,
-                            size: 18,
-                            color: AppColors.primary,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
               ],
             ),
+            const SizedBox(width: 14),
+            // Info
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          worker.name,
+                          style: AppTheme.headline(fontSize: 16),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: AppColors.amber500.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.star_rounded, size: 14, color: AppColors.amber500),
+                            const SizedBox(width: 3),
+                            Text(
+                              worker.rating,
+                              style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w700),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    worker.role,
+                    style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
+                  ),
+                  const SizedBox(height: 10),
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    children: worker.tags
+                        .map(
+                          (tag) => Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            decoration: BoxDecoration(
+                              color: AppColors.blue50,
+                              borderRadius: BorderRadius.circular(6),
+                            ),
+                            child: Text(
+                              tag,
+                              style: AppTheme.label(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.chevron_right_rounded, size: 22, color: AppColors.outlineVariant),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _avatarFallback() {
+    return Container(
+      width: 72,
+      height: 72,
+      decoration: BoxDecoration(
+        color: AppColors.primary.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Center(
+        child: Text(
+          _getInitials(worker.name),
+          style: AppTheme.headline(
+            fontSize: 22,
+            fontWeight: FontWeight.w700,
+            color: AppColors.primary,
           ),
-        ],
+        ),
       ),
     );
   }

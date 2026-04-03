@@ -19,66 +19,86 @@ class TriozyTopAppBar extends StatelessWidget {
   Widget build(BuildContext context) {
     return ClipRRect(
       child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: Container(
-          height: MediaQuery.of(context).padding.top + 64,
+          height: MediaQuery.of(context).padding.top + 60,
           padding: EdgeInsets.only(
             top: MediaQuery.of(context).padding.top,
-            left: 24,
-            right: 24,
+            left: 20,
+            right: 20,
           ),
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9).withValues(alpha: 0.8),
+            color: Colors.white.withValues(alpha: 0.85),
+            border: const Border(
+              bottom: BorderSide(
+                color: Color(0xFFE8ECF0),
+                width: 0.5,
+              ),
+            ),
           ),
           child: Row(
             children: [
-              Expanded(
+              // Location
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.blue50,
+                  borderRadius: BorderRadius.circular(20),
+                ),
                 child: Row(
+                  mainAxisSize: MainAxisSize.min,
                   children: [
-                    const Icon(
-                      Icons.location_on,
-                      color: AppColors.blue600,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
+                    const Icon(Icons.location_on, color: AppColors.blue600, size: 16),
+                    const SizedBox(width: 4),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(
+                        maxWidth: MediaQuery.of(context).size.width * 0.35,
+                      ),
                       child: Text(
-                        location ?? 'New York',
+                        location ?? 'Locating...',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: GoogleFonts.manrope(
-                          fontWeight: FontWeight.w700,
-                          fontSize: 18,
-                          color: AppColors.slate500,
-                          letterSpacing: -0.3,
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.w600,
+                          fontSize: 13,
+                          color: AppColors.blue700,
                         ),
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(width: 12),
+              const Spacer(),
+              // Brand
               Text(
                 'Triozy',
                 style: GoogleFonts.manrope(
                   fontWeight: FontWeight.w900,
-                  fontSize: 22,
+                  fontSize: 20,
                   color: AppColors.blue700,
-                  letterSpacing: -1.2,
+                  letterSpacing: -1.0,
                 ),
               ),
-              const SizedBox(width: 12),
+              const Spacer(),
+              // Avatar
               GestureDetector(
                 onTap: onAvatarTap,
                 child: Container(
-                  width: 40,
-                  height: 40,
+                  width: 36,
+                  height: 36,
                   decoration: BoxDecoration(
                     shape: BoxShape.circle,
                     border: Border.all(
-                      color: AppColors.primaryContainer.withValues(alpha: 0.2),
+                      color: AppColors.primary.withValues(alpha: 0.15),
                       width: 2,
                     ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
                   ),
                   child: ClipOval(
                     child: avatarUrl != null
@@ -100,8 +120,8 @@ class TriozyTopAppBar extends StatelessWidget {
 
   Widget _avatarPlaceholder() {
     return Container(
-      color: AppColors.surfaceContainerHighest,
-      child: const Icon(Icons.person, color: AppColors.outline, size: 24),
+      color: AppColors.surfaceContainerHigh,
+      child: const Icon(Icons.person, color: AppColors.outline, size: 20),
     );
   }
 }

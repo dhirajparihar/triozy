@@ -95,8 +95,8 @@ class _MainShellState extends State<MainShell> {
         children: [
           Padding(
             padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 64,
-              bottom: MediaQuery.of(context).padding.bottom + 80,
+              top: MediaQuery.of(context).padding.top + 60,
+              bottom: MediaQuery.of(context).padding.bottom + 72,
             ),
             child: IndexedStack(index: _currentIndex, children: _screens),
           ),
@@ -114,8 +114,8 @@ class _MainShellState extends State<MainShell> {
           // FAB on Home screen
           if (_currentIndex == 0)
             Positioned(
-              right: 24,
-              bottom: MediaQuery.of(context).padding.bottom + 112,
+              right: 20,
+              bottom: MediaQuery.of(context).padding.bottom + 96,
               child: GestureDetector(
                 onTap: () {
                   Navigator.push(
@@ -124,20 +124,24 @@ class _MainShellState extends State<MainShell> {
                   );
                 },
                 child: Container(
-                  width: 64,
-                  height: 64,
+                  width: 56,
+                  height: 56,
                   decoration: BoxDecoration(
-                    color: AppColors.primaryContainer,
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [AppColors.primaryContainer, AppColors.primary],
+                    ),
                     shape: BoxShape.circle,
                     boxShadow: [
                       BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.2),
-                        blurRadius: 32,
-                        offset: const Offset(0, 12),
+                        color: AppColors.primary.withValues(alpha: 0.3),
+                        blurRadius: 16,
+                        offset: const Offset(0, 6),
                       ),
                     ],
                   ),
-                  child: const Icon(Icons.add, color: Colors.white, size: 28),
+                  child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
                 ),
               ),
             ),

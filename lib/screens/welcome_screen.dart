@@ -77,14 +77,21 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         color: AppColors.secondaryContainer,
                         borderRadius: BorderRadius.circular(9999),
                       ),
-                      child: Text(
-                        'TRUSTED BY 50K+ USERS',
-                        style: AppTheme.label(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.onSecondaryContainer,
-                          letterSpacing: 1.5,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.verified, size: 14, color: AppColors.onSecondaryContainer),
+                          const SizedBox(width: 6),
+                          Text(
+                            'TRUSTED BY 50K+ USERS',
+                            style: AppTheme.label(
+                              fontSize: 10,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.onSecondaryContainer,
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -95,7 +102,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           TextSpan(
                             text: 'Get things done\n',
                             style: AppTheme.headline(
-                              fontSize: 44,
+                              fontSize: 36,
                               fontWeight: FontWeight.w800,
                               letterSpacing: -1.0,
                             ),
@@ -103,7 +110,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                           TextSpan(
                             text: 'with Triozy.',
                             style: AppTheme.headline(
-                              fontSize: 44,
+                              fontSize: 36,
                               fontWeight: FontWeight.w800,
                               color: AppColors.primary,
                               letterSpacing: -1.0,
@@ -112,11 +119,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 12),
                     Text(
-                      'Find trusted local experts or grow your business today. Your premium concierge for every home need.',
+                      'Find trusted local experts or grow your business today.',
                       style: AppTheme.body(
-                        fontSize: 18,
+                        fontSize: 16,
                         color: AppColors.onSurfaceVariant,
                       ),
                     ),
@@ -124,7 +131,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ),
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 24),
 
               // Hero Image
               Padding(
@@ -243,7 +250,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ),
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 32),
 
               // CTA Section - Google Sign In
               Padding(

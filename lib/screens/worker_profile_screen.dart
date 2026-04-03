@@ -300,7 +300,7 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
           width: double.infinity,
           padding: const EdgeInsets.all(32),
           decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
+            color: Colors.white,
             borderRadius: BorderRadius.circular(16),
           ),
           child: Column(
@@ -386,7 +386,7 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+        color: AppColors.blue50.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -432,7 +432,7 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+        color: AppColors.blue50.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
@@ -520,7 +520,7 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
       width: double.infinity,
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(

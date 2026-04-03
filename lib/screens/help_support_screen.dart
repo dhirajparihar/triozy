@@ -160,20 +160,28 @@ class HelpSupportScreen extends StatelessWidget {
 
   Widget _contactTile(IconData icon, String title, String subtitle) {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.15)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         children: [
           Container(
-            padding: const EdgeInsets.all(12),
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceContainerLowest,
-              shape: BoxShape.circle,
+            padding: const EdgeInsets.all(10),
+            decoration: BoxDecoration(
+              color: AppColors.blue50,
+              borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(icon, color: AppColors.primary, size: 22),
+            child: Icon(icon, color: AppColors.primary, size: 20),
           ),
           const SizedBox(width: 16),
           Column(
@@ -223,19 +231,25 @@ class _FaqTileState extends State<_FaqTile> {
       onTap: () => setState(() => _expanded = !_expanded),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 250),
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(20),
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         decoration: BoxDecoration(
-          color: _expanded
-              ? AppColors.surfaceContainerLowest
-              : AppColors.surfaceContainerLow,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: _expanded
-              ? Border.all(
-                  color: AppColors.primary.withValues(alpha: 0.2),
-                  width: 1.5,
-                )
-              : null,
+          border: Border.all(
+            color: _expanded
+                ? AppColors.primary.withValues(alpha: 0.25)
+                : AppColors.outlineVariant.withValues(alpha: 0.15),
+            width: _expanded ? 1.5 : 1,
+          ),
+          boxShadow: [
+            if (_expanded)
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.04),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

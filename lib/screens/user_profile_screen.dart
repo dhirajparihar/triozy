@@ -264,29 +264,37 @@ class UserProfileScreen extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(24),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
         decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLow,
+          color: Colors.white,
           borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.15)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(12),
-              decoration: const BoxDecoration(
-                color: AppColors.surfaceContainerLowest,
-                shape: BoxShape.circle,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.blue50,
+                borderRadius: BorderRadius.circular(12),
               ),
-              child: Icon(icon, color: AppColors.primary, size: 24),
+              child: Icon(icon, color: AppColors.primary, size: 20),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 14),
             Expanded(
               child: Text(
                 label,
-                style: AppTheme.body(fontSize: 16, fontWeight: FontWeight.w600),
+                style: AppTheme.body(fontSize: 15, fontWeight: FontWeight.w600),
               ),
             ),
-            const Icon(Icons.chevron_right, color: AppColors.outline, size: 24),
+            const Icon(Icons.chevron_right_rounded, color: AppColors.outlineVariant, size: 22),
           ],
         ),
       ),

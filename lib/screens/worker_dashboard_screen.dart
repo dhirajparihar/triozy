@@ -193,16 +193,24 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
     );
   }
 
+  String get _greeting {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return 'GOOD MORNING,';
+    if (hour < 17) return 'GOOD AFTERNOON,';
+    return 'GOOD EVENING,';
+  }
+
   Widget _buildIdentitySection(String workerName) {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Column(
+        Expanded(
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'GOOD MORNING,',
+              _greeting,
               style: AppTheme.label(
                 fontSize: 12,
                 fontWeight: FontWeight.w600,
@@ -213,9 +221,12 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
             const SizedBox(height: 4),
             Text(
               workerName,
-              style: AppTheme.headline(fontSize: 36, letterSpacing: -1.0),
+              style: AppTheme.headline(fontSize: 30, letterSpacing: -1.0),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ],
+        ),
         ),
         Column(
           crossAxisAlignment: CrossAxisAlignment.end,
@@ -251,36 +262,37 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
   Widget _buildMetricCard() {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.15)),
         boxShadow: [
           BoxShadow(
-            color: AppColors.onSurface.withValues(alpha: 0.06),
-            blurRadius: 32,
-            offset: const Offset(0, 12),
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         children: [
           Container(
-            width: 64,
-            height: 64,
+            width: 52,
+            height: 52,
             decoration: BoxDecoration(
-              color: AppColors.primaryFixed,
+              color: AppColors.blue50,
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.call, color: AppColors.primary, size: 28),
+            child: const Icon(Icons.call_rounded, color: AppColors.primary, size: 24),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           Text(
             '${_worker?.totalJobs ?? 0}',
             style: AppTheme.headline(
-              fontSize: 48,
+              fontSize: 40,
               fontWeight: FontWeight.w900,
-              letterSpacing: -2.0,
+              letterSpacing: -1.5,
             ),
           ),
           const SizedBox(height: 4),
@@ -402,38 +414,46 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainerLow,
-              shape: BoxShape.circle,
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.15)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
             ),
-            child: Icon(icon, color: AppColors.onSurface, size: 24),
-          ),
-          const SizedBox(height: 16),
-          Text(
-            title,
-            style: AppTheme.body(fontSize: 16, fontWeight: FontWeight.w700),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: AppTheme.body(
-              fontSize: 12,
-              color: AppColors.onSurfaceVariant,
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.blue50,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: AppColors.primary, size: 22),
             ),
-          ),
-        ],
+            const SizedBox(height: 14),
+            Text(
+              title,
+              style: AppTheme.body(fontSize: 15, fontWeight: FontWeight.w700),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              subtitle,
+              style: AppTheme.body(
+                fontSize: 12,
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
       ),
-    ),
     );
   }
 

@@ -177,12 +177,21 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
               child: SizedBox(
                 height: 200,
                 child: Center(
-                  child: Text(
-                    'No professionals found',
-                    style: AppTheme.body(
-                      fontSize: 16,
-                      color: AppColors.outline,
-                    ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.person_search, size: 48, color: AppColors.outlineVariant.withValues(alpha: 0.5)),
+                      const SizedBox(height: 12),
+                      Text(
+                        'No professionals found',
+                        style: AppTheme.body(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.outline),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Try a different category or location',
+                        style: AppTheme.body(fontSize: 13, color: AppColors.outlineVariant),
+                      ),
+                    ],
                   ),
                 ),
               ),
@@ -347,7 +356,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
         decoration: BoxDecoration(
           color: selected
               ? AppColors.primary
-              : AppColors.surfaceContainerLowest,
+              : Colors.white,
           borderRadius: BorderRadius.circular(9999),
           border: selected
               ? null
@@ -418,7 +427,7 @@ class _WorkerListCard extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(32),
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
+        color: Colors.white,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Column(
