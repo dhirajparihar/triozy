@@ -657,53 +657,62 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
                   height: 56,
                   child: DecoratedBox(
                     decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        colors: [
-                          AppColors.secondary,
-                          AppColors.tertiaryContainer,
-                        ],
-                      ),
+                      gradient: w.isAvailable
+                          ? const LinearGradient(
+                              colors: [
+                                AppColors.secondary,
+                                AppColors.tertiaryContainer,
+                              ],
+                            )
+                          : null,
+                      color: w.isAvailable ? null : AppColors.onSurfaceVariant,
                       borderRadius: BorderRadius.circular(16),
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.secondary.withValues(alpha: 0.15),
-                          blurRadius: 32,
-                          offset: const Offset(0, 12),
-                        ),
-                      ],
+                      boxShadow: w.isAvailable
+                          ? [
+                              BoxShadow(
+                                color: AppColors.secondary.withValues(alpha: 0.15),
+                                blurRadius: 32,
+                                offset: const Offset(0, 12),
+                              ),
+                            ]
+                          : null,
                     ),
                     child: Material(
                       color: Colors.transparent,
                       child: InkWell(
                         borderRadius: BorderRadius.circular(16),
-                        onTap: () async {
-                          final db = context.read<DatabaseService>();
-                          if (w.phone.isNotEmpty) {
-                            final uri = Uri(scheme: 'tel', path: w.phone);
-                            if (await canLaunchUrl(uri)) {
-                              await launchUrl(uri);
-                              // Record the call in Firestore
-                              db.incrementWorkerCalls(w.uid);
-                            }
-                          } else {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Phone number not available')),
-                              );
-                            }
-                          }
-                        },
+                        onTap: w.isAvailable
+                            ? () async {
+                                final db = context.read<DatabaseService>();
+                                if (w.phone.isNotEmpty) {
+                                  final uri = Uri(scheme: 'tel', path: w.phone);
+                                  if (await canLaunchUrl(uri)) {
+                                    await launchUrl(uri);
+                                    // Record the call in Firestore
+                                    db.incrementWorkerCalls(w.uid);
+                                  }
+                                } else {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(content: Text('Phone number not available')),
+                                    );
+                                  }
+                                }
+                              }
+                            : null,
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
-                              Icons.call,
+                            Icon(
+                              w.isAvailable ? Icons.call : Icons.call_end,
                               color: AppColors.onSecondary,
                               size: 20,
                             ),
                             const SizedBox(width: 12),
                             Text(
-                              'CALL ${w.name.split(' ').first.toUpperCase()} NOW',
+                              w.isAvailable
+                                  ? 'CALL ${w.name.split(' ').first.toUpperCase()} NOW'
+                                  : '${w.name.split(' ').first.toUpperCase()} IS OFFLINE',
                               style: AppTheme.headline(
                                 fontSize: 18,
                                 color: AppColors.onSecondary,
