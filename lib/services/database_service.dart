@@ -119,6 +119,16 @@ class DatabaseService {
     return null;
   }
 
+  /// Stream a single worker document (real-time updates)
+  Stream<WorkerModel?> streamWorker(String uid) {
+    return _firestore.collection('workers').doc(uid).snapshots().map((doc) {
+      if (doc.exists && doc.data() != null) {
+        return WorkerModel.fromMap(doc.data()!);
+      }
+      return null;
+    });
+  }
+
   /// Search workers by name or skill
   Future<List<WorkerModel>> searchWorkers(String query) async {
     if (query.trim().isEmpty) return getAllWorkers();

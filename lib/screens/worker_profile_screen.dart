@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'dart:ui';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -22,38 +23,46 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
   bool _loading = true;
   int _selectedRating = 0;
   bool _reviewSubmitted = false;
+  StreamSubscription<WorkerModel?>? _workerSub;
 
   @override
   void initState() {
     super.initState();
-    _loadWorker();
+    _subscribeToWorker();
   }
 
-  Future<void> _loadWorker() async {
-    try {
-      final db = context.read<DatabaseService>();
-      final w = await db.getWorker(widget.workerId);
+  @override
+  void dispose() {
+    _workerSub?.cancel();
+    super.dispose();
+  }
 
-      // Check if current user already rated this worker
-      final uid = FirebaseAuth.instance.currentUser?.uid;
-      double? existingRating;
-      if (uid != null) {
+  Future<void> _subscribeToWorker() async {
+    final db = context.read<DatabaseService>();
+
+    // Check if current user already rated this worker
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    double? existingRating;
+    if (uid != null) {
+      try {
         existingRating = await db.getUserRatingForWorker(widget.workerId, uid);
-      }
+      } catch (_) {}
+    }
 
+    _workerSub = db.streamWorker(widget.workerId).listen((w) {
       if (mounted) {
         setState(() {
           _worker = w;
           _loading = false;
-          if (existingRating != null) {
+          if (existingRating != null && !_reviewSubmitted) {
             _selectedRating = existingRating.toInt();
             _reviewSubmitted = true;
           }
         });
       }
-    } catch (e) {
+    }, onError: (_) {
       if (mounted) setState(() => _loading = false);
-    }
+    });
   }
 
   @override
