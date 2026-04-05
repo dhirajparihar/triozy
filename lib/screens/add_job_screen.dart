@@ -59,7 +59,7 @@ class _AddJobScreenState extends State<AddJobScreen> {
     'Babysitter',
     'Tailor',
     'Home Salon',
-    'Co-roommate',
+    'Roommate',
     'HelpBuddy',
     'Mechanic',
     'Other',

@@ -330,12 +330,12 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
               const SizedBox(height: 40),
 
-              // Popular Experts Section
+              // Popular Services Section
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
                 child: Column(
                   children: [
-                    Text('Popular Experts',
+                    Text('Popular Services',
                         style: AppTheme.headline(fontSize: 22)),
                     const SizedBox(height: 16),
                     SizedBox(
@@ -353,14 +353,14 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  const Icon(Icons.plumbing,
+                                  const Icon(Icons.home,
                                       color: AppColors.primary, size: 28),
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text('Plumbing',
+                                      Text('Roommate',
                                           style: AppTheme.headline(fontSize: 18)),
-                                      Text('Top rated repairs',
+                                      Text('Find your perfect roommate',
                                           style: AppTheme.body(
                                               fontSize: 12,
                                               color: AppColors.onSurfaceVariant)),
@@ -391,11 +391,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                             color: Colors.white,
                                             shape: BoxShape.circle,
                                           ),
-                                          child: const Icon(Icons.bolt,
+                                          child: const Icon(Icons.directions_car,
                                               color: AppColors.secondary, size: 20),
                                         ),
                                         const SizedBox(width: 12),
-                                        Text('Electrical',
+                                        Text('Co-rider',
                                             style: AppTheme.headline(fontSize: 16)),
                                       ],
                                     ),
@@ -422,11 +422,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                             color: AppColors.surfaceContainerLow,
                                             shape: BoxShape.circle,
                                           ),
-                                          child: const Icon(Icons.format_paint,
+                                          child: const Icon(Icons.handshake,
                                               color: AppColors.onSurfaceVariant, size: 20),
                                         ),
                                         const SizedBox(width: 12),
-                                        Text('Painting',
+                                        Text('Helpbuddy',
                                             style: AppTheme.headline(fontSize: 16)),
                                       ],
                                     ),

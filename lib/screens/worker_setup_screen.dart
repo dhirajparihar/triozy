@@ -58,7 +58,7 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
     'Babysitter',
     'Tailor',
     'Home Salon',
-    'Co-roommate',
+    'Roommate',
     'HelpBuddy',
     'Mechanic',
   ];

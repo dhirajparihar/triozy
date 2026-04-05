@@ -171,7 +171,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
           tags: ['beauty', 'parlour', 'makeup', 'facial', 'hair', 'waxing', 'manicure', 'pedicure', 'salon', 'threading'],
         ),
         _ServiceItem(
-          name: 'Co-roommate',
+          name: 'Roommate',
           imageUrl:
               'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&q=80',
           tags: ['roommate', 'flatmate', 'room share', 'paying guest', 'pg', 'accommodation', 'rent', 'room partner', 'sharing'],

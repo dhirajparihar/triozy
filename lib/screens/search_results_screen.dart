@@ -43,7 +43,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     'Babysitter',
     'Tailor',
     'Home Salon',
-    'Co-roommate',
+    'Roommate',
     'HelpBuddy',
     'Mechanic',
   ];
