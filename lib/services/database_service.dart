@@ -154,23 +154,55 @@ class DatabaseService {
     });
   }
 
-  /// Submit a star rating for a worker.
-  /// Recalculates the average rating using a running average.
-  Future<void> submitWorkerRating(String workerId, double stars) async {
-    final doc = await _firestore.collection('workers').doc(workerId).get();
-    if (!doc.exists) return;
+  /// Returns the rating (1-5) the given user previously gave this worker, or null if never rated.
+  Future<double?> getUserRatingForWorker(String workerId, String userId) async {
+    final ratingDoc = await _firestore
+        .collection('workers')
+        .doc(workerId)
+        .collection('ratings')
+        .doc(userId)
+        .get();
+    if (!ratingDoc.exists) return null;
+    return (ratingDoc.data()!['stars'] as num?)?.toDouble();
+  }
 
-    final data = doc.data()!;
-    final currentRating = (data['rating'] ?? 0).toDouble();
-    final totalRatings = (data['totalRatings'] ?? 0).toInt();
+  /// Submit or update a star rating for a worker.
+  /// Each user can only rate once; re-rating replaces the previous value.
+  Future<void> submitWorkerRating(String workerId, String userId, double stars) async {
+    final workerRef = _firestore.collection('workers').doc(workerId);
+    final ratingRef = workerRef.collection('ratings').doc(userId);
 
-    final newTotal = totalRatings + 1;
-    final newAverage = ((currentRating * totalRatings) + stars) / newTotal;
+    final workerDoc = await workerRef.get();
+    if (!workerDoc.exists) return;
 
-    await _firestore.collection('workers').doc(workerId).update({
-      'rating': double.parse(newAverage.toStringAsFixed(1)),
-      'totalRatings': newTotal,
-    });
+    final data = workerDoc.data()!;
+    double currentRating = (data['rating'] ?? 0).toDouble();
+    int totalRatings = (data['totalRatings'] ?? 0).toInt();
+
+    final prevRatingDoc = await ratingRef.get();
+    double newAverage;
+    int newTotal;
+
+    if (prevRatingDoc.exists) {
+      // Replace existing rating: remove old, add new
+      final oldStars = (prevRatingDoc.data()!['stars'] as num).toDouble();
+      // totalRatings stays the same
+      newTotal = totalRatings;
+      newAverage = totalRatings == 0
+          ? stars
+          : ((currentRating * totalRatings) - oldStars + stars) / totalRatings;
+    } else {
+      newTotal = totalRatings + 1;
+      newAverage = ((currentRating * totalRatings) + stars) / newTotal;
+    }
+
+    await Future.wait([
+      workerRef.update({
+        'rating': double.parse(newAverage.toStringAsFixed(1)),
+        'totalRatings': newTotal,
+      }),
+      ratingRef.set({'stars': stars, 'updatedAt': FieldValue.serverTimestamp()}),
+    ]);
   }
 
   // ─── Users ───

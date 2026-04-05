@@ -215,6 +215,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
                             : w.location,
                         w.description,
                         w.photoUrl,
+                        w.isAvailable,
                       ),
                       onCall: () => Navigator.push(
                         context,
@@ -405,6 +406,7 @@ class _WorkerListScreenState extends State<WorkerListScreen> {
 
 class _WData {
   final String name, role, rating, experience, distance, description, imageUrl;
+  final bool isAvailable;
   _WData(
     this.name,
     this.role,
@@ -413,6 +415,7 @@ class _WData {
     this.distance,
     this.description,
     this.imageUrl,
+    this.isAvailable,
   );
 }
 
@@ -573,10 +576,10 @@ class _WorkerListCard extends StatelessWidget {
             mainAxisAlignment: MainAxisAlignment.end,
             children: [
               ElevatedButton.icon(
-                onPressed: onCall,
+                onPressed: data.isAvailable ? onCall : null,
                 icon: const Icon(Icons.call, size: 20),
                 label: Text(
-                  'Call',
+                  data.isAvailable ? 'Call' : 'Offline',
                   style: AppTheme.body(
                     fontSize: 18,
                     fontWeight: FontWeight.w700,
@@ -584,7 +587,9 @@ class _WorkerListCard extends StatelessWidget {
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secondary,
+                  backgroundColor: data.isAvailable
+                      ? AppColors.secondary
+                      : AppColors.onSurfaceVariant,
                   foregroundColor: AppColors.onSecondary,
                   padding: const EdgeInsets.symmetric(
                     horizontal: 40,
@@ -593,7 +598,7 @@ class _WorkerListCard extends StatelessWidget {
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(16),
                   ),
-                  elevation: 4,
+                  elevation: data.isAvailable ? 4 : 0,
                   shadowColor: AppColors.secondary.withValues(alpha: 0.2),
                 ),
               ),

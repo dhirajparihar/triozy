@@ -182,6 +182,30 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
               'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=400&q=80',
           tags: ['assistant', 'helper', 'errand', 'task', 'companion', 'support', 'personal assistant', 'help', 'buddy', 'aide'],
         ),
+        _ServiceItem(
+          name: 'Rental Rooms',
+          imageUrl:
+              'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&q=80',
+          tags: ['rental', 'room', 'rent', 'flat', 'apartment', 'furnished', 'pg', 'hostel', 'accommodation', 'lease'],
+        ),
+        _ServiceItem(
+          name: 'Core Cutting',
+          imageUrl:
+              'https://images.unsplash.com/photo-1504307651254-35680f356dfd?w=400&q=80',
+          tags: ['core cutting', 'concrete', 'drilling', 'wall cutting', 'diamond cutting', 'boring', 'construction'],
+        ),
+        _ServiceItem(
+          name: 'Property',
+          imageUrl:
+              'https://images.unsplash.com/photo-1560518883-ce09059eeffa?w=400&q=80',
+          tags: ['property', 'real estate', 'buy', 'sell', 'land', 'plot', 'house', 'villa', 'commercial', 'agent', 'broker'],
+        ),
+        _ServiceItem(
+          name: 'RO Service',
+          imageUrl:
+              'https://media.istockphoto.com/id/1353114688/photo/image-of-unrecognisable-person-doing-a-maintenance-service-on-a-household-filtration-system.jpg?s=612x612&w=0&k=20&c=orSRdqtZP0ML0XpIy1o3ZE9jb9KMlkRNiumCnZL4Mmk=',
+          tags: ['ro', 'water purifier', 'ro service', 'water filter', 'purifier repair', 'aquaguard', 'kent', 'water treatment'],
+        ),
       ],
     ),
   ];

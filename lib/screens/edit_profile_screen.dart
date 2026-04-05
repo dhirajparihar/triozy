@@ -17,13 +17,51 @@ class EditProfileScreen extends StatefulWidget {
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
+
+  // Common fields
   final _nameController = TextEditingController();
   final _phoneController = TextEditingController();
+
+  // Customer-only
   final _addressController = TextEditingController();
+
+  // Worker-only
+  final _locationController = TextEditingController();
+  final _descriptionController = TextEditingController();
+  final _experienceController = TextEditingController();
+  String? _selectedService;
+
+  String? _role;
+  bool _loading = true;
   bool _saving = false;
   bool _uploadingPhoto = false;
   String? _photoUrl;
   XFile? _pickedImage;
+
+  static const List<String> _services = [
+    'Plumbing',
+    'Electrical',
+    'Painting',
+    'Carpenter',
+    'Cleaning',
+    'AC Repair',
+    'Security',
+    'Gardening',
+    'Co-rider',
+    'Car Taxi',
+    'Auto',
+    'Delivery',
+    'Tailor',
+    'Home Salon',
+    'Roommate',
+    'HelpBuddy',
+    'Mechanic',
+    'Pest Control',
+    'Rental Rooms',
+    'Core Cutting',
+    'Property',
+    'RO Service',
+  ];
 
   @override
   void initState() {
@@ -36,6 +74,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController.dispose();
     _phoneController.dispose();
     _addressController.dispose();
+    _locationController.dispose();
+    _descriptionController.dispose();
+    _experienceController.dispose();
     super.dispose();
   }
 
@@ -47,19 +88,45 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _photoUrl = user.photoURL;
 
     try {
-      final snap = await FirebaseFirestore.instance
+      // Load from users collection
+      final userSnap = await FirebaseFirestore.instance
           .collection('users')
           .where('uid', isEqualTo: user.uid)
           .limit(1)
           .get();
-      if (snap.docs.isNotEmpty) {
-        final data = snap.docs.first.data();
+
+      if (userSnap.docs.isNotEmpty) {
+        final data = userSnap.docs.first.data();
+        _role = data['role'] as String?;
         _phoneController.text = data['phone'] ?? '';
         _addressController.text = data['address'] ?? '';
-        if (data['photoUrl'] != null) _photoUrl = data['photoUrl'];
+        if (data['photoUrl'] != null && (data['photoUrl'] as String).isNotEmpty) {
+          _photoUrl = data['photoUrl'];
+        }
+      }
+
+      // If worker, also load from workers collection
+      if (_role == 'worker') {
+        final workerSnap = await FirebaseFirestore.instance
+            .collection('workers')
+            .doc(user.uid)
+            .get();
+        if (workerSnap.exists) {
+          final wd = workerSnap.data()!;
+          _phoneController.text = wd['phone'] ?? _phoneController.text;
+          _locationController.text = wd['location'] ?? '';
+          _descriptionController.text = wd['description'] ?? '';
+          _experienceController.text = (wd['experience'] ?? 0).toString();
+          final skills = List<String>.from(wd['skills'] ?? []);
+          _selectedService = skills.isNotEmpty ? skills.first : null;
+          if (wd['photoUrl'] != null && (wd['photoUrl'] as String).isNotEmpty) {
+            _photoUrl = wd['photoUrl'];
+          }
+        }
       }
     } catch (_) {}
-    if (mounted) setState(() {});
+
+    if (mounted) setState(() => _loading = false);
   }
 
   Future<void> _pickPhoto() async {
@@ -96,10 +163,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       final snapshot = await uploadTask;
       final downloadUrl = await snapshot.ref.getDownloadURL();
 
-      // Update Firebase Auth photo URL
       await user.updatePhotoURL(downloadUrl);
 
-      // Save to Firestore
+      // Update users collection
       final photoSnap = await FirebaseFirestore.instance
           .collection('users')
           .where('uid', isEqualTo: user.uid)
@@ -107,6 +173,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           .get();
       if (photoSnap.docs.isNotEmpty) {
         await photoSnap.docs.first.reference
+            .set({'photoUrl': downloadUrl}, SetOptions(merge: true));
+      }
+
+      // Also update workers collection if worker
+      if (_role == 'worker') {
+        await FirebaseFirestore.instance
+            .collection('workers')
+            .doc(user.uid)
             .set({'photoUrl': downloadUrl}, SetOptions(merge: true));
       }
 
@@ -146,16 +220,38 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       await user.updateDisplayName(_nameController.text.trim());
 
-      final saveSnap = await FirebaseFirestore.instance
+      // Save to users collection
+      final userSnap = await FirebaseFirestore.instance
           .collection('users')
           .where('uid', isEqualTo: user.uid)
           .limit(1)
           .get();
-      if (saveSnap.docs.isNotEmpty) {
-        await saveSnap.docs.first.reference.set({
+
+      if (userSnap.docs.isNotEmpty) {
+        final Map<String, dynamic> userUpdate = {
           'name': _nameController.text.trim(),
           'phone': _phoneController.text.trim(),
-          'address': _addressController.text.trim(),
+        };
+        if (_role == 'customer') {
+          userUpdate['address'] = _addressController.text.trim();
+        }
+        await userSnap.docs.first.reference.set(userUpdate, SetOptions(merge: true));
+      }
+
+      // Save to workers collection if worker
+      if (_role == 'worker') {
+        final exp = int.tryParse(_experienceController.text.trim()) ?? 0;
+        await FirebaseFirestore.instance
+            .collection('workers')
+            .doc(user.uid)
+            .set({
+          'name': _nameController.text.trim(),
+          'phone': _phoneController.text.trim(),
+          'location': _locationController.text.trim(),
+          'description': _descriptionController.text.trim(),
+          'experience': exp,
+          'skills': _selectedService != null ? [_selectedService!] : [],
+          'serviceType': _selectedService ?? '',
         }, SetOptions(merge: true));
       }
 
@@ -165,9 +261,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             content: const Text('Profile updated successfully!'),
             backgroundColor: AppColors.secondary,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
           ),
         );
         Navigator.pop(context);
@@ -189,10 +283,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   Widget _buildAvatar() {
     ImageProvider? imageProvider;
-
     if (_pickedImage != null && !kIsWeb) {
       imageProvider = FileImage(File(_pickedImage!.path));
-    } else if (_photoUrl != null) {
+    } else if (_photoUrl != null && _photoUrl!.isNotEmpty) {
       imageProvider = NetworkImage(_photoUrl!);
     }
 
@@ -247,11 +340,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         strokeWidth: 2,
                       ),
                     )
-                  : const Icon(
-                      Icons.camera_alt,
-                      size: 18,
-                      color: Colors.white,
-                    ),
+                  : const Icon(Icons.camera_alt, size: 18, color: Colors.white),
             ),
           ),
         ],
@@ -273,82 +362,172 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         centerTitle: true,
         iconTheme: const IconThemeData(color: AppColors.onSurface),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(24),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              Center(child: _buildAvatar()),
-              const SizedBox(height: 8),
-              Text(
-                'Tap to change photo',
-                style: AppTheme.body(fontSize: 12, color: AppColors.onSurfaceVariant),
-              ),
-              const SizedBox(height: 32),
-
-              _buildField(
-                controller: _nameController,
-                label: 'Full Name',
-                icon: Icons.person_outline,
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Name is required' : null,
-              ),
-              const SizedBox(height: 20),
-
-              _buildField(
-                controller: _phoneController,
-                label: 'Phone Number',
-                icon: Icons.phone_outlined,
-                keyboardType: TextInputType.phone,
-              ),
-              const SizedBox(height: 20),
-
-              _buildField(
-                controller: _addressController,
-                label: 'Address',
-                icon: Icons.location_on_outlined,
-                maxLines: 2,
-              ),
-              const SizedBox(height: 40),
-
-              SizedBox(
-                width: double.infinity,
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _saving ? null : _saveProfile,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(24),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(child: _buildAvatar()),
+                    const SizedBox(height: 8),
+                    Center(
+                      child: Text(
+                        'Tap to change photo',
+                        style: AppTheme.body(fontSize: 12, color: AppColors.onSurfaceVariant),
+                      ),
                     ),
-                    elevation: 4,
-                    shadowColor: AppColors.primary.withValues(alpha: 0.3),
-                  ),
-                  child: _saving
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            color: Colors.white,
-                            strokeWidth: 2,
+                    const SizedBox(height: 32),
+
+                    // ── Common Fields ──
+                    _sectionLabel('Personal Info'),
+                    const SizedBox(height: 12),
+                    _buildField(
+                      controller: _nameController,
+                      label: 'Full Name',
+                      icon: Icons.person_outline,
+                      validator: (v) =>
+                          v == null || v.trim().isEmpty ? 'Name is required' : null,
+                    ),
+                    const SizedBox(height: 16),
+                    _buildField(
+                      controller: _phoneController,
+                      label: 'Phone Number',
+                      icon: Icons.phone_outlined,
+                      keyboardType: TextInputType.phone,
+                    ),
+                    const SizedBox(height: 16),
+
+                    // ── Customer-only ──
+                    if (_role == 'customer') ...[
+                      _buildField(
+                        controller: _addressController,
+                        label: 'Address',
+                        icon: Icons.location_on_outlined,
+                        maxLines: 2,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    // ── Worker-only ──
+                    if (_role == 'worker') ...[
+                      const SizedBox(height: 8),
+                      _sectionLabel('Work Details'),
+                      const SizedBox(height: 12),
+
+                      // Service type dropdown
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedService,
+                        decoration: _dropdownDecoration('Service Type', Icons.work_outline),
+                        items: _services
+                            .map((s) => DropdownMenuItem(value: s, child: Text(s)))
+                            .toList(),
+                        onChanged: (v) => setState(() => _selectedService = v),
+                        validator: (v) => v == null ? 'Select a service type' : null,
+                      ),
+                      const SizedBox(height: 16),
+
+                      _buildField(
+                        controller: _experienceController,
+                        label: 'Years of Experience',
+                        icon: Icons.history,
+                        keyboardType: TextInputType.number,
+                        validator: (v) {
+                          if (v == null || v.trim().isEmpty) return null;
+                          if (int.tryParse(v.trim()) == null) return 'Enter a valid number';
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+
+                      _buildField(
+                        controller: _locationController,
+                        label: 'Work Location / Area',
+                        icon: Icons.near_me_outlined,
+                      ),
+                      const SizedBox(height: 16),
+
+                      _buildField(
+                        controller: _descriptionController,
+                        label: 'About / Description',
+                        icon: Icons.notes_outlined,
+                        maxLines: 4,
+                      ),
+                      const SizedBox(height: 16),
+                    ],
+
+                    const SizedBox(height: 24),
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: 56,
+                      child: ElevatedButton(
+                        onPressed: _saving ? null : _saveProfile,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: AppColors.primary,
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
                           ),
-                        )
-                      : Text(
-                          'Save Changes',
-                          style: AppTheme.body(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
+                          elevation: 4,
+                          shadowColor: AppColors.primary.withValues(alpha: 0.3),
                         ),
+                        child: _saving
+                            ? const SizedBox(
+                                width: 24,
+                                height: 24,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                'Save Changes',
+                                style: AppTheme.body(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
                 ),
               ),
-            ],
-          ),
-        ),
+            ),
+    );
+  }
+
+  Widget _sectionLabel(String label) {
+    return Text(
+      label,
+      style: AppTheme.headline(fontSize: 16, fontWeight: FontWeight.w700),
+    );
+  }
+
+  InputDecoration _dropdownDecoration(String label, IconData icon) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: AppTheme.body(fontSize: 14, color: AppColors.outline),
+      prefixIcon: Icon(icon, color: AppColors.primary),
+      filled: true,
+      fillColor: Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
       ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: AppColors.primary, width: 1.5),
+      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
     );
   }
 
@@ -388,10 +567,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: AppColors.error),
         ),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 20,
-          vertical: 18,
-        ),
+        contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       ),
     );
   }

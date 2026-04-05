@@ -32,10 +32,22 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
     try {
       final db = context.read<DatabaseService>();
       final w = await db.getWorker(widget.workerId);
+
+      // Check if current user already rated this worker
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      double? existingRating;
+      if (uid != null) {
+        existingRating = await db.getUserRatingForWorker(widget.workerId, uid);
+      }
+
       if (mounted) {
         setState(() {
           _worker = w;
           _loading = false;
+          if (existingRating != null) {
+            _selectedRating = existingRating.toInt();
+            _reviewSubmitted = true;
+          }
         });
       }
     } catch (e) {
@@ -494,9 +506,12 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
   Future<void> _submitRating() async {
     if (_selectedRating == 0 || _worker == null) return;
 
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
     final db = context.read<DatabaseService>();
     try {
-      await db.submitWorkerRating(_worker!.uid, _selectedRating.toDouble());
+      await db.submitWorkerRating(_worker!.uid, uid, _selectedRating.toDouble());
       if (mounted) {
         setState(() => _reviewSubmitted = true);
         ScaffoldMessenger.of(context).showSnackBar(
@@ -526,13 +541,13 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
       child: Column(
         children: [
           Text(
-            _reviewSubmitted ? 'Thanks for your rating!' : 'Rate this Professional',
+            _reviewSubmitted ? 'Your Rating' : 'Rate this Professional',
             style: AppTheme.headline(fontSize: 20),
           ),
           const SizedBox(height: 8),
           Text(
             _reviewSubmitted
-                ? 'Your feedback helps others find great professionals.'
+                ? 'You already rated. Tap a star to update.'
                 : 'Tap a star to rate your experience',
             style: AppTheme.body(fontSize: 14, color: AppColors.onSurfaceVariant),
             textAlign: TextAlign.center,
@@ -543,9 +558,10 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
             children: List.generate(5, (index) {
               final starIndex = index + 1;
               return GestureDetector(
-                onTap: _reviewSubmitted
-                    ? null
-                    : () => setState(() => _selectedRating = starIndex),
+                onTap: () => setState(() {
+                  _selectedRating = starIndex;
+                  _reviewSubmitted = false;
+                }),
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 6),
                   child: Icon(
