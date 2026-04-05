@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -82,83 +83,108 @@ class _HomeScreenState extends State<HomeScreen> {
       color: AppColors.primary,
       child: SingleChildScrollView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(top: 24, bottom: 32, left: 24, right: 24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildSearchSection(context),
-            const SizedBox(height: 36),
-            _buildCategoriesSection(context),
-            const SizedBox(height: 36),
-            _buildTopWorkersSection(context),
+            _buildHeroSection(context),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 36, 24, 32),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildCategoriesSection(context),
+                  const SizedBox(height: 36),
+                  _buildTopWorkersSection(context),
+                ],
+              ),
+            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildSearchSection(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        RichText(
-          text: TextSpan(
-            children: [
-              TextSpan(
-                text: 'Find expert help\n',
-                style: AppTheme.headline(fontSize: 30, letterSpacing: -1.0),
-              ),
-              TextSpan(
-                text: 'in seconds.',
-                style: AppTheme.headline(
-                  fontSize: 30,
-                  color: AppColors.primary,
-                  letterSpacing: -1.0,
-                ),
-              ),
-            ],
-          ),
+  Widget _buildHeroSection(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF1E3A8A), Color(0xFF2563EB), Color(0xFF4F46E5)],
         ),
-        const SizedBox(height: 20),
-        GestureDetector(
-          onTap: widget.onSearchTapped,
-          child: Container(
-            height: 52,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
-            ),
-            child: Row(
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(36)),
+      ),
+      padding: const EdgeInsets.fromLTRB(24, 52, 24, 40),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          RichText(
+            text: TextSpan(
               children: [
-                const SizedBox(width: 16),
-                const Icon(Icons.search_rounded, color: AppColors.outline, size: 22),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: Text(
-                    'Search for plumbers, electricians...',
-                    style: AppTheme.body(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w400,
-                      color: AppColors.outline.withValues(alpha: 0.6),
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                TextSpan(
+                  text: 'Find expert help\n',
+                  style: AppTheme.headline(
+                    fontSize: 30,
+                    color: Colors.white.withValues(alpha: 0.85),
+                    letterSpacing: -1.0,
                   ),
                 ),
-                const SizedBox(width: 20),
+                TextSpan(
+                  text: 'in seconds.',
+                  style: AppTheme.headline(
+                    fontSize: 30,
+                    color: Colors.white,
+                    letterSpacing: -1.0,
+                  ),
+                ),
               ],
             ),
           ),
-        ),
-      ],
+          const SizedBox(height: 24),
+          GestureDetector(
+            onTap: widget.onSearchTapped,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(16),
+              child: BackdropFilter(
+                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                child: Container(
+                  height: 54,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.18),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.35),
+                      width: 1.2,
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 16),
+                      Icon(Icons.search_rounded,
+                          color: Colors.white.withValues(alpha: 0.85), size: 22),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: Text(
+                          'Search for plumbers, electricians...',
+                          style: AppTheme.body(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w400,
+                            color: Colors.white.withValues(alpha: 0.7),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      const SizedBox(width: 20),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
@@ -439,9 +465,15 @@ class _CategoryCard extends StatelessWidget {
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 20,
+              color: AppColors.primary.withValues(alpha: 0.10),
+              blurRadius: 24,
               offset: const Offset(0, 8),
+              spreadRadius: 0,
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
             ),
           ],
         ),
@@ -542,10 +574,20 @@ class _WorkerCard extends StatelessWidget {
         width: 280,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(
-            color: AppColors.outlineVariant.withValues(alpha: 0.15),
-          ),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.10),
+              blurRadius: 28,
+              offset: const Offset(0, 10),
+              spreadRadius: 0,
+            ),
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -554,7 +596,7 @@ class _WorkerCard extends StatelessWidget {
               children: [
                 ClipRRect(
                   borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(16),
+                    top: Radius.circular(20),
                   ),
                   child: Image.network(
                     data.imageUrl,
@@ -563,7 +605,10 @@ class _WorkerCard extends StatelessWidget {
                     fit: BoxFit.cover,
                     errorBuilder: (_, _, _) => Container(
                       height: 160,
-                      color: AppColors.surfaceContainerHighest,
+                      decoration: const BoxDecoration(
+                        color: AppColors.surfaceContainerHighest,
+                        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+                      ),
                       child: const Icon(
                         Icons.person,
                         size: 48,

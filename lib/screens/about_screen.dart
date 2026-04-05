@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import 'policy_screen.dart';
 
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
@@ -141,9 +142,15 @@ class AboutScreen extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            _infoTile(Icons.description_outlined, 'Terms of Service'),
+            _infoTile(Icons.description_outlined, 'Terms of Service', onTap: () {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (_) => const PolicyScreen(type: PolicyType.terms)));
+            }),
             const SizedBox(height: 8),
-            _infoTile(Icons.privacy_tip_outlined, 'Privacy Policy'),
+            _infoTile(Icons.privacy_tip_outlined, 'Privacy Policy', onTap: () {
+              Navigator.push(context, MaterialPageRoute(
+                builder: (_) => const PolicyScreen(type: PolicyType.privacy)));
+            }),
             const SizedBox(height: 8),
             _infoTile(Icons.gavel_outlined, 'Licenses'),
 
@@ -208,8 +215,10 @@ class AboutScreen extends StatelessWidget {
     );
   }
 
-  Widget _infoTile(IconData icon, String label) {
-    return Container(
+  Widget _infoTile(IconData icon, String label, {VoidCallback? onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       decoration: BoxDecoration(
         color: Colors.white,
@@ -243,6 +252,7 @@ class AboutScreen extends StatelessWidget {
           const Icon(Icons.chevron_right, color: AppColors.outline, size: 24),
         ],
       ),
+    ),
     );
   }
 }

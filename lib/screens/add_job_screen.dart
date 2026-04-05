@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'policy_screen.dart';
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -32,6 +34,7 @@ class _AddJobScreenState extends State<AddJobScreen> {
   late final TextEditingController _phoneController;
 
   String? _selectedCategory;
+  final TextEditingController _customCategoryController = TextEditingController();
   bool _isLoading = false;
   bool _isLocating = false;
 
@@ -50,13 +53,16 @@ class _AddJobScreenState extends State<AddJobScreen> {
     'Security',
     'Gardening',
     'Co-rider',
-    'Bike Taxi',
     'Car Taxi',
-    'Tempo',
-    'Driver',
+    'Auto',
+    'Personal Driver',
     'Babysitter',
     'Tailor',
     'Home Salon',
+    'Co-roommate',
+    'HelpBuddy',
+    'Mechanic',
+    'Other',
   ];
 
   @override
@@ -75,7 +81,105 @@ class _AddJobScreenState extends State<AddJobScreen> {
     _descriptionController.dispose();
     _locationController.dispose();
     _phoneController.dispose();
+    _customCategoryController.dispose();
     super.dispose();
+  }
+
+  Future<String?> _showCategoryPicker() {
+    String query = '';
+    return showModalBottomSheet<String>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          final filtered = _categories
+              .where((c) => c.toLowerCase().contains(query.toLowerCase()))
+              .toList();
+          return DraggableScrollableSheet(
+            initialChildSize: 0.75,
+            maxChildSize: 0.92,
+            minChildSize: 0.4,
+            builder: (_, scrollCtrl) => Container(
+              decoration: const BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.outlineVariant,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Select Category',
+                            style: AppTheme.headline(fontSize: 18, fontWeight: FontWeight.w700)),
+                        const SizedBox(height: 14),
+                        TextField(
+                          autofocus: true,
+                          onChanged: (v) => setSheet(() => query = v),
+                          decoration: InputDecoration(
+                            prefixIcon: const Icon(Icons.search_rounded, color: AppColors.outline, size: 20),
+                            hintText: 'Search categories...',
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: BorderSide.none,
+                            ),
+                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? Center(
+                            child: Text('No category found',
+                                style: AppTheme.body(color: AppColors.outline)),
+                          )
+                        : ListView.separated(
+                            controller: scrollCtrl,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, _) => const Divider(height: 1),
+                            itemBuilder: (_, i) {
+                              final cat = filtered[i];
+                              final isOther = cat == 'Other';
+                              return ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+                                leading: Icon(
+                                  isOther ? Icons.edit_outlined : Icons.handyman_outlined,
+                                  color: AppColors.primary,
+                                  size: 20,
+                                ),
+                                title: Text(cat,
+                                    style: AppTheme.body(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                      color: isOther ? AppColors.primary : AppColors.onSurface,
+                                    )),
+                                onTap: () => Navigator.pop(ctx, cat),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
   }
 
   Future<void> _pickImage() async {
@@ -176,7 +280,9 @@ class _AddJobScreenState extends State<AddJobScreen> {
       final job = JobModel(
         id: widget.jobToEdit?.id ?? const Uuid().v4(),
         userId: user.uid,
-        category: _selectedCategory!,
+        category: _selectedCategory == 'Other'
+            ? _customCategoryController.text.trim()
+            : _selectedCategory!,
         description: _descriptionController.text.trim(),
         location: _locationController.text.trim(),
         phone: _phoneController.text.trim(),
@@ -295,23 +401,78 @@ class _AddJobScreenState extends State<AddJobScreen> {
               // Category
               Text('SERVICE CATEGORY', style: AppTheme.label(color: AppColors.onSurfaceVariant, letterSpacing: 1.5)),
               const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
+              FormField<String>(
                 initialValue: _selectedCategory,
-                decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.handyman, color: AppColors.primary, size: 20),
-                  hintText: 'Select a service category',
-                  fillColor: Colors.white,
-                  filled: true,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                validator: (_) => _selectedCategory == null ? 'Please select a category' : null,
+                builder: (field) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onTap: () async {
+                        final picked = await _showCategoryPicker();
+                        if (picked != null) {
+                          setState(() => _selectedCategory = picked);
+                          field.didChange(picked);
+                        }
+                      },
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: field.hasError
+                              ? Border.all(color: AppColors.error)
+                              : null,
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.handyman, color: AppColors.primary, size: 20),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _selectedCategory ?? 'Select a service category',
+                                style: AppTheme.body(
+                                  fontSize: 15,
+                                  color: _selectedCategory != null
+                                      ? AppColors.onSurface
+                                      : AppColors.outline.withValues(alpha: 0.6),
+                                ),
+                              ),
+                            ),
+                            const Icon(Icons.expand_more, color: AppColors.outline),
+                          ],
+                        ),
+                      ),
+                    ),
+                    if (field.hasError)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 6, left: 4),
+                        child: Text(field.errorText!,
+                            style: AppTheme.body(fontSize: 12, color: AppColors.error)),
+                      ),
+                  ],
                 ),
-                icon: const Icon(Icons.expand_more, color: AppColors.outline),
-                items: _categories
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedCategory = v),
-                validator: (v) => v == null ? 'Please select a category' : null,
               ),
+              if (_selectedCategory == 'Other') ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _customCategoryController,
+                  textCapitalization: TextCapitalization.words,
+                  decoration: InputDecoration(
+                    prefixIcon: const Icon(Icons.edit_outlined, color: AppColors.primary, size: 20),
+                    hintText: 'Describe the service (e.g. Yoga Trainer)',
+                    fillColor: Colors.white,
+                    filled: true,
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  ),
+                  validator: (_) {
+                    if (_selectedCategory == 'Other' && _customCategoryController.text.trim().isEmpty) {
+                      return 'Please describe the service';
+                    }
+                    return null;
+                  },
+                ),
+              ],
               const SizedBox(height: 32),
 
               // Description
@@ -457,6 +618,9 @@ class _AddJobScreenState extends State<AddJobScreen> {
                         fontWeight: FontWeight.w700,
                         color: AppColors.primary,
                       ),
+                      recognizer: TapGestureRecognizer()
+                        ..onTap = () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const PolicyScreen(type: PolicyType.terms))),
                     ),
                     TextSpan(
                       text: ' and ',
@@ -469,6 +633,9 @@ class _AddJobScreenState extends State<AddJobScreen> {
                         fontWeight: FontWeight.w700,
                         color: AppColors.primary,
                       ),
+                      recognizer: TapGestureRecognizer()
+                        ..onTap = () => Navigator.push(context,
+                            MaterialPageRoute(builder: (_) => const PolicyScreen(type: PolicyType.privacy))),
                     ),
                     TextSpan(
                       text: '.',

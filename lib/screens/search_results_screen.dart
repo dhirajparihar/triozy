@@ -37,13 +37,15 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     'Security',
     'Gardening',
     'Co-rider',
-    'Bike Taxi',
     'Car Taxi',
-    'Tempo',
-    'Driver',
+    'Auto',
+    'Personal Driver',
     'Babysitter',
     'Tailor',
     'Home Salon',
+    'Co-roommate',
+    'HelpBuddy',
+    'Mechanic',
   ];
 
   final List<String> _areas = [
@@ -366,27 +368,42 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: _onRefresh,
-      color: AppColors.primary,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(top: 16, bottom: 32, left: 24, right: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeader(),
-            const SizedBox(height: 24),
-            _buildSearchBar(),
-            const SizedBox(height: 24),
-            _buildFilterChips(),
-            const SizedBox(height: 32),
-            _buildResultsCount(),
-            const SizedBox(height: 24),
-            _buildResultsList(context),
-          ],
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Sticky search bar + filters
+        Container(
+          color: AppColors.background,
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _buildSearchBar(),
+              const SizedBox(height: 12),
+              _buildFilterChips(),
+              const SizedBox(height: 16),
+            ],
+          ),
         ),
-      ),
+        // Scrollable results
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _onRefresh,
+            color: AppColors.primary,
+            child: ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+              children: [
+                _buildHeader(),
+                const SizedBox(height: 16),
+                _buildResultsCount(),
+                const SizedBox(height: 16),
+                _buildResultsList(context),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -589,9 +606,12 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          'Showing ${_results.length} pros in your area',
-          style: AppTheme.label(fontSize: 14, color: AppColors.outline),
+        Expanded(
+          child: Text(
+            'Showing ${_results.length} pros in your area',
+            style: AppTheme.label(fontSize: 14, color: AppColors.outline),
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         GestureDetector(
           onTap: _showSortOptions,

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/gestures.dart';
+import 'policy_screen.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:firebase_auth/firebase_auth.dart';
@@ -50,13 +52,15 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
     'Security',
     'Gardening',
     'Co-rider',
-    'Bike Taxi',
     'Car Taxi',
-    'Tempo',
-    'Driver',
+    'Auto',
+    'Personal Driver',
     'Babysitter',
     'Tailor',
     'Home Salon',
+    'Co-roommate',
+    'HelpBuddy',
+    'Mechanic',
   ];
 
   @override
@@ -674,6 +678,9 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.primary,
                               ),
+                              recognizer: TapGestureRecognizer()
+                                ..onTap = () => Navigator.push(context,
+                                    MaterialPageRoute(builder: (_) => const PolicyScreen(type: PolicyType.terms))),
                             ),
                             TextSpan(
                               text: ' and ',
@@ -689,6 +696,9 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.primary,
                               ),
+                              recognizer: TapGestureRecognizer()
+                                ..onTap = () => Navigator.push(context,
+                                    MaterialPageRoute(builder: (_) => const PolicyScreen(type: PolicyType.privacy))),
                             ),
                             TextSpan(
                               text: '.',
