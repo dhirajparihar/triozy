@@ -1,6 +1,10 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_storage/firebase_storage.dart';
+import 'package:image_picker/image_picker.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
@@ -17,7 +21,9 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
   bool _saving = false;
+  bool _uploadingPhoto = false;
   String? _photoUrl;
+  XFile? _pickedImage;
 
   @override
   void initState() {
@@ -40,7 +46,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _nameController.text = user.displayName ?? '';
     _photoUrl = user.photoURL;
 
-    // Try loading extra fields from Firestore
     try {
       final doc = await FirebaseFirestore.instance
           .collection('users')
@@ -50,9 +55,79 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         final data = doc.data()!;
         _phoneController.text = data['phone'] ?? '';
         _addressController.text = data['address'] ?? '';
+        if (data['photoUrl'] != null) _photoUrl = data['photoUrl'];
       }
     } catch (_) {}
     if (mounted) setState(() {});
+  }
+
+  Future<void> _pickPhoto() async {
+    final picker = ImagePicker();
+    final XFile? image = await picker.pickImage(
+      source: ImageSource.gallery,
+      maxWidth: 512,
+      maxHeight: 512,
+      imageQuality: 85,
+    );
+    if (image == null) return;
+
+    setState(() {
+      _pickedImage = image;
+      _uploadingPhoto = true;
+    });
+
+    try {
+      final user = FirebaseAuth.instance.currentUser;
+      if (user == null) return;
+
+      final ref = FirebaseStorage.instance
+          .ref()
+          .child('profile_photos/${user.uid}.jpg');
+
+      UploadTask uploadTask;
+      if (kIsWeb) {
+        final bytes = await image.readAsBytes();
+        uploadTask = ref.putData(bytes, SettableMetadata(contentType: 'image/jpeg'));
+      } else {
+        uploadTask = ref.putFile(File(image.path));
+      }
+
+      final snapshot = await uploadTask;
+      final downloadUrl = await snapshot.ref.getDownloadURL();
+
+      // Update Firebase Auth photo URL
+      await user.updatePhotoURL(downloadUrl);
+
+      // Save to Firestore
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .set({'photoUrl': downloadUrl}, SetOptions(merge: true));
+
+      if (mounted) {
+        setState(() => _photoUrl = downloadUrl);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text('Profile photo updated!'),
+            backgroundColor: AppColors.secondary,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Failed to upload photo: $e'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _uploadingPhoto = false);
+    }
   }
 
   Future<void> _saveProfile() async {
@@ -63,10 +138,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     if (user == null) return;
 
     try {
-      // Update display name in Firebase Auth
       await user.updateDisplayName(_nameController.text.trim());
 
-      // Save extra fields to Firestore
       await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
         'name': _nameController.text.trim(),
         'phone': _phoneController.text.trim(),
@@ -101,6 +174,78 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     }
   }
 
+  Widget _buildAvatar() {
+    ImageProvider? imageProvider;
+
+    if (_pickedImage != null && !kIsWeb) {
+      imageProvider = FileImage(File(_pickedImage!.path));
+    } else if (_photoUrl != null) {
+      imageProvider = NetworkImage(_photoUrl!);
+    }
+
+    return GestureDetector(
+      onTap: _uploadingPhoto ? null : _pickPhoto,
+      child: Stack(
+        children: [
+          Container(
+            width: 120,
+            height: 120,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 8),
+                ),
+              ],
+            ),
+            child: ClipOval(
+              child: imageProvider != null
+                  ? Image(
+                      image: imageProvider,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => _fallbackAvatar(),
+                    )
+                  : _fallbackAvatar(),
+            ),
+          ),
+          Positioned(
+            bottom: 0,
+            right: 0,
+            child: Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppColors.primary,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.3),
+                    blurRadius: 8,
+                  ),
+                ],
+              ),
+              child: _uploadingPhoto
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        color: Colors.white,
+                        strokeWidth: 2,
+                      ),
+                    )
+                  : const Icon(
+                      Icons.camera_alt,
+                      size: 18,
+                      color: Colors.white,
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -121,61 +266,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           key: _formKey,
           child: Column(
             children: [
-              // Avatar
-              Center(
-                child: Stack(
-                  children: [
-                    Container(
-                      width: 120,
-                      height: 120,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.1),
-                            blurRadius: 20,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      child: ClipOval(
-                        child: _photoUrl != null
-                            ? Image.network(
-                                _photoUrl!,
-                                fit: BoxFit.cover,
-                                errorBuilder: (_, _, _) => _fallbackAvatar(),
-                              )
-                            : _fallbackAvatar(),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 0,
-                      right: 0,
-                      child: Container(
-                        padding: const EdgeInsets.all(10),
-                        decoration: BoxDecoration(
-                          color: AppColors.primary,
-                          shape: BoxShape.circle,
-                          boxShadow: [
-                            BoxShadow(
-                              color: AppColors.primary.withValues(alpha: 0.3),
-                              blurRadius: 8,
-                            ),
-                          ],
-                        ),
-                        child: const Icon(
-                          Icons.camera_alt,
-                          size: 18,
-                          color: Colors.white,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
+              Center(child: _buildAvatar()),
+              const SizedBox(height: 8),
+              Text(
+                'Tap to change photo',
+                style: AppTheme.body(fontSize: 12, color: AppColors.onSurfaceVariant),
               ),
-              const SizedBox(height: 40),
+              const SizedBox(height: 32),
 
-              // Name
               _buildField(
                 controller: _nameController,
                 label: 'Full Name',
@@ -185,7 +283,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Phone
               _buildField(
                 controller: _phoneController,
                 label: 'Phone Number',
@@ -194,7 +291,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               const SizedBox(height: 20),
 
-              // Address
               _buildField(
                 controller: _addressController,
                 label: 'Address',
@@ -203,7 +299,6 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               const SizedBox(height: 40),
 
-              // Save button
               SizedBox(
                 width: double.infinity,
                 height: 56,
