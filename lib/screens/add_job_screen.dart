@@ -62,6 +62,7 @@ class _AddJobScreenState extends State<AddJobScreen> {
     'Roommate',
     'HelpBuddy',
     'Mechanic',
+    'Tile Worker',
     'Rental Rooms',
     'Core Cutting',
     'Property',

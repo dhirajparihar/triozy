@@ -61,6 +61,7 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
     'Roommate',
     'HelpBuddy',
     'Mechanic',
+    'Tile Worker',
     'Rental Rooms',
     'Core Cutting',
     'Property',

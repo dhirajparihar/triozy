@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:ui';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import 'package:share_plus/share_plus.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -144,7 +145,19 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
                   fontWeight: FontWeight.w700,
                 ),
               ),
-              const SizedBox(width: 40),
+              GestureDetector(
+                onTap: _shareProfile,
+                child: Container(
+                  width: 40,
+                  height: 40,
+                  decoration: const BoxDecoration(shape: BoxShape.circle),
+                  child: const Icon(
+                    Icons.share_outlined,
+                    color: AppColors.onSurface,
+                    size: 22,
+                  ),
+                ),
+              ),
             ],
           ),
         ),
@@ -501,6 +514,18 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
         ),
       ],
     );
+  }
+
+  void _shareProfile() {
+    if (_worker == null) return;
+    final w = _worker!;
+    final profileUrl = 'https://triozy-app.web.app/#/worker/${w.uid}';
+    final text = '👷 Check out ${w.name} on Triozy!\n'
+        '🔧 Service: ${w.serviceType}\n'
+        '⭐ Rating: ${w.ratingDisplay}\n'
+        '📍 ${w.location}\n\n'
+        'Book now: $profileUrl';
+    Share.share(text);
   }
 
   Future<void> _submitRating() async {

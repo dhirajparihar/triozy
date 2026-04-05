@@ -57,6 +57,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     'HelpBuddy',
     'Mechanic',
     'Pest Control',
+    'Tile Worker',
     'Rental Rooms',
     'Core Cutting',
     'Property',
@@ -118,7 +119,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _descriptionController.text = wd['description'] ?? '';
           _experienceController.text = (wd['experience'] ?? 0).toString();
           final skills = List<String>.from(wd['skills'] ?? []);
-          _selectedService = skills.isNotEmpty ? skills.first : null;
+          final loaded = skills.isNotEmpty ? skills.first : null;
+          _selectedService = (loaded != null && _services.contains(loaded)) ? loaded : null;
           if (wd['photoUrl'] != null && (wd['photoUrl'] as String).isNotEmpty) {
             _photoUrl = wd['photoUrl'];
           }
