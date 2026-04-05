@@ -47,12 +47,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _photoUrl = user.photoURL;
 
     try {
-      final doc = await FirebaseFirestore.instance
+      final snap = await FirebaseFirestore.instance
           .collection('users')
-          .doc(user.uid)
+          .where('uid', isEqualTo: user.uid)
+          .limit(1)
           .get();
-      if (doc.exists) {
-        final data = doc.data()!;
+      if (snap.docs.isNotEmpty) {
+        final data = snap.docs.first.data();
         _phoneController.text = data['phone'] ?? '';
         _addressController.text = data['address'] ?? '';
         if (data['photoUrl'] != null) _photoUrl = data['photoUrl'];
@@ -99,10 +100,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       await user.updatePhotoURL(downloadUrl);
 
       // Save to Firestore
-      await FirebaseFirestore.instance
+      final photoSnap = await FirebaseFirestore.instance
           .collection('users')
-          .doc(user.uid)
-          .set({'photoUrl': downloadUrl}, SetOptions(merge: true));
+          .where('uid', isEqualTo: user.uid)
+          .limit(1)
+          .get();
+      if (photoSnap.docs.isNotEmpty) {
+        await photoSnap.docs.first.reference
+            .set({'photoUrl': downloadUrl}, SetOptions(merge: true));
+      }
 
       if (mounted) {
         setState(() => _photoUrl = downloadUrl);
@@ -140,11 +146,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     try {
       await user.updateDisplayName(_nameController.text.trim());
 
-      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
-        'name': _nameController.text.trim(),
-        'phone': _phoneController.text.trim(),
-        'address': _addressController.text.trim(),
-      }, SetOptions(merge: true));
+      final saveSnap = await FirebaseFirestore.instance
+          .collection('users')
+          .where('uid', isEqualTo: user.uid)
+          .limit(1)
+          .get();
+      if (saveSnap.docs.isNotEmpty) {
+        await saveSnap.docs.first.reference.set({
+          'name': _nameController.text.trim(),
+          'phone': _phoneController.text.trim(),
+          'address': _addressController.text.trim(),
+        }, SetOptions(merge: true));
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

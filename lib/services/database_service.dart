@@ -177,8 +177,12 @@ class DatabaseService {
 
   /// Get user data
   Future<Map<String, dynamic>?> getUserData(String uid) async {
-    final doc = await _firestore.collection('users').doc(uid).get();
-    if (doc.exists) return doc.data();
+    final snap = await _firestore
+        .collection('users')
+        .where('uid', isEqualTo: uid)
+        .limit(1)
+        .get();
+    if (snap.docs.isNotEmpty) return snap.docs.first.data();
     return null;
   }
 
