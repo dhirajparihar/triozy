@@ -14,6 +14,7 @@ import 'screens/welcome_screen.dart';
 import 'screens/role_selection_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/worker_setup_screen.dart';
+import 'screens/worker_profile_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,8 +33,6 @@ void main() async {
       }
     }
   }
-  // Seed sample workers for development
-  DatabaseService().seedWorkers();
   runApp(const TriozyApp());
 }
 
@@ -60,10 +59,55 @@ class TriozyApp extends StatelessWidget {
         title: 'Triozy',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
-        home: const AuthGate(),
+        onGenerateRoute: (settings) {
+          final uri = Uri.tryParse(settings.name ?? '');
+          if (uri != null && uri.pathSegments.length == 2 && uri.pathSegments[0] == 'worker') {
+            final workerId = uri.pathSegments[1];
+            return MaterialPageRoute(
+              builder: (_) => WorkerProfileScreen(workerId: workerId),
+              settings: settings,
+            );
+          }
+          return null;
+        },
+        home: const _DeepLinkGate(),
       ),
     );
   }
+}
+
+/// Checks the web URL on startup for deep links (e.g. /#/worker/uid)
+/// and navigates directly to that screen, otherwise falls through to AuthGate.
+class _DeepLinkGate extends StatefulWidget {
+  const _DeepLinkGate();
+
+  @override
+  State<_DeepLinkGate> createState() => _DeepLinkGateState();
+}
+
+class _DeepLinkGateState extends State<_DeepLinkGate> {
+  @override
+  void initState() {
+    super.initState();
+    if (kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _handleWebUrl());
+    }
+  }
+
+  void _handleWebUrl() {
+    if (!mounted) return;
+    final fragment = Uri.base.fragment; // e.g. "/worker/abc123"
+    final uri = Uri.tryParse(fragment);
+    if (uri != null && uri.pathSegments.length == 2 && uri.pathSegments[0] == 'worker') {
+      final workerId = uri.pathSegments[1];
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute(builder: (_) => WorkerProfileScreen(workerId: workerId)),
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) => const AuthGate();
 }
 
 /// AuthGate listens to Firebase auth state and routes accordingly
