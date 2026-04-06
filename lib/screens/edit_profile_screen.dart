@@ -29,7 +29,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   final _locationController = TextEditingController();
   final _descriptionController = TextEditingController();
   final _experienceController = TextEditingController();
-  String? _selectedService;
+  List<String> _selectedServices = [];
 
   String? _role;
   bool _loading = true;
@@ -121,8 +121,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           _descriptionController.text = wd['description'] ?? '';
           _experienceController.text = (wd['experience'] ?? 0).toString();
           final skills = List<String>.from(wd['skills'] ?? []);
-          final loaded = skills.isNotEmpty ? skills.first : null;
-          _selectedService = (loaded != null && _services.contains(loaded)) ? loaded : null;
+          _selectedServices = skills.where(_services.contains).toList();
           if (wd['photoUrl'] != null && (wd['photoUrl'] as String).isNotEmpty) {
             _photoUrl = wd['photoUrl'];
           }
@@ -262,8 +261,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             'location': _locationController.text.trim(),
             'description': _descriptionController.text.trim(),
             'experience': exp,
-            'skills': _selectedService != null ? [_selectedService!] : [],
-            'serviceType': _selectedService ?? '',
+            'skills': _selectedServices,
+            'serviceType': _selectedServices.isNotEmpty ? _selectedServices.first : '',
           }, SetOptions(merge: true));
         }
       }
@@ -430,15 +429,76 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       _sectionLabel('Work Details'),
                       const SizedBox(height: 12),
 
-                      // Service type dropdown
-                      DropdownButtonFormField<String>(
-                        initialValue: _selectedService,
-                        decoration: _dropdownDecoration('Service Type', Icons.work_outline),
-                        items: _services
-                            .map((s) => DropdownMenuItem(value: s, child: Text(s)))
-                            .toList(),
-                        onChanged: (v) => setState(() => _selectedService = v),
-                        validator: (v) => v == null ? 'Select a service type' : null,
+                      // Service type multi-select
+                      FormField<List<String>>(
+                        initialValue: _selectedServices,
+                        validator: (_) => _selectedServices.isEmpty
+                            ? 'Select at least one service'
+                            : null,
+                        builder: (field) => Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            InkWell(
+                              borderRadius: BorderRadius.circular(14),
+                              onTap: () async {
+                                await showModalBottomSheet(
+                                  context: context,
+                                  isScrollControlled: true,
+                                  backgroundColor: Colors.transparent,
+                                  builder: (_) => _ServicePickerSheet(
+                                    services: _services,
+                                    selected: List.of(_selectedServices),
+                                    onChanged: (updated) =>
+                                        setState(() => _selectedServices = updated),
+                                  ),
+                                );
+                                field.didChange(_selectedServices);
+                              },
+                              child: InputDecorator(
+                                decoration: _dropdownDecoration(
+                                  'Service Types (tap to select)',
+                                  Icons.work_outline,
+                                ).copyWith(
+                                  errorText: field.errorText,
+                                  suffixIcon: const Icon(Icons.expand_more),
+                                ),
+                                child: _selectedServices.isEmpty
+                                    ? Text(
+                                        'Select services…',
+                                        style: AppTheme.body(
+                                            fontSize: 14,
+                                            color: AppColors.outline),
+                                      )
+                                    : Wrap(
+                                        spacing: 6,
+                                        runSpacing: 4,
+                                        children: _selectedServices
+                                            .map((s) => Chip(
+                                                  label: Text(s,
+                                                      style: AppTheme.body(
+                                                          fontSize: 12)),
+                                                  backgroundColor:
+                                                      AppColors.primary
+                                                          .withValues(alpha: 0.1),
+                                                  side: const BorderSide(
+                                                      color: AppColors.primary,
+                                                      width: 0.8),
+                                                  deleteIcon: const Icon(
+                                                      Icons.close,
+                                                      size: 14),
+                                                  onDeleted: () => setState(
+                                                      () => _selectedServices
+                                                          .remove(s)),
+                                                  visualDensity:
+                                                      VisualDensity.compact,
+                                                  padding: EdgeInsets.zero,
+                                                ))
+                                            .toList(),
+                                      ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                       const SizedBox(height: 16),
 
@@ -589,6 +649,106 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     return Container(
       color: AppColors.surfaceContainerHighest,
       child: const Icon(Icons.person, size: 56, color: AppColors.outline),
+    );
+  }
+}
+
+class _ServicePickerSheet extends StatefulWidget {
+  final List<String> services;
+  final List<String> selected;
+  final ValueChanged<List<String>> onChanged;
+
+  const _ServicePickerSheet({
+    required this.services,
+    required this.selected,
+    required this.onChanged,
+  });
+
+  @override
+  State<_ServicePickerSheet> createState() => _ServicePickerSheetState();
+}
+
+class _ServicePickerSheetState extends State<_ServicePickerSheet> {
+  late List<String> _selected;
+
+  @override
+  void initState() {
+    super.initState();
+    _selected = List.of(widget.selected);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return DraggableScrollableSheet(
+      initialChildSize: 0.6,
+      maxChildSize: 0.9,
+      minChildSize: 0.4,
+      expand: false,
+      builder: (_, controller) => Container(
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          children: [
+            const SizedBox(height: 12),
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.outlineVariant,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Select Services',
+                    style: AppTheme.headline(
+                        fontSize: 18, fontWeight: FontWeight.w700),
+                  ),
+                  TextButton(
+                    onPressed: () {
+                      widget.onChanged(_selected);
+                      Navigator.pop(context);
+                    },
+                    child: Text(
+                      'Done',
+                      style: AppTheme.body(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Divider(height: 1),
+            Expanded(
+              child: ListView.builder(
+                controller: controller,
+                itemCount: widget.services.length,
+                itemBuilder: (_, i) {
+                  final s = widget.services[i];
+                  final checked = _selected.contains(s);
+                  return CheckboxListTile(
+                    value: checked,
+                    title: Text(s, style: AppTheme.body(fontSize: 15)),
+                    activeColor: AppColors.primary,
+                    controlAffinity: ListTileControlAffinity.trailing,
+                    onChanged: (_) => setState(() {
+                      checked ? _selected.remove(s) : _selected.add(s);
+                    }),
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
