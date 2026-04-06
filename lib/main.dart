@@ -33,6 +33,17 @@ void main() async {
       }
     }
   }
+
+  // Handle the result from signInWithRedirect (needed for iPhone Safari).
+  // Firebase Auth state change fires automatically if sign-in succeeded.
+  if (kIsWeb) {
+    try {
+      await FirebaseAuth.instance.getRedirectResult();
+    } catch (_) {
+      // Ignore errors (e.g. user cancelled, no redirect pending)
+    }
+  }
+
   runApp(const TriozyApp());
 }
 
