@@ -72,6 +72,18 @@ class DatabaseService {
 
   // ─── Workers ───
 
+  /// Finds a worker document reference by querying on the uid field.
+  /// Works for both old (uid-only) and new (Name_uid) document IDs.
+  Future<DocumentReference?> _workerDocRef(String uid) async {
+    final snap = await _firestore
+        .collection('workers')
+        .where('uid', isEqualTo: uid)
+        .limit(1)
+        .get();
+    if (snap.docs.isNotEmpty) return snap.docs.first.reference;
+    return null;
+  }
+
   /// Get all workers
   Future<List<WorkerModel>> getAllWorkers() async {
     final snapshot = await _firestore
@@ -112,21 +124,25 @@ class DatabaseService {
 
   /// Get single worker by uid
   Future<WorkerModel?> getWorker(String uid) async {
-    final doc = await _firestore.collection('workers').doc(uid).get();
-    if (doc.exists && doc.data() != null) {
-      return WorkerModel.fromMap(doc.data()!);
-    }
+    final snap = await _firestore
+        .collection('workers')
+        .where('uid', isEqualTo: uid)
+        .limit(1)
+        .get();
+    if (snap.docs.isNotEmpty) return WorkerModel.fromMap(snap.docs.first.data());
     return null;
   }
 
   /// Stream a single worker document (real-time updates)
   Stream<WorkerModel?> streamWorker(String uid) {
-    return _firestore.collection('workers').doc(uid).snapshots().map((doc) {
-      if (doc.exists && doc.data() != null) {
-        return WorkerModel.fromMap(doc.data()!);
-      }
-      return null;
-    });
+    return _firestore
+        .collection('workers')
+        .where('uid', isEqualTo: uid)
+        .limit(1)
+        .snapshots()
+        .map((snap) => snap.docs.isNotEmpty
+            ? WorkerModel.fromMap(snap.docs.first.data())
+            : null);
   }
 
   /// Search workers by name or skill
@@ -152,26 +168,21 @@ class DatabaseService {
     if (currentUid == null || currentUid != uid) {
       throw Exception('Unauthorized: you can only change your own availability.');
     }
-    await _firestore.collection('workers').doc(uid).update({
-      'isAvailable': available,
-    });
+    final ref = await _workerDocRef(uid);
+    await ref?.update({'isAvailable': available});
   }
 
   /// Increment the totalJobs (calls received) counter for a worker
   Future<void> incrementWorkerCalls(String workerId) async {
-    await _firestore.collection('workers').doc(workerId).update({
-      'totalJobs': FieldValue.increment(1),
-    });
+    final ref = await _workerDocRef(workerId);
+    await ref?.update({'totalJobs': FieldValue.increment(1)});
   }
 
   /// Returns the rating (1-5) the given user previously gave this worker, or null if never rated.
   Future<double?> getUserRatingForWorker(String workerId, String userId) async {
-    final ratingDoc = await _firestore
-        .collection('workers')
-        .doc(workerId)
-        .collection('ratings')
-        .doc(userId)
-        .get();
+    final workerRef = await _workerDocRef(workerId);
+    if (workerRef == null) return null;
+    final ratingDoc = await workerRef.collection('ratings').doc(userId).get();
     if (!ratingDoc.exists) return null;
     return (ratingDoc.data()!['stars'] as num?)?.toDouble();
   }
@@ -179,13 +190,14 @@ class DatabaseService {
   /// Submit or update a star rating for a worker.
   /// Each user can only rate once; re-rating replaces the previous value.
   Future<void> submitWorkerRating(String workerId, String userId, double stars) async {
-    final workerRef = _firestore.collection('workers').doc(workerId);
+    final workerRef = await _workerDocRef(workerId);
+    if (workerRef == null) return;
     final ratingRef = workerRef.collection('ratings').doc(userId);
 
     final workerDoc = await workerRef.get();
     if (!workerDoc.exists) return;
 
-    final data = workerDoc.data()!;
+    final data = workerDoc.data()! as Map<String, dynamic>;
     double currentRating = (data['rating'] ?? 0).toDouble();
     int totalRatings = (data['totalRatings'] ?? 0).toInt();
 

@@ -108,12 +108,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       // If worker, also load from workers collection
       if (_role == 'worker') {
-        final workerSnap = await FirebaseFirestore.instance
+        final workerQuery = await FirebaseFirestore.instance
             .collection('workers')
-            .doc(user.uid)
+            .where('uid', isEqualTo: user.uid)
+            .limit(1)
             .get();
-        if (workerSnap.exists) {
-          final wd = workerSnap.data()!;
+        final workerSnap = workerQuery.docs.isNotEmpty ? workerQuery.docs.first : null;
+        if (workerSnap != null) {
+          final wd = workerSnap.data();
           _phoneController.text = wd['phone'] ?? _phoneController.text;
           _locationController.text = wd['location'] ?? '';
           _descriptionController.text = wd['description'] ?? '';
@@ -180,10 +182,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       // Also update workers collection if worker
       if (_role == 'worker') {
-        await FirebaseFirestore.instance
+        final workerPhotoSnap = await FirebaseFirestore.instance
             .collection('workers')
-            .doc(user.uid)
-            .set({'photoUrl': downloadUrl}, SetOptions(merge: true));
+            .where('uid', isEqualTo: user.uid)
+            .limit(1)
+            .get();
+        if (workerPhotoSnap.docs.isNotEmpty) {
+          await workerPhotoSnap.docs.first.reference
+              .set({'photoUrl': downloadUrl}, SetOptions(merge: true));
+        }
       }
 
       if (mounted) {
@@ -243,18 +250,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       // Save to workers collection if worker
       if (_role == 'worker') {
         final exp = int.tryParse(_experienceController.text.trim()) ?? 0;
-        await FirebaseFirestore.instance
+        final workerSaveSnap = await FirebaseFirestore.instance
             .collection('workers')
-            .doc(user.uid)
-            .set({
-          'name': _nameController.text.trim(),
-          'phone': _phoneController.text.trim(),
-          'location': _locationController.text.trim(),
-          'description': _descriptionController.text.trim(),
-          'experience': exp,
-          'skills': _selectedService != null ? [_selectedService!] : [],
-          'serviceType': _selectedService ?? '',
-        }, SetOptions(merge: true));
+            .where('uid', isEqualTo: user.uid)
+            .limit(1)
+            .get();
+        if (workerSaveSnap.docs.isNotEmpty) {
+          await workerSaveSnap.docs.first.reference.set({
+            'name': _nameController.text.trim(),
+            'phone': _phoneController.text.trim(),
+            'location': _locationController.text.trim(),
+            'description': _descriptionController.text.trim(),
+            'experience': exp,
+            'skills': _selectedService != null ? [_selectedService!] : [],
+            'serviceType': _selectedService ?? '',
+          }, SetOptions(merge: true));
+        }
       }
 
       if (mounted) {

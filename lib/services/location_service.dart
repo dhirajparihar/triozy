@@ -98,7 +98,13 @@ class LocationService {
   /// Save a GeoFirePoint to the worker's Firestore document.
   Future<void> saveWorkerLocation(String uid, double lat, double lng) async {
     final geoFirePoint = GeoFirePoint(GeoPoint(lat, lng));
-    await _firestore.collection('workers').doc(uid).set({
+    final snap = await _firestore
+        .collection('workers')
+        .where('uid', isEqualTo: uid)
+        .limit(1)
+        .get();
+    if (snap.docs.isEmpty) return;
+    await snap.docs.first.reference.set({
       'position': geoFirePoint.data,
       'latitude': lat,
       'longitude': lng,
