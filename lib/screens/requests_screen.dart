@@ -2,22 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
-import '../models/job_model.dart';
+import '../models/request_model.dart';
 import '../services/database_service.dart';
 import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
-import 'add_job_screen.dart';
+import 'add_request_screen.dart';
 
-class JobsScreen extends StatefulWidget {
-  final bool showOnlyMyJobs;
-  const JobsScreen({super.key, this.showOnlyMyJobs = false});
+class RequestsScreen extends StatefulWidget {
+  final bool showOnlyMyRequests;
+  const RequestsScreen({super.key, this.showOnlyMyRequests = false});
 
   @override
-  State<JobsScreen> createState() => _JobsScreenState();
+  State<RequestsScreen> createState() => _RequestsScreenState();
 }
 
-class _JobsScreenState extends State<JobsScreen> {
+class _RequestsScreenState extends State<RequestsScreen> {
   late final DatabaseService _db;
   late final AuthService _auth;
   final TextEditingController _searchController = TextEditingController();
@@ -36,10 +36,10 @@ class _JobsScreenState extends State<JobsScreen> {
     super.dispose();
   }
 
-  List<JobModel> _filterJobs(List<JobModel> jobs) {
-    if (_query.isEmpty) return jobs;
+  List<RequestModel> _filterRequests(List<RequestModel> requests) {
+    if (_query.isEmpty) return requests;
     final q = _query.toLowerCase();
-    return jobs.where((j) =>
+    return requests.where((j) =>
       j.category.toLowerCase().contains(q) ||
       j.description.toLowerCase().contains(q) ||
       j.location.toLowerCase().contains(q) ||
@@ -47,25 +47,25 @@ class _JobsScreenState extends State<JobsScreen> {
     ).toList();
   }
 
-  void _editJob(JobModel job) {
+  void _editRequest(RequestModel request) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => AddJobScreen(jobToEdit: job)),
+      MaterialPageRoute(builder: (_) => AddRequestScreen(requestToEdit: request)),
     );
   }
 
-  void _deleteJob(JobModel job) {
+  void _deleteRequest(RequestModel request) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('Delete Job?'),
-        content: const Text('Are you sure you want to remove this job posting?'),
+        title: const Text('Delete Request?'),
+        content: const Text('Are you sure you want to remove this request?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await _db.deleteJob(job.id);
+              await _db.deleteRequest(request.id);
             },
             child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
@@ -78,7 +78,7 @@ class _JobsScreenState extends State<JobsScreen> {
   Widget build(BuildContext context) {
     final user = _auth.currentUser;
     if (user == null) {
-      return const Center(child: Text('Please login to view your jobs.'));
+      return const Center(child: Text('Please login to view your requests.'));
     }
 
     final content = Column(
@@ -88,7 +88,7 @@ class _JobsScreenState extends State<JobsScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
           child: Text(
-            'Jobs',
+            'Requests',
             style: AppTheme.headline(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.primary),
           ),
         ),
@@ -145,8 +145,8 @@ class _JobsScreenState extends State<JobsScreen> {
         ),
         // Results from stream
         Expanded(
-          child: StreamBuilder<List<JobModel>>(
-            stream: widget.showOnlyMyJobs ? _db.getUserJobs(user.uid) : _db.getAllJobs(),
+          child: StreamBuilder<List<RequestModel>>(
+            stream: widget.showOnlyMyRequests ? _db.getUserRequests(user.uid) : _db.getAllRequests(),
             builder: (context, snapshot) {
               if (snapshot.connectionState == ConnectionState.waiting) {
                 return const Center(child: CircularProgressIndicator());
@@ -154,21 +154,21 @@ class _JobsScreenState extends State<JobsScreen> {
               if (snapshot.hasError) {
                 return Center(child: Text('Error: ${snapshot.error}'));
               }
-              final filtered = _filterJobs(snapshot.data ?? []);
-              return _buildJobsList(filtered, true, user.uid);
+              final filtered = _filterRequests(snapshot.data ?? []);
+              return _buildRequestsList(filtered, true, user.uid);
             },
           ),
         ),
       ],
     );
 
-    // When used as standalone screen (showOnlyMyJobs), wrap with Scaffold + AppBar
-    if (widget.showOnlyMyJobs) {
+    // When used as standalone screen (showOnlyMyRequests), wrap with Scaffold + AppBar
+    if (widget.showOnlyMyRequests) {
       return Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
           title: Text(
-            'My Jobs',
+            'My Requests',
             style: AppTheme.headline(fontSize: 20, fontWeight: FontWeight.w700),
           ),
           backgroundColor: Colors.transparent,
@@ -184,7 +184,7 @@ class _JobsScreenState extends State<JobsScreen> {
     return content;
   }
 
-  Widget _buildJobsList(List<JobModel> jobs, bool isActive, String currentUserId) {
+  Widget _buildRequestsList(List<RequestModel> jobs, bool isActive, String currentUserId) {
     if (jobs.isEmpty) {
       return Center(
         child: Column(
@@ -193,12 +193,12 @@ class _JobsScreenState extends State<JobsScreen> {
             Icon(Icons.work_outline, size: 56, color: AppColors.outlineVariant.withValues(alpha: 0.5)),
             const SizedBox(height: 16),
             Text(
-              'No jobs yet',
+              'No requests yet',
               style: AppTheme.body(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.outline),
             ),
             const SizedBox(height: 4),
             Text(
-              'Post a job to find professionals near you',
+              'Post a request to find professionals near you',
               style: AppTheme.body(fontSize: 13, color: AppColors.outlineVariant),
             ),
           ],
@@ -213,17 +213,17 @@ class _JobsScreenState extends State<JobsScreen> {
         final job = jobs[index];
         final isOwner = job.userId == currentUserId;
 
-        return _JobCard(
+        return _RequestCard(
           job: job,
-          showActions: widget.showOnlyMyJobs && isOwner,
-          onEdit: () => _editJob(job),
-          onDelete: () => _deleteJob(job),
+          showActions: widget.showOnlyMyRequests && isOwner,
+          onEdit: () => _editRequest(job),
+          onDelete: () => _deleteRequest(job),
           onRebook: () {
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (_) => AddJobScreen(
-                  jobToEdit: JobModel(
+                builder: (_) => AddRequestScreen(
+                  requestToEdit: RequestModel(
                     id: '',
                     userId: job.userId,
                     category: job.category,
@@ -242,14 +242,14 @@ class _JobsScreenState extends State<JobsScreen> {
   }
 }
 
-class _JobCard extends StatefulWidget {
-  final JobModel job;
+class _RequestCard extends StatefulWidget {
+  final RequestModel job;
   final bool showActions;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
   final VoidCallback? onRebook;
 
-  const _JobCard({
+  const _RequestCard({
     required this.job,
     this.showActions = false,
     required this.onEdit,
@@ -258,10 +258,10 @@ class _JobCard extends StatefulWidget {
   });
 
   @override
-  State<_JobCard> createState() => _JobCardState();
+  State<_RequestCard> createState() => _RequestCardState();
 }
 
-class _JobCardState extends State<_JobCard> {
+class _RequestCardState extends State<_RequestCard> {
   bool _expanded = false;
   String? _posterName;
   String? _posterPhoto;

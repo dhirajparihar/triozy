@@ -7,10 +7,10 @@ import '../widgets/top_app_bar.dart';
 import '../providers/location_provider.dart';
 import 'home_screen.dart';
 import 'search_results_screen.dart';
-import 'jobs_screen.dart';
+import 'requests_screen.dart';
 import 'user_profile_screen.dart';
 import 'worker_dashboard_screen.dart';
-import 'add_job_screen.dart';
+import 'add_request_screen.dart';
 
 class MainShell extends StatefulWidget {
   final bool isWorker;
@@ -26,7 +26,7 @@ class _MainShellState extends State<MainShell> {
   late final List<Widget> _screens = [
     HomeScreen(onSearchTapped: () => setState(() => _currentIndex = 1)),
     const SearchResultsScreen(),
-    const JobsScreen(),
+    const RequestsScreen(),
     widget.isWorker ? const WorkerDashboardScreen() : const UserProfileScreen(),
   ];
 
@@ -120,7 +120,7 @@ class _MainShellState extends State<MainShell> {
                 onTap: () {
                   Navigator.push(
                     context,
-                    MaterialPageRoute(builder: (_) => const AddJobScreen()),
+                    MaterialPageRoute(builder: (_) => const AddRequestScreen()),
                   );
                 },
                 child: Container(

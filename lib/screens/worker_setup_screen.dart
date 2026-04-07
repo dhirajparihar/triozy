@@ -30,7 +30,7 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
   final _locationController = TextEditingController();
   final _experienceController = TextEditingController();
   final _descriptionController = TextEditingController();
-  String? _selectedService;
+  final List<String> _selectedServices = [];
   bool _isLoading = false;
   bool _isLocating = false;
   bool _isUploadingImage = false;
@@ -51,7 +51,7 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
     'Maid',
     'Security',
     'Gardening',
-    'Co-rider',
+    'Ride Sharing',
     'Car Taxi',
     'Auto',
     'Personal Driver',
@@ -141,11 +141,126 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
     }
   }
 
+  Future<void> _showServicePicker() async {
+    final tempSelected = List<String>.from(_selectedServices);
+    String query = '';
+
+    final result = await showModalBottomSheet<List<String>>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setSheet) {
+          final filtered = _services
+              .where((s) => s.toLowerCase().contains(query.toLowerCase()))
+              .toList();
+          return DraggableScrollableSheet(
+            initialChildSize: 0.75,
+            maxChildSize: 0.92,
+            minChildSize: 0.4,
+            builder: (_, scrollCtrl) => Container(
+              decoration: const BoxDecoration(
+                color: AppColors.background,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                children: [
+                  const SizedBox(height: 12),
+                  Container(
+                    width: 40, height: 4,
+                    decoration: BoxDecoration(
+                      color: AppColors.outlineVariant,
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                    child: Row(
+                      children: [
+                        Text('Select Services',
+                            style: AppTheme.headline(fontSize: 18, fontWeight: FontWeight.w700)),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, tempSelected),
+                          child: Text('Done',
+                              style: AppTheme.body(
+                                  fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    child: TextField(
+                      onChanged: (v) => setSheet(() => query = v),
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.search_rounded, color: AppColors.outline, size: 20),
+                        hintText: 'Search services...',
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
+                    ),
+                  ),
+                  Expanded(
+                    child: filtered.isEmpty
+                        ? Center(
+                            child: Text('No service found',
+                                style: AppTheme.body(color: AppColors.outline)),
+                          )
+                        : ListView.separated(
+                            controller: scrollCtrl,
+                            padding: const EdgeInsets.symmetric(horizontal: 20),
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, _) => const Divider(height: 1),
+                            itemBuilder: (_, i) {
+                              final svc = filtered[i];
+                              final isSelected = tempSelected.contains(svc);
+                              return CheckboxListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
+                                title: Text(svc,
+                                    style: AppTheme.body(
+                                      fontSize: 15,
+                                      fontWeight: FontWeight.w500,
+                                      color: isSelected ? AppColors.primary : AppColors.onSurface,
+                                    )),
+                                value: isSelected,
+                                activeColor: AppColors.primary,
+                                onChanged: (checked) => setSheet(() {
+                                  if (checked == true) {
+                                    tempSelected.add(svc);
+                                  } else {
+                                    tempSelected.remove(svc);
+                                  }
+                                }),
+                              );
+                            },
+                          ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+
+    if (result != null && mounted) {
+      setState(() => _selectedServices
+        ..clear()
+        ..addAll(result));
+    }
+  }
+
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedService == null) {
+    if (_selectedServices.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a service type')),
+        const SnackBar(content: Text('Please select at least one service type')),
       );
       return;
     }
@@ -210,7 +325,7 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
 
       await _authService.saveWorkerProfile(
         uid: user.uid,
-        skills: [_selectedService!],
+        skills: _selectedServices,
         experience: exp,
         location: _locationController.text.trim(),
         name: _nameController.text.trim(),
@@ -339,7 +454,7 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                       const SizedBox(height: 8),
                       // Header
                       Text(
-                        'Register as Professional',
+                        'Register as Service Provider',
                         style: AppTheme.headline(
                           fontSize: 36,
                           fontWeight: FontWeight.w800,
@@ -349,7 +464,7 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Join our elite network of service professionals and start receiving jobs today.',
+                        'Join our elite network of service professionals and start receiving requests today.',
                         style: AppTheme.body(
                           fontSize: 16,
                           fontWeight: FontWeight.w500,
@@ -468,26 +583,62 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                       _buildField(
                         label: 'SERVICE TYPE',
                         icon: Icons.handyman,
-                        child: DropdownButtonFormField<String>(
-                          initialValue: _selectedService,
-                          decoration: _inputDecoration('Select your expertise'),
-                          style: AppTheme.body(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w500,
+                        child: FormField<List<String>>(
+                          validator: (_) =>
+                              _selectedServices.isEmpty ? 'Required' : null,
+                          builder: (field) => Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: () async {
+                                  await _showServicePicker();
+                                  field.didChange(_selectedServices);
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 12, vertical: 16),
+                                  child: _selectedServices.isEmpty
+                                      ? Text(
+                                          'Select your expertise',
+                                          style: AppTheme.body(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w500,
+                                            color: AppColors.outlineVariant,
+                                          ),
+                                        )
+                                      : Wrap(
+                                          spacing: 6,
+                                          runSpacing: 4,
+                                          children: _selectedServices
+                                              .map((s) => Chip(
+                                                    label: Text(s,
+                                                        style: AppTheme.body(
+                                                            fontSize: 13,
+                                                            color: AppColors.primary)),
+                                                    backgroundColor:
+                                                        AppColors.primaryFixed,
+                                                    padding: EdgeInsets.zero,
+                                                    materialTapTargetSize:
+                                                        MaterialTapTargetSize
+                                                            .shrinkWrap,
+                                                    side: BorderSide.none,
+                                                  ))
+                                              .toList(),
+                                        ),
+                                ),
+                              ),
+                              if (field.hasError)
+                                Padding(
+                                  padding:
+                                      const EdgeInsets.only(left: 12, bottom: 8),
+                                  child: Text(field.errorText!,
+                                      style: AppTheme.body(
+                                          fontSize: 12,
+                                          color: AppColors.error)),
+                                ),
+                            ],
                           ),
-                          items: _services
-                              .map(
-                                (s) =>
-                                    DropdownMenuItem(value: s, child: Text(s)),
-                              )
-                              .toList(),
-                          onChanged: (v) =>
-                              setState(() => _selectedService = v),
-                          icon: const Icon(
-                            Icons.expand_more,
-                            color: AppColors.outline,
-                          ),
-                          validator: (v) => v == null ? 'Required' : null,
                         ),
                       ),
                       const SizedBox(height: 20),

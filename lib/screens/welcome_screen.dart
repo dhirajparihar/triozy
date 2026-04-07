@@ -395,7 +395,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                               color: AppColors.secondary, size: 20),
                                         ),
                                         const SizedBox(width: 12),
-                                        Text('Co-rider',
+                                        Text('Ride Sharing',
                                             style: AppTheme.headline(fontSize: 16)),
                                       ],
                                     ),

@@ -8,7 +8,7 @@ import '../screens/worker_setup_screen.dart';
 import '../screens/edit_profile_screen.dart';
 import '../screens/help_support_screen.dart';
 import '../screens/about_screen.dart';
-import '../screens/jobs_screen.dart';
+import '../screens/requests_screen.dart';
 
 class UserProfileScreen extends StatelessWidget {
   const UserProfileScreen({super.key});
@@ -148,12 +148,12 @@ class UserProfileScreen extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'Ready to go pro?',
+                'Ready to provide services?',
                 style: AppTheme.headline(fontSize: 24, color: Colors.white),
               ),
               const SizedBox(height: 8),
               Text(
-                'Switch to professional mode and start offering your services to the Triozy community today.',
+                'Switch to service mode and start offering your services to the Triozy community today.',
                 style: AppTheme.body(
                   fontSize: 14,
                   fontWeight: FontWeight.w500,
@@ -241,8 +241,8 @@ class UserProfileScreen extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        _settingsTile(Icons.work_outline, 'My Jobs', () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const JobsScreen(showOnlyMyJobs: true)));
+        _settingsTile(Icons.work_outline, 'My Requests', () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const RequestsScreen(showOnlyMyRequests: true)));
         }),
         const SizedBox(height: 8),
         _settingsTile(Icons.person_outline, 'Edit Profile', () {

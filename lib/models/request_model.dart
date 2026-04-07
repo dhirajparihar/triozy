@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-class JobModel {
+class RequestModel {
   final String id;
   final String userId;
   final String category;
@@ -14,7 +14,7 @@ class JobModel {
   final String? photoUrl;
   final DateTime? createdAt;
 
-  JobModel({
+  RequestModel({
     required this.id,
     required this.userId,
     required this.category,
@@ -29,8 +29,8 @@ class JobModel {
     this.createdAt,
   });
 
-  factory JobModel.fromMap(Map<String, dynamic> map, String id) {
-    return JobModel(
+  factory RequestModel.fromMap(Map<String, dynamic> map, String id) {
+    return RequestModel(
       id: id,
       userId: map['userId'] ?? '',
       category: map['category'] ?? '',
@@ -68,7 +68,7 @@ class JobModel {
     return map;
   }
 
-  JobModel copyWith({
+  RequestModel copyWith({
     String? category,
     String? description,
     String? location,
@@ -79,7 +79,7 @@ class JobModel {
     double? price,
     String? photoUrl,
   }) {
-    return JobModel(
+    return RequestModel(
       id: id,
       userId: userId,
       category: category ?? this.category,

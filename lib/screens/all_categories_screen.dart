@@ -116,7 +116,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
       subtitleColor: AppColors.primary,
       items: [
         _ServiceItem(
-          name: 'Co-rider',
+          name: 'Ride Sharing',
           imageUrl:
               'https://lh3.googleusercontent.com/aida-public/AB6AXuAHepeh83ksYE1GlpXqnCF95v_1Cfp4gS-v-6CLCZdamXVp26BIDHcTdI8jZjVwOWWskPOzIAh2CMuAGBQ8fDsvZ3N3_Od9S6jExRsmHdMp8vf3bKBqdPabrGd-iEYG5rVXUXGdRf_-UH8loAy4vLquh5blxjAKeKDY8ver3ney7MSooHwe-2QTWJFTLlZfdLTpYuFKsYBsEFkxFOkBjOTu0gee8a2Wr4ULuWOlB1dkRJ9iGoHFx63mgeLYLuUEATjjA_5URNQOnGY',
           tags: ['bike','bike taxi','rapido','carpool', 'share ride', 'commute', 'travel together', 'pooling', 'ride share', 'co rider'],

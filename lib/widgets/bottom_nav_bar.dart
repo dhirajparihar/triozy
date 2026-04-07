@@ -48,7 +48,7 @@ class AppBottomNavBar extends StatelessWidget {
               children: [
                 Expanded(child: _NavItem(icon: Icons.home_rounded, label: 'Home', isSelected: currentIndex == 0, onTap: () => onTap(0))),
                 Expanded(child: _NavItem(icon: Icons.search_rounded, label: 'Search', isSelected: currentIndex == 1, onTap: () => onTap(1))),
-                Expanded(child: _NavItem(icon: Icons.work_outline_rounded, label: 'Jobs', isSelected: currentIndex == 2, onTap: () => onTap(2))),
+                Expanded(child: _NavItem(icon: Icons.work_outline_rounded, label: 'Requests', isSelected: currentIndex == 2, onTap: () => onTap(2))),
                 Expanded(child: _NavItem(icon: Icons.person_outline_rounded, label: 'Profile', isSelected: currentIndex == 3, onTap: () => onTap(3))),
               ],
             ),

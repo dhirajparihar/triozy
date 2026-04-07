@@ -2,71 +2,71 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geoflutterfire_plus/geoflutterfire_plus.dart';
 import '../models/worker_model.dart';
-import '../models/job_model.dart';
+import '../models/request_model.dart';
 
 class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  // ─── Jobs ───
+  // ─── Requests ───
 
-  /// Post a new job
-  Future<void> postJob(JobModel job) async {
-    await _firestore.collection('jobs').doc(job.id).set(job.toMap(includeCreatedAt: true));
+  /// Post a new request
+  Future<void> postRequest(RequestModel request) async {
+    await _firestore.collection('jobs').doc(request.id).set(request.toMap(includeCreatedAt: true));
   }
 
-  /// Update an existing job (only by the owner)
-  Future<void> updateJob(JobModel job) async {
+  /// Update an existing request (only by the owner)
+  Future<void> updateRequest(RequestModel request) async {
     final uid = _auth.currentUser?.uid;
-    if (uid == null || uid != job.userId) {
-      throw Exception('Unauthorized: you can only edit your own jobs.');
+    if (uid == null || uid != request.userId) {
+      throw Exception('Unauthorized: you can only edit your own requests.');
     }
-    await _firestore.collection('jobs').doc(job.id).update(job.toMap());
+    await _firestore.collection('jobs').doc(request.id).update(request.toMap());
   }
 
-  /// Delete a job posting (only by the owner)
-  Future<void> deleteJob(String jobId) async {
+  /// Delete a request posting (only by the owner)
+  Future<void> deleteRequest(String requestId) async {
     final uid = _auth.currentUser?.uid;
     if (uid == null) throw Exception('Unauthorized: not logged in.');
-    final doc = await _firestore.collection('jobs').doc(jobId).get();
+    final doc = await _firestore.collection('jobs').doc(requestId).get();
     if (doc.exists && doc.data()?['userId'] != uid) {
-      throw Exception('Unauthorized: you can only delete your own jobs.');
+      throw Exception('Unauthorized: you can only delete your own requests.');
     }
-    await _firestore.collection('jobs').doc(jobId).delete();
+    await _firestore.collection('jobs').doc(requestId).delete();
   }
 
-  /// Stream of jobs posted by a specific user
-  Stream<List<JobModel>> getUserJobs(String userId) {
+  /// Stream of requests posted by a specific user
+  Stream<List<RequestModel>> getUserRequests(String userId) {
     return _firestore
         .collection('jobs')
         .where('userId', isEqualTo: userId)
         .snapshots()
         .map((snapshot) {
-          final jobs = snapshot.docs
-              .map((doc) => JobModel.fromMap(doc.data(), doc.id))
+          final requests = snapshot.docs
+              .map((doc) => RequestModel.fromMap(doc.data(), doc.id))
               .toList();
           // Sort client-side to avoid needing a Firestore composite index
-          jobs.sort(
+          requests.sort(
             (a, b) => (b.createdAt ?? DateTime(0)).compareTo(
               a.createdAt ?? DateTime(0),
             ),
           );
-          return jobs;
+          return requests;
         });
   }
 
-  /// Stream of all jobs in the system
-  Stream<List<JobModel>> getAllJobs() {
+  /// Stream of all requests in the system
+  Stream<List<RequestModel>> getAllRequests() {
     return _firestore.collection('jobs').snapshots().map((snapshot) {
-      final jobs = snapshot.docs
-          .map((doc) => JobModel.fromMap(doc.data(), doc.id))
+      final requests = snapshot.docs
+          .map((doc) => RequestModel.fromMap(doc.data(), doc.id))
           .toList();
       // Sort client-side to avoid needing a Firestore composite index
-      jobs.sort(
+      requests.sort(
         (a, b) =>
             (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)),
       );
-      return jobs;
+      return requests;
     });
   }
 

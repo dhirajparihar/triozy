@@ -8,7 +8,7 @@ import 'package:uuid/uuid.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:http/http.dart' as http;
-import '../models/job_model.dart';
+import '../models/request_model.dart';
 import '../services/database_service.dart';
 import '../services/auth_service.dart';
 import '../services/location_service.dart';
@@ -16,15 +16,15 @@ import '../providers/location_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
-class AddJobScreen extends StatefulWidget {
-  final JobModel? jobToEdit;
-  const AddJobScreen({super.key, this.jobToEdit});
+class AddRequestScreen extends StatefulWidget {
+  final RequestModel? requestToEdit;
+  const AddRequestScreen({super.key, this.requestToEdit});
 
   @override
-  State<AddJobScreen> createState() => _AddJobScreenState();
+  State<AddRequestScreen> createState() => _AddRequestScreenState();
 }
 
-class _AddJobScreenState extends State<AddJobScreen> {
+class _AddRequestScreenState extends State<AddRequestScreen> {
   late final DatabaseService _db;
   late final AuthService _auth;
   final _formKey = GlobalKey<FormState>();
@@ -33,13 +33,13 @@ class _AddJobScreenState extends State<AddJobScreen> {
   late final TextEditingController _locationController;
   late final TextEditingController _phoneController;
 
-  String? _selectedCategory;
+  final List<String> _selectedCategories = [];
   final TextEditingController _customCategoryController = TextEditingController();
   bool _isLoading = false;
   bool _isLocating = false;
 
   final ImagePicker _picker = ImagePicker();
-  XFile? _jobImage;
+  XFile? _requestImage;
 
   final List<String> _categories = [
     'Electrician',
@@ -52,7 +52,7 @@ class _AddJobScreenState extends State<AddJobScreen> {
     'Maid',
     'Security',
     'Gardening',
-    'Co-rider',
+    'Ride Sharing',
     'Car Taxi',
     'Auto',
     'Personal Driver',
@@ -75,10 +75,14 @@ class _AddJobScreenState extends State<AddJobScreen> {
     super.initState();
     _db = context.read<DatabaseService>();
     _auth = context.read<AuthService>();
-    _descriptionController = TextEditingController(text: widget.jobToEdit?.description ?? '');
-    _locationController = TextEditingController(text: widget.jobToEdit?.location ?? '');
-    _phoneController = TextEditingController(text: widget.jobToEdit?.phone ?? '');
-    _selectedCategory = widget.jobToEdit?.category;
+    _descriptionController = TextEditingController(text: widget.requestToEdit?.description ?? '');
+    _locationController = TextEditingController(text: widget.requestToEdit?.location ?? '');
+    _phoneController = TextEditingController(text: widget.requestToEdit?.phone ?? '');
+    if (widget.requestToEdit != null && widget.requestToEdit!.category.isNotEmpty) {
+      _selectedCategories.addAll(
+        widget.requestToEdit!.category.split(', ').where((s) => s.isNotEmpty),
+      );
+    }
   }
 
   @override
@@ -90,9 +94,11 @@ class _AddJobScreenState extends State<AddJobScreen> {
     super.dispose();
   }
 
-  Future<String?> _showCategoryPicker() {
+  Future<void> _showCategoryPicker() async {
+    final tempSelected = List<String>.from(_selectedCategories);
     String query = '';
-    return showModalBottomSheet<String>(
+
+    final result = await showModalBottomSheet<List<String>>(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
@@ -121,29 +127,36 @@ class _AddJobScreenState extends State<AddJobScreen> {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 20, 20, 12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
+                    child: Row(
                       children: [
-                        Text('Select Category',
+                        Text('Select Categories',
                             style: AppTheme.headline(fontSize: 18, fontWeight: FontWeight.w700)),
-                        const SizedBox(height: 14),
-                        TextField(
-                          autofocus: true,
-                          onChanged: (v) => setSheet(() => query = v),
-                          decoration: InputDecoration(
-                            prefixIcon: const Icon(Icons.search_rounded, color: AppColors.outline, size: 20),
-                            hintText: 'Search categories...',
-                            filled: true,
-                            fillColor: Colors.white,
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(14),
-                              borderSide: BorderSide.none,
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                          ),
+                        const Spacer(),
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, tempSelected),
+                          child: Text('Done',
+                              style: AppTheme.body(
+                                  fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.primary)),
                         ),
                       ],
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                    child: TextField(
+                      onChanged: (v) => setSheet(() => query = v),
+                      decoration: InputDecoration(
+                        prefixIcon: const Icon(Icons.search_rounded, color: AppColors.outline, size: 20),
+                        hintText: 'Search categories...',
+                        filled: true,
+                        fillColor: Colors.white,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(14),
+                          borderSide: BorderSide.none,
+                        ),
+                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                      ),
                     ),
                   ),
                   Expanded(
@@ -159,21 +172,24 @@ class _AddJobScreenState extends State<AddJobScreen> {
                             separatorBuilder: (_, _) => const Divider(height: 1),
                             itemBuilder: (_, i) {
                               final cat = filtered[i];
-                              final isOther = cat == 'Other';
-                              return ListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-                                leading: Icon(
-                                  isOther ? Icons.edit_outlined : Icons.handyman_outlined,
-                                  color: AppColors.primary,
-                                  size: 20,
-                                ),
+                              final isSelected = tempSelected.contains(cat);
+                              return CheckboxListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                                 title: Text(cat,
                                     style: AppTheme.body(
                                       fontSize: 15,
                                       fontWeight: FontWeight.w500,
-                                      color: isOther ? AppColors.primary : AppColors.onSurface,
+                                      color: isSelected ? AppColors.primary : AppColors.onSurface,
                                     )),
-                                onTap: () => Navigator.pop(ctx, cat),
+                                value: isSelected,
+                                activeColor: AppColors.primary,
+                                onChanged: (checked) => setSheet(() {
+                                  if (checked == true) {
+                                    tempSelected.add(cat);
+                                  } else {
+                                    tempSelected.remove(cat);
+                                  }
+                                }),
                               );
                             },
                           ),
@@ -185,6 +201,10 @@ class _AddJobScreenState extends State<AddJobScreen> {
         },
       ),
     );
+
+    if (result != null && mounted) setState(() => _selectedCategories
+      ..clear()
+      ..addAll(result));
   }
 
   Future<void> _pickImage() async {
@@ -195,7 +215,7 @@ class _AddJobScreenState extends State<AddJobScreen> {
         maxWidth: 1200,
       );
       if (image != null && mounted) {
-        setState(() => _jobImage = image);
+        setState(() => _requestImage = image);
       }
     } catch (e) {
       if (mounted) {
@@ -207,20 +227,20 @@ class _AddJobScreenState extends State<AddJobScreen> {
   }
 
   Future<String?> _uploadImage() async {
-    if (_jobImage == null) return null;
+    if (_requestImage == null) return null;
     try {
       final uri = Uri.parse('https://api.cloudinary.com/v1_1/dwydpp8ip/image/upload');
       final request = http.MultipartRequest('POST', uri)
         ..fields['upload_preset'] = 'Triozy';
 
       if (kIsWeb) {
-        final bytes = await _jobImage!.readAsBytes();
+        final bytes = await _requestImage!.readAsBytes();
         request.files.add(http.MultipartFile.fromBytes(
           'file', bytes,
           filename: 'job_${DateTime.now().millisecondsSinceEpoch}.jpg',
         ));
       } else {
-        request.files.add(await http.MultipartFile.fromPath('file', _jobImage!.path));
+        request.files.add(await http.MultipartFile.fromPath('file', _requestImage!.path));
       }
 
       final response = await request.send();
@@ -267,7 +287,7 @@ class _AddJobScreenState extends State<AddJobScreen> {
     }
   }
 
-  Future<void> _submitJob() async {
+  Future<void> _submitRequest() async {
     if (!_formKey.currentState!.validate()) return;
 
     setState(() => _isLoading = true);
@@ -277,37 +297,40 @@ class _AddJobScreenState extends State<AddJobScreen> {
       if (user == null) throw Exception('User not logged in');
 
       // Upload photo if selected
-      String? photoUrl = widget.jobToEdit?.photoUrl;
-      if (_jobImage != null) {
+      String? photoUrl = widget.requestToEdit?.photoUrl;
+      if (_requestImage != null) {
         photoUrl = await _uploadImage();
       }
 
-      final job = JobModel(
-        id: widget.jobToEdit?.id ?? const Uuid().v4(),
+      final job = RequestModel(
+        id: widget.requestToEdit?.id ?? const Uuid().v4(),
         userId: user.uid,
-        category: _selectedCategory == 'Other'
-            ? _customCategoryController.text.trim()
-            : _selectedCategory!,
+        category: _selectedCategories.contains('Other')
+            ? _selectedCategories
+                .map((c) => c == 'Other' ? _customCategoryController.text.trim() : c)
+                .where((c) => c.isNotEmpty)
+                .join(', ')
+            : _selectedCategories.join(', '),
         description: _descriptionController.text.trim(),
         location: _locationController.text.trim(),
         phone: _phoneController.text.trim(),
         time: '',
         budgetRange: '',
-        status: widget.jobToEdit?.status ?? 'Finding',
+        status: widget.requestToEdit?.status ?? 'Finding',
         photoUrl: photoUrl,
-        createdAt: widget.jobToEdit?.createdAt ?? DateTime.now(),
+        createdAt: widget.requestToEdit?.createdAt ?? DateTime.now(),
       );
 
-      if (widget.jobToEdit != null) {
-        await _db.updateJob(job);
+      if (widget.requestToEdit != null) {
+        await _db.updateRequest(job);
       } else {
-        await _db.postJob(job);
+        await _db.postRequest(job);
       }
 
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(widget.jobToEdit != null ? 'Job updated successfully!' : 'Job posted successfully!')),
+          SnackBar(content: Text(widget.requestToEdit != null ? 'Request updated successfully!' : 'Request posted successfully!')),
         );
       }
     } catch (e) {
@@ -327,7 +350,7 @@ class _AddJobScreenState extends State<AddJobScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: Text(
-          widget.jobToEdit != null ? 'Edit Job' : 'Post a Job',
+          widget.requestToEdit != null ? 'Edit Request' : 'Post a Request',
           style: AppTheme.headline(fontSize: 20, fontWeight: FontWeight.w700),
         ),
         backgroundColor: Colors.transparent,
@@ -349,27 +372,27 @@ class _AddJobScreenState extends State<AddJobScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: _jobImage != null ? Colors.white : AppColors.blue50.withValues(alpha: 0.5),
+                    color: _requestImage != null ? Colors.white : AppColors.blue50.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
-                      color: _jobImage != null
+                      color: _requestImage != null
                           ? AppColors.primary.withValues(alpha: 0.3)
                           : AppColors.primary.withValues(alpha: 0.15),
                       width: 1.5,
                     ),
                   ),
-                  child: _jobImage != null
+                  child: _requestImage != null
                       ? ClipRRect(
                           borderRadius: BorderRadius.circular(12),
                           child: kIsWeb
                               ? Image.network(
-                                  _jobImage!.path,
+                                  _requestImage!.path,
                                   height: 180,
                                   width: double.infinity,
                                   fit: BoxFit.cover,
                                 )
                               : Image.file(
-                                  File(_jobImage!.path),
+                                  File(_requestImage!.path),
                                   height: 180,
                                   width: double.infinity,
                                   fit: BoxFit.cover,
@@ -406,22 +429,18 @@ class _AddJobScreenState extends State<AddJobScreen> {
               // Category
               Text('SERVICE CATEGORY', style: AppTheme.label(color: AppColors.onSurfaceVariant, letterSpacing: 1.5)),
               const SizedBox(height: 12),
-              FormField<String>(
-                initialValue: _selectedCategory,
-                validator: (_) => _selectedCategory == null ? 'Please select a category' : null,
+              FormField<List<String>>(
+                validator: (_) => _selectedCategories.isEmpty ? 'Please select at least one category' : null,
                 builder: (field) => Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     GestureDetector(
                       onTap: () async {
-                        final picked = await _showCategoryPicker();
-                        if (picked != null) {
-                          setState(() => _selectedCategory = picked);
-                          field.didChange(picked);
-                        }
+                        await _showCategoryPicker();
+                        field.didChange(_selectedCategories);
                       },
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(16),
@@ -434,15 +453,31 @@ class _AddJobScreenState extends State<AddJobScreen> {
                             const Icon(Icons.handyman, color: AppColors.primary, size: 20),
                             const SizedBox(width: 12),
                             Expanded(
-                              child: Text(
-                                _selectedCategory ?? 'Select a service category',
-                                style: AppTheme.body(
-                                  fontSize: 15,
-                                  color: _selectedCategory != null
-                                      ? AppColors.onSurface
-                                      : AppColors.outline.withValues(alpha: 0.6),
-                                ),
-                              ),
+                              child: _selectedCategories.isEmpty
+                                  ? Text(
+                                      'Select service categories',
+                                      style: AppTheme.body(
+                                        fontSize: 15,
+                                        color: AppColors.outline.withValues(alpha: 0.6),
+                                      ),
+                                    )
+                                  : Wrap(
+                                      spacing: 8,
+                                      runSpacing: 4,
+                                      children: _selectedCategories
+                                          .map((cat) => Chip(
+                                                label: Text(cat,
+                                                    style: AppTheme.body(
+                                                        fontSize: 13,
+                                                        color: AppColors.primary)),
+                                                backgroundColor: AppColors.primaryFixed,
+                                                padding: EdgeInsets.zero,
+                                                materialTapTargetSize:
+                                                    MaterialTapTargetSize.shrinkWrap,
+                                                side: BorderSide.none,
+                                              ))
+                                          .toList(),
+                                    ),
                             ),
                             const Icon(Icons.expand_more, color: AppColors.outline),
                           ],
@@ -458,7 +493,7 @@ class _AddJobScreenState extends State<AddJobScreen> {
                   ],
                 ),
               ),
-              if (_selectedCategory == 'Other') ...[
+              if (_selectedCategories.contains('Other')) ...[
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _customCategoryController,
@@ -471,7 +506,7 @@ class _AddJobScreenState extends State<AddJobScreen> {
                     border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
                   ),
                   validator: (_) {
-                    if (_selectedCategory == 'Other' && _customCategoryController.text.trim().isEmpty) {
+                    if (_selectedCategories.contains('Other') && _customCategoryController.text.trim().isEmpty) {
                       return 'Please describe the service';
                     }
                     return null;
@@ -581,7 +616,7 @@ class _AddJobScreenState extends State<AddJobScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _submitJob,
+                  onPressed: _isLoading ? null : _submitRequest,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
@@ -596,7 +631,7 @@ class _AddJobScreenState extends State<AddJobScreen> {
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              widget.jobToEdit != null ? 'Update Job' : 'Post Job',
+                              widget.requestToEdit != null ? 'Update Request' : 'Post Request',
                               style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
                             ),
                             const SizedBox(width: 12),

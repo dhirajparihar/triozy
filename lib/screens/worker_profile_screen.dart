@@ -304,7 +304,7 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
                   const Icon(Icons.history, color: AppColors.primary, size: 20),
                   const SizedBox(width: 4),
                   Text(
-                    '${w.totalJobs} Jobs',
+                    '${w.totalJobs} Requests',
                     style: AppTheme.body(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
@@ -404,14 +404,7 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        // Area + Availability row
-        Row(
-          children: [
-            Expanded(child: _buildAreaCard(w)),
-            const SizedBox(width: 16),
-            Expanded(child: _buildAvailabilityCard()),
-          ],
-        ),
+        _buildAreaCard(w),
       ],
     );
   }
@@ -459,69 +452,6 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget _buildAvailabilityCard() {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: AppColors.blue50.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              const Icon(
-                Icons.calendar_today,
-                color: AppColors.secondary,
-                size: 20,
-              ),
-              const SizedBox(width: 8),
-              Text('Availability', style: AppTheme.headline(fontSize: 18)),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _scheduleRow('Mon - Fri', '08:00 - 18:00'),
-          const SizedBox(height: 8),
-          _scheduleRow('Sat', '09:00 - 14:00'),
-          const SizedBox(height: 12),
-          Row(
-            children: [
-              const Icon(Icons.bolt, size: 14, color: AppColors.secondary),
-              const SizedBox(width: 4),
-              Expanded(
-                child: Text(
-                  'Available for Emergencies',
-                  style: AppTheme.body(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.secondary,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _scheduleRow(String day, String time) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          day,
-          style: AppTheme.body(fontSize: 14, color: AppColors.onSurfaceVariant),
-        ),
-        Text(
-          time,
-          style: AppTheme.body(fontSize: 14, fontWeight: FontWeight.w700),
-        ),
-      ],
     );
   }
 

@@ -47,7 +47,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     'AC Repair',
     'Security',
     'Gardening',
-    'Co-rider',
+    'Ride Sharing',
     'Car Taxi',
     'Auto',
     'Delivery',

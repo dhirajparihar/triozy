@@ -11,7 +11,6 @@ import 'services/database_service.dart';
 import 'services/location_service.dart';
 import 'providers/location_provider.dart';
 import 'screens/welcome_screen.dart';
-import 'screens/role_selection_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/worker_setup_screen.dart';
 import 'screens/worker_profile_screen.dart';
@@ -171,21 +170,18 @@ class _RoleRouterState extends State<_RoleRouter> {
   // Cache the last route key so we only rebuild when the route changes
   String? _lastRouteKey;
   Widget? _currentScreen;
+  bool _isCreatingUser = false;
 
   /// Derive a simple key from the routing-relevant fields
-  String _routeKey(Map<String, dynamic>? userData) {
-    if (userData == null) return 'no_user';
+  String _routeKey(Map<String, dynamic> userData) {
     final role = userData['role'] as String? ?? 'customer';
     final isComplete = userData['isProfileComplete'] as bool? ?? false;
     return '${role}_$isComplete';
   }
 
-  Widget _buildScreen(Map<String, dynamic>? userData) {
-    if (userData == null) return const RoleSelectionScreen();
-
+  Widget _buildScreen(Map<String, dynamic> userData) {
     final role = userData['role'] as String? ?? 'customer';
-    final isProfileComplete =
-        userData['isProfileComplete'] as bool? ?? false;
+    final isProfileComplete = userData['isProfileComplete'] as bool? ?? false;
 
     if (role == 'worker') {
       if (!isProfileComplete) {
@@ -195,6 +191,24 @@ class _RoleRouterState extends State<_RoleRouter> {
       }
     } else {
       return const MainShell(isWorker: false);
+    }
+  }
+
+  Future<void> _autoCreateUser() async {
+    if (_isCreatingUser) return;
+    _isCreatingUser = true;
+    try {
+      final user = FirebaseAuth.instance.currentUser!;
+      final authService = context.read<AuthService>();
+      await authService.saveUser(
+        uid: user.uid,
+        name: user.displayName ?? '',
+        email: user.email ?? '',
+        role: 'customer',
+        photoUrl: user.photoURL,
+      );
+    } catch (_) {
+      if (mounted) setState(() => _isCreatingUser = false);
     }
   }
 
@@ -217,6 +231,18 @@ class _RoleRouterState extends State<_RoleRouter> {
         }
 
         final userData = snapshot.data;
+
+        // New user: auto-create Firestore doc as customer, show spinner
+        if (userData == null) {
+          _autoCreateUser();
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            body: const Center(
+              child: CircularProgressIndicator(color: AppColors.primary),
+            ),
+          );
+        }
+
         final newKey = _routeKey(userData);
 
         // Only rebuild if the routing decision changed

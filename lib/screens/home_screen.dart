@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -25,10 +26,29 @@ class _HomeScreenState extends State<HomeScreen> {
   bool _loading = true;
   bool _locationUsed = false;
 
+  static const _searchHints = [
+    'Electrician', 'Plumber', 'AC Repair', 'Painter', 'Carpenter',
+    'Cleaning', 'Maid', 'Security', 'Gardening', 'Mechanic',
+    'Babysitter', 'Tailor', 'Home Salon', 'Personal Driver',
+    'Ride Sharing', 'Roommate', 'RO Service', 'Core Cutting',
+    'Property', 'Tile Worker',
+  ];
+  int _hintIndex = 0;
+  late final Timer _hintTimer;
+
   @override
   void initState() {
     super.initState();
+    _hintTimer = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (mounted) setState(() => _hintIndex = (_hintIndex + 1) % _searchHints.length);
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadWorkers());
+  }
+
+  @override
+  void dispose() {
+    _hintTimer.cancel();
+    super.dispose();
   }
 
   Future<void> _loadWorkers() async {
@@ -78,6 +98,13 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final locProvider = context.watch<LocationProvider>();
+
+    // Auto-reload with geo data once location becomes available after a fallback load
+    if (locProvider.isAvailable && !_locationUsed && !_loading) {
+      WidgetsBinding.instance.addPostFrameCallback((_) => _loadWorkers());
+    }
+
     return RefreshIndicator(
       onRefresh: _onRefresh,
       color: AppColors.primary,
@@ -123,7 +150,7 @@ class _HomeScreenState extends State<HomeScreen> {
             text: TextSpan(
               children: [
                 TextSpan(
-                  text: 'Find expert help\n',
+                  text: 'Find everything\n',
                   style: AppTheme.headline(
                     fontSize: 30,
                     color: Colors.white.withValues(alpha: 0.85),
@@ -131,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
                 TextSpan(
-                  text: 'in seconds.',
+                  text: 'in one call.',
                   style: AppTheme.headline(
                     fontSize: 30,
                     color: Colors.white,
@@ -141,7 +168,15 @@ class _HomeScreenState extends State<HomeScreen> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 8),
+          Text(
+            'Post a request to find a solution.',
+            style: AppTheme.body(
+              fontSize: 14,
+              color: Colors.white.withValues(alpha: 0.7),
+            ),
+          ),
+          const SizedBox(height: 20),
           GestureDetector(
             onTap: widget.onSearchTapped,
             child: ClipRRect(
@@ -165,15 +200,27 @@ class _HomeScreenState extends State<HomeScreen> {
                           color: Colors.white.withValues(alpha: 0.85), size: 22),
                       const SizedBox(width: 10),
                       Expanded(
-                        child: Text(
-                          'Search for plumbers, electricians...',
-                          style: AppTheme.body(
-                            fontSize: 15,
-                            fontWeight: FontWeight.w400,
-                            color: Colors.white.withValues(alpha: 0.7),
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                        child: Row(
+                          children: [
+                            Text(
+                              'Search for ',
+                              style: AppTheme.body(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.white.withValues(alpha: 0.7),
+                              ),
+                            ),
+                            Text(
+                              _searchHints[_hintIndex],
+                              style: AppTheme.body(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.white.withValues(alpha: 0.7),
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(width: 20),

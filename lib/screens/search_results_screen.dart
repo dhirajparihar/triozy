@@ -36,7 +36,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     'Maid',
     'Security',
     'Gardening',
-    'Co-rider',
+    'Ride Sharing',
     'Car Taxi',
     'Auto',
     'Personal Driver',
@@ -421,7 +421,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
             style: AppTheme.headline(fontSize: 28, letterSpacing: -1.0),
           ),
           TextSpan(
-            text: 'service professional.',
+            text: 'solution.',
             style: AppTheme.headline(
               fontSize: 28,
               color: AppColors.primary,
