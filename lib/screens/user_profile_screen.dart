@@ -200,7 +200,7 @@ class UserProfileScreen extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        'Become a Professional',
+                        'Become a Service Provider',
                         style: AppTheme.body(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
