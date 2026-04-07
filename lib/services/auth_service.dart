@@ -16,15 +16,12 @@ class AuthService {
   Future<User?> signInWithGoogle() async {
     try {
       if (kIsWeb) {
+        // On web, use signInWithPopup directly with Firebase Auth
         final googleProvider = GoogleAuthProvider();
         googleProvider.addScope('email');
         googleProvider.addScope('profile');
-
-        // signInWithRedirect works on all browsers including iPhone Safari,
-        // which blocks popups opened asynchronously (signInWithPopup fails).
-        // After redirect, getRedirectResult() is called in AuthGate on startup.
-        await _auth.signInWithRedirect(googleProvider);
-        return null; // redirect navigates away; result handled by getRedirectResult
+        final userCredential = await _auth.signInWithPopup(googleProvider);
+        return userCredential.user;
       } else {
         // On mobile, use google_sign_in package
         final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();

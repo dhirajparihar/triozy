@@ -28,7 +28,7 @@ jobs:
 
       # ✅ Build web
       - name: Build web
-        run: flutter build web --release
+        run: flutter build web
 
       # ✅ Deploy preview
       - name: Deploy to Firebase
