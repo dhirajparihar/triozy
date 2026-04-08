@@ -132,7 +132,7 @@ class _HeroSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final heroH = size.height * 0.64;
+    final heroH = (size.height * 0.64).clamp(420.0, 720.0);
 
     return SizedBox(
       height: heroH,
@@ -255,7 +255,7 @@ class _HeroSection extends StatelessWidget {
                           _StatPill(value: '200+', label: 'cities'),
                         ],
                       ),
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 16),
                     ],
                   ),
                 ),
