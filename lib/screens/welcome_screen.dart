@@ -566,19 +566,16 @@ class _ServiceCard extends StatelessWidget {
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _PolicyDisclaimerText extends StatelessWidget {
-  const _PolicyDisclaimerText({required this.context});
+  const _PolicyDisclaimerText();
 
-  // ignore: prefer_const_constructors_in_immutables
-  final BuildContext context;
-
-  void _open(PolicyType type) {
+  void _open(BuildContext context, PolicyType type) {
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => PolicyScreen(type: type)),
     );
   }
 
   @override
-  Widget build(BuildContext ctx) {
+  Widget build(BuildContext context) {
     final base = GoogleFonts.inter(
       fontSize: 12,
       color: AppColors.slate400,
@@ -601,14 +598,14 @@ class _PolicyDisclaimerText extends StatelessWidget {
             text: 'Terms of Service',
             style: link,
             recognizer: TapGestureRecognizer()
-              ..onTap = () => _open(PolicyType.terms),
+              ..onTap = () => _open(context, PolicyType.terms),
           ),
           const TextSpan(text: ' & '),
           TextSpan(
             text: 'Privacy Policy',
             style: link,
             recognizer: TapGestureRecognizer()
-              ..onTap = () => _open(PolicyType.privacy),
+              ..onTap = () => _open(context, PolicyType.privacy),
           ),
         ],
       ),
@@ -706,7 +703,7 @@ class _StickyCtaBar extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              _PolicyDisclaimerText(context: context),
+              const _PolicyDisclaimerText(),
             ],
           ),
         ),
