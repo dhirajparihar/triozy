@@ -30,7 +30,7 @@ jobs:
 
       # ✅ Build web
       - name: Build web
-        run: flutter build web --release
+        run: flutter build web --release --web-renderer auto
 
       # ✅ Deploy live
       - name: Deploy to Firebase
