@@ -63,14 +63,14 @@ class HelpSupportScreen extends StatelessWidget {
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
                     onPressed: () async {
-                      final uri = Uri(scheme: 'mailto', path: 'support@triozy.com');
+                      final uri = Uri(scheme: 'mailto', path: 'triozyapp@gmail.com');
                       if (await canLaunchUrl(uri)) {
                         await launchUrl(uri);
                       }
                     },
                     icon: const Icon(Icons.email_outlined, size: 20),
                     label: Text(
-                      'support@triozy.com',
+                      'triozyapp@gmail.com',
                       style: AppTheme.body(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
@@ -147,7 +147,7 @@ class HelpSupportScreen extends StatelessWidget {
 
             _contactTile(Icons.phone_outlined, 'Call Us', '+91 98765 43210'),
             const SizedBox(height: 8),
-            _contactTile(Icons.email_outlined, 'Email', 'support@triozy.com'),
+            _contactTile(Icons.email_outlined, 'Email', 'triozyapp@gmail.com'),
             const SizedBox(height: 8),
             _contactTile(Icons.language, 'Website', 'www.triozy.com'),
 

@@ -369,7 +369,7 @@ class PolicyScreen extends StatelessWidget {
         ]),
         _section('9', 'Contact', [
           _body('For questions or disputes regarding these Terms:'),
-          _highlight('support@triozy.in'),
+          _highlight('triozyapp@gmail.com'),
         ]),
       ];
 
@@ -487,7 +487,7 @@ class PolicyScreen extends StatelessWidget {
           _bullet(
               'Withdraw consent for optional data processing (e.g., marketing communications)'),
           _body(
-              'To exercise any of these rights, contact us at support@triozy.in. '
+              'To exercise any of these rights, contact us at triozyapp@gmail.com. '
               'We will respond within 14 working days.'),
         ]),
         _section("9", "Children's Privacy", [
@@ -511,7 +511,7 @@ class PolicyScreen extends StatelessWidget {
         _section('12', 'Contact', [
           _body(
               'For privacy concerns, data requests, or to report a concern:'),
-          _highlight('support@triozy.in'),
+          _highlight('triozyapp@gmail.com'),
         ]),
       ];
 }
