@@ -8,6 +8,7 @@ import '../providers/location_provider.dart';
 import 'home_screen.dart';
 import 'search_results_screen.dart';
 import 'requests_screen.dart';
+import 'mate_screen.dart';
 import 'user_profile_screen.dart';
 import 'worker_dashboard_screen.dart';
 import 'add_request_screen.dart';
@@ -24,9 +25,14 @@ class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
 
   late final List<Widget> _screens = [
-    HomeScreen(onSearchTapped: () => setState(() => _currentIndex = 1)),
+    HomeScreen(
+      onSearchTapped: () => setState(() => _currentIndex = 1),
+      onRequestsTapped: () => setState(() => _currentIndex = 2),
+      onMatesTapped: () => setState(() => _currentIndex = 3),
+    ),
     const SearchResultsScreen(),
     const RequestsScreen(),
+    const MateScreen(),
     widget.isWorker ? const WorkerDashboardScreen() : const UserProfileScreen(),
   ];
 
@@ -108,7 +114,7 @@ class _MainShellState extends State<MainShell> {
             child: TriozyTopAppBar(
               location: locationProvider.address,
               avatarUrl: FirebaseAuth.instance.currentUser?.photoURL,
-              onAvatarTap: () => setState(() => _currentIndex = 3),
+              onAvatarTap: () => setState(() => _currentIndex = 4),
             ),
           ),
           // FAB on Home screen

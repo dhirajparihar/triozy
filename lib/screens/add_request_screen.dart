@@ -32,43 +32,13 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
   late final TextEditingController _descriptionController;
   late final TextEditingController _locationController;
   late final TextEditingController _phoneController;
+  late final TextEditingController _categoryController;
 
-  final List<String> _selectedCategories = [];
-  final TextEditingController _customCategoryController = TextEditingController();
   bool _isLoading = false;
   bool _isLocating = false;
 
   final ImagePicker _picker = ImagePicker();
   XFile? _requestImage;
-
-  final List<String> _categories = [
-    'Electrician',
-    'Plumber',
-    'AC Repair',
-    'Painter',
-    'Carpenter',
-    'Tile Worker',
-    'Cleaning',
-    'Maid',
-    'Security',
-    'Gardening',
-    'Ride Sharing',
-    'Car Taxi',
-    'Auto',
-    'Personal Driver',
-    'Babysitter',
-    'Tailor',
-    'Home Salon',
-    'Roommate',
-    'HelpBuddy',
-    'Mechanic',
-    'Tile Worker',
-    'Rental Rooms',
-    'Core Cutting',
-    'Property',
-    'RO Service',
-    'Other',
-  ];
 
   @override
   void initState() {
@@ -78,11 +48,7 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
     _descriptionController = TextEditingController(text: widget.requestToEdit?.description ?? '');
     _locationController = TextEditingController(text: widget.requestToEdit?.location ?? '');
     _phoneController = TextEditingController(text: widget.requestToEdit?.phone ?? '');
-    if (widget.requestToEdit != null && widget.requestToEdit!.category.isNotEmpty) {
-      _selectedCategories.addAll(
-        widget.requestToEdit!.category.split(', ').where((s) => s.isNotEmpty),
-      );
-    }
+    _categoryController = TextEditingController(text: widget.requestToEdit?.category ?? '');
   }
 
   @override
@@ -90,121 +56,8 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
     _descriptionController.dispose();
     _locationController.dispose();
     _phoneController.dispose();
-    _customCategoryController.dispose();
+    _categoryController.dispose();
     super.dispose();
-  }
-
-  Future<void> _showCategoryPicker() async {
-    final tempSelected = List<String>.from(_selectedCategories);
-    String query = '';
-
-    final result = await showModalBottomSheet<List<String>>(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (_) => StatefulBuilder(
-        builder: (ctx, setSheet) {
-          final filtered = _categories
-              .where((c) => c.toLowerCase().contains(query.toLowerCase()))
-              .toList();
-          return DraggableScrollableSheet(
-            initialChildSize: 0.75,
-            maxChildSize: 0.92,
-            minChildSize: 0.4,
-            builder: (_, scrollCtrl) => Container(
-              decoration: const BoxDecoration(
-                color: AppColors.background,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: Column(
-                children: [
-                  const SizedBox(height: 12),
-                  Container(
-                    width: 40, height: 4,
-                    decoration: BoxDecoration(
-                      color: AppColors.outlineVariant,
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
-                    child: Row(
-                      children: [
-                        Text('Select Categories',
-                            style: AppTheme.headline(fontSize: 18, fontWeight: FontWeight.w700)),
-                        const Spacer(),
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, tempSelected),
-                          child: Text('Done',
-                              style: AppTheme.body(
-                                  fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.primary)),
-                        ),
-                      ],
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                    child: TextField(
-                      onChanged: (v) => setSheet(() => query = v),
-                      decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.search_rounded, color: AppColors.outline, size: 20),
-                        hintText: 'Search categories...',
-                        filled: true,
-                        fillColor: Colors.white,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide.none,
-                        ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                      ),
-                    ),
-                  ),
-                  Expanded(
-                    child: filtered.isEmpty
-                        ? Center(
-                            child: Text('No category found',
-                                style: AppTheme.body(color: AppColors.outline)),
-                          )
-                        : ListView.separated(
-                            controller: scrollCtrl,
-                            padding: const EdgeInsets.symmetric(horizontal: 20),
-                            itemCount: filtered.length,
-                            separatorBuilder: (_, _) => const Divider(height: 1),
-                            itemBuilder: (_, i) {
-                              final cat = filtered[i];
-                              final isSelected = tempSelected.contains(cat);
-                              return CheckboxListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                                title: Text(cat,
-                                    style: AppTheme.body(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w500,
-                                      color: isSelected ? AppColors.primary : AppColors.onSurface,
-                                    )),
-                                value: isSelected,
-                                activeColor: AppColors.primary,
-                                onChanged: (checked) => setSheet(() {
-                                  if (checked == true) {
-                                    tempSelected.add(cat);
-                                  } else {
-                                    tempSelected.remove(cat);
-                                  }
-                                }),
-                              );
-                            },
-                          ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
-
-    if (result != null && mounted) setState(() => _selectedCategories
-      ..clear()
-      ..addAll(result));
   }
 
   Future<void> _pickImage() async {
@@ -305,18 +158,13 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
       final job = RequestModel(
         id: widget.requestToEdit?.id ?? const Uuid().v4(),
         userId: user.uid,
-        category: _selectedCategories.contains('Other')
-            ? _selectedCategories
-                .map((c) => c == 'Other' ? _customCategoryController.text.trim() : c)
-                .where((c) => c.isNotEmpty)
-                .join(', ')
-            : _selectedCategories.join(', '),
+        category: _categoryController.text.trim(),
         description: _descriptionController.text.trim(),
         location: _locationController.text.trim(),
         phone: _phoneController.text.trim(),
         time: '',
         budgetRange: '',
-        status: widget.requestToEdit?.status ?? 'Finding',
+        status: widget.requestToEdit?.status ?? 'Open',
         photoUrl: photoUrl,
         createdAt: widget.requestToEdit?.createdAt ?? DateTime.now(),
       );
@@ -426,93 +274,22 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
               ),
               const SizedBox(height: 32),
 
-              // Category
-              Text('SERVICE CATEGORY', style: AppTheme.label(color: AppColors.onSurfaceVariant, letterSpacing: 1.5)),
+              // Service needed (free-form)
+              Text('WHAT DO YOU NEED?', style: AppTheme.label(color: AppColors.onSurfaceVariant, letterSpacing: 1.5)),
               const SizedBox(height: 12),
-              FormField<List<String>>(
-                validator: (_) => _selectedCategories.isEmpty ? 'Please select at least one category' : null,
-                builder: (field) => Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    GestureDetector(
-                      onTap: () async {
-                        await _showCategoryPicker();
-                        field.didChange(_selectedCategories);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: field.hasError
-                              ? Border.all(color: AppColors.error)
-                              : null,
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.handyman, color: AppColors.primary, size: 20),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: _selectedCategories.isEmpty
-                                  ? Text(
-                                      'Select service categories',
-                                      style: AppTheme.body(
-                                        fontSize: 15,
-                                        color: AppColors.outline.withValues(alpha: 0.6),
-                                      ),
-                                    )
-                                  : Wrap(
-                                      spacing: 8,
-                                      runSpacing: 4,
-                                      children: _selectedCategories
-                                          .map((cat) => Chip(
-                                                label: Text(cat,
-                                                    style: AppTheme.body(
-                                                        fontSize: 13,
-                                                        color: AppColors.primary)),
-                                                backgroundColor: AppColors.primaryFixed,
-                                                padding: EdgeInsets.zero,
-                                                materialTapTargetSize:
-                                                    MaterialTapTargetSize.shrinkWrap,
-                                                side: BorderSide.none,
-                                              ))
-                                          .toList(),
-                                    ),
-                            ),
-                            const Icon(Icons.expand_more, color: AppColors.outline),
-                          ],
-                        ),
-                      ),
-                    ),
-                    if (field.hasError)
-                      Padding(
-                        padding: const EdgeInsets.only(top: 6, left: 4),
-                        child: Text(field.errorText!,
-                            style: AppTheme.body(fontSize: 12, color: AppColors.error)),
-                      ),
-                  ],
+              TextFormField(
+                controller: _categoryController,
+                textCapitalization: TextCapitalization.words,
+                decoration: InputDecoration(
+                  prefixIcon: const Icon(Icons.edit_note_rounded, color: AppColors.primary, size: 22),
+                  hintText: 'e.g. Yoga trainer, Drone photographer, Language tutor...',
+                  fillColor: Colors.white,
+                  filled: true,
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                 ),
+                validator: (v) => v == null || v.trim().isEmpty ? 'Please describe what you need' : null,
               ),
-              if (_selectedCategories.contains('Other')) ...[
-                const SizedBox(height: 12),
-                TextFormField(
-                  controller: _customCategoryController,
-                  textCapitalization: TextCapitalization.words,
-                  decoration: InputDecoration(
-                    prefixIcon: const Icon(Icons.edit_outlined, color: AppColors.primary, size: 20),
-                    hintText: 'Describe the service (e.g. Yoga Trainer)',
-                    fillColor: Colors.white,
-                    filled: true,
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                  ),
-                  validator: (_) {
-                    if (_selectedCategories.contains('Other') && _customCategoryController.text.trim().isEmpty) {
-                      return 'Please describe the service';
-                    }
-                    return null;
-                  },
-                ),
-              ],
               const SizedBox(height: 32),
 
               // Description

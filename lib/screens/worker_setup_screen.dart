@@ -13,6 +13,7 @@ import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import '../services/location_service.dart';
 import 'main_shell.dart';
+import '../constants/app_categories.dart';
 
 class WorkerSetupScreen extends StatefulWidget {
   const WorkerSetupScreen({super.key});
@@ -40,33 +41,7 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
   final ImagePicker _picker = ImagePicker();
   XFile? _profileImage;
 
-  final _services = [
-    'Electrician',
-    'Plumber',
-    'AC Repair',
-    'Painter',
-    'Carpenter',
-    'Tile Worker',
-    'Cleaning',
-    'Maid',
-    'Security',
-    'Gardening',
-    'Ride Sharing',
-    'Car Taxi',
-    'Auto',
-    'Personal Driver',
-    'Babysitter',
-    'Tailor',
-    'Home Salon',
-    'Roommate',
-    'HelpBuddy',
-    'Mechanic',
-    'Tile Worker',
-    'Rental Rooms',
-    'Core Cutting',
-    'Property',
-    'RO Service',
-  ];
+  final _services = AppCategories.all;
 
   @override
   void initState() {

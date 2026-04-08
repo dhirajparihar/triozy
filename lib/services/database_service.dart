@@ -3,6 +3,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geoflutterfire_plus/geoflutterfire_plus.dart';
 import '../models/worker_model.dart';
 import '../models/request_model.dart';
+import '../models/mate_model.dart';
 
 class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -225,6 +226,70 @@ class DatabaseService {
       }),
       ratingRef.set({'stars': stars, 'updatedAt': FieldValue.serverTimestamp()}),
     ]);
+  }
+
+  // ─── Mates ───
+
+  /// Post a new mate listing (roommate / helpmate / ridemate)
+  Future<void> postMate(MateModel mate) async {
+    await _firestore.collection('mates').doc(mate.id).set(mate.toMap());
+  }
+
+  /// Real-time stream of all mates of a given type, newest first
+  Stream<List<MateModel>> streamMates(MateType type) {
+    return _firestore
+        .collection('mates')
+        .where('type', isEqualTo: type.value)
+        .snapshots()
+        .map((snap) {
+          final mates = snap.docs
+              .map((doc) => MateModel.fromMap(doc.data(), doc.id))
+              .toList();
+          mates.sort(
+            (a, b) => (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)),
+          );
+          return mates;
+        });
+  }
+
+  /// Stream of mates posted by the current user
+  Stream<List<MateModel>> streamMyMates(String userId) {
+    return _firestore
+        .collection('mates')
+        .where('userId', isEqualTo: userId)
+        .snapshots()
+        .map((snap) {
+          final mates = snap.docs
+              .map((doc) => MateModel.fromMap(doc.data(), doc.id))
+              .toList();
+          mates.sort(
+            (a, b) => (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)),
+          );
+          return mates;
+        });
+  }
+
+  /// Delete a mate listing (only by the owner)
+  Future<void> deleteMate(String mateId) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) throw Exception('Unauthorized: not logged in.');
+    final doc = await _firestore.collection('mates').doc(mateId).get();
+    if (doc.exists && doc.data()?['userId'] != uid) {
+      throw Exception('Unauthorized: you can only delete your own listings.');
+    }
+    await _firestore.collection('mates').doc(mateId).delete();
+  }
+
+  /// Fetch the most recently posted mates across all types
+  Future<List<MateModel>> getRecentMates({int limit = 8}) async {
+    final snap = await _firestore.collection('mates').limit(30).get();
+    final mates = snap.docs
+        .map((doc) => MateModel.fromMap(doc.data(), doc.id))
+        .toList();
+    mates.sort(
+      (a, b) => (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)),
+    );
+    return mates.take(limit).toList();
   }
 
   // ─── Users ───

@@ -9,6 +9,7 @@ import '../screens/edit_profile_screen.dart';
 import '../screens/help_support_screen.dart';
 import '../screens/about_screen.dart';
 import '../screens/requests_screen.dart';
+import '../screens/my_mates_screen.dart';
 
 class UserProfileScreen extends StatelessWidget {
   const UserProfileScreen({super.key});
@@ -242,7 +243,11 @@ class UserProfileScreen extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         _settingsTile(Icons.work_outline, 'My Requests', () {
-          Navigator.push(context, MaterialPageRoute(builder: (_) => const RequestsScreen(showOnlyMyRequests: true)));
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const RequestsScreen(initialTab: 1, standalone: true)));
+        }),
+        const SizedBox(height: 8),
+        _settingsTile(Icons.people_alt_rounded, 'My Mate Posts', () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const MyMatesScreen()));
         }),
         const SizedBox(height: 8),
         _settingsTile(Icons.person_outline, 'Edit Profile', () {
@@ -309,8 +314,9 @@ class UserProfileScreen extends StatelessWidget {
   }
 
   Widget _buildLogout(BuildContext context) {
-    return Center(
-      child: TextButton(
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
         onPressed: () {
           showDialog(
             context: context,
@@ -339,19 +345,16 @@ class UserProfileScreen extends StatelessWidget {
             ),
           );
         },
-        style: TextButton.styleFrom(
-          padding: const EdgeInsets.symmetric(horizontal: 40, vertical: 16),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(9999),
-          ),
-        ),
-        child: Text(
+        icon: const Icon(Icons.logout_rounded, size: 18),
+        label: Text(
           'Log Out',
-          style: AppTheme.headline(
-            fontSize: 16,
-            fontWeight: FontWeight.w700,
-            color: AppColors.error,
-          ),
+          style: AppTheme.body(fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.error),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.error,
+          side: BorderSide(color: AppColors.error.withValues(alpha: 0.4)),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
         ),
       ),
     );

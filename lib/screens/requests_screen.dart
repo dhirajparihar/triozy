@@ -9,68 +9,306 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'add_request_screen.dart';
 
+class _RequestFilter {
+  String? status;
+
+  bool get isActive => status != null;
+
+  void clear() {
+    status = null;
+  }
+}
+
 class RequestsScreen extends StatefulWidget {
-  final bool showOnlyMyRequests;
-  const RequestsScreen({super.key, this.showOnlyMyRequests = false});
+  final int initialTab;
+  final bool standalone;
+
+  const RequestsScreen({
+    super.key,
+    this.initialTab = 0,
+    this.standalone = false,
+  });
 
   @override
   State<RequestsScreen> createState() => _RequestsScreenState();
 }
 
-class _RequestsScreenState extends State<RequestsScreen> {
+class _RequestsScreenState extends State<RequestsScreen>
+    with SingleTickerProviderStateMixin {
+  late final TabController _tabController;
   late final DatabaseService _db;
   late final AuthService _auth;
   final TextEditingController _searchController = TextEditingController();
-  String _query = ''; // ignore: prefer_final_fields
+  String _query = '';
+  final _RequestFilter _filter = _RequestFilter();
 
   @override
   void initState() {
     super.initState();
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTab,
+    );
     _db = context.read<DatabaseService>();
     _auth = context.read<AuthService>();
   }
 
   @override
   void dispose() {
+    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
-  List<RequestModel> _filterRequests(List<RequestModel> requests) {
-    if (_query.isEmpty) return requests;
-    final q = _query.toLowerCase();
-    return requests.where((j) =>
-      j.category.toLowerCase().contains(q) ||
-      j.description.toLowerCase().contains(q) ||
-      j.location.toLowerCase().contains(q) ||
-      j.status.toLowerCase().contains(q),
-    ).toList();
+  bool _isEffectivelyOpen(RequestModel r) {
+    final s = r.status.toLowerCase();
+    return s == 'open' || s == 'finding' || s == 'assigned' || s == 'on way';
   }
 
-  void _editRequest(RequestModel request) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => AddRequestScreen(requestToEdit: request)),
+  List<RequestModel> _applyFilters(List<RequestModel> all) {
+    var list = all;
+    if (_query.isNotEmpty) {
+      final q = _query.toLowerCase();
+      list = list.where((r) =>
+        r.category.toLowerCase().contains(q) ||
+        r.description.toLowerCase().contains(q) ||
+        r.location.toLowerCase().contains(q),
+      ).toList();
+    }
+    if (_filter.status != null) {
+      final wantOpen = _filter.status == 'Open';
+      list = list.where((r) => _isEffectivelyOpen(r) == wantOpen).toList();
+    }
+    return list;
+  }
+
+  void _showFilterSheet() async {
+    final result = await showModalBottomSheet<_RequestFilter>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (_) => _FilterSheet(current: _filter),
     );
+    if (result != null && mounted) {
+      setState(() {
+        _filter.status = result.status;
+      });
+    }
   }
 
-  void _deleteRequest(RequestModel request) {
+  void _editRequest(RequestModel r) {
+    Navigator.push(context,
+        MaterialPageRoute(builder: (_) => AddRequestScreen(requestToEdit: r)));
+  }
+
+  void _deleteRequest(RequestModel r) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
         title: const Text('Delete Request?'),
-        content: const Text('Are you sure you want to remove this request?'),
+        content: const Text('This will permanently remove your request.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Cancel')),
           TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Cancel')),
+          ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
-              await _db.deleteRequest(request.id);
+              await _db.deleteRequest(r.id);
             },
-            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.error,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('Delete'),
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _closeRequest(RequestModel r) async {
+    await _db.updateRequest(r.copyWith(status: 'Closed'));
+  }
+
+  Widget _buildBody(String userId) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Header row
+        Padding(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text('Requests',
+                    style: AppTheme.headline(
+                        fontSize: 24, fontWeight: FontWeight.w700)),
+              ),
+              if (_filter.isActive)
+                GestureDetector(
+                  onTap: () => setState(() => _filter.clear()),
+                  child: Container(
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.tertiary.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.close, size: 14, color: AppColors.tertiary),
+                        const SizedBox(width: 4),
+                        Text('Clear',
+                            style: AppTheme.body(
+                                fontSize: 12,
+                                color: AppColors.tertiary,
+                                fontWeight: FontWeight.w600)),
+                      ],
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 12),
+        // Search + Filter row
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Row(
+            children: [
+              Expanded(
+                child: Container(
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                        color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2)),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 14),
+                      const Icon(Icons.search_rounded,
+                          color: AppColors.outline, size: 20),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          style: AppTheme.body(fontSize: 15),
+                          decoration: InputDecoration(
+                            hintText: 'Search requests...',
+                            hintStyle: AppTheme.body(
+                                fontSize: 14, color: AppColors.outline),
+                            border: InputBorder.none,
+                          ),
+                          onChanged: (v) =>
+                              setState(() => _query = v.trim().toLowerCase()),
+                        ),
+                      ),
+                      if (_query.isNotEmpty)
+                        GestureDetector(
+                          onTap: () {
+                            _searchController.clear();
+                            setState(() => _query = '');
+                          },
+                          child: const Padding(
+                              padding: EdgeInsets.all(10),
+                              child: Icon(Icons.close,
+                                  color: AppColors.outline, size: 18)),
+                        )
+                      else
+                        const SizedBox(width: 14),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 10),
+              GestureDetector(
+                onTap: _showFilterSheet,
+                child: Container(
+                  height: 46,
+                  width: 46,
+                  decoration: BoxDecoration(
+                    color:
+                        _filter.isActive ? AppColors.tertiary : Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: _filter.isActive
+                          ? AppColors.tertiary
+                          : AppColors.outlineVariant.withValues(alpha: 0.4),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.03),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2)),
+                    ],
+                  ),
+                  child: Icon(
+                    Icons.tune_rounded,
+                    size: 20,
+                    color: _filter.isActive
+                        ? Colors.white
+                        : AppColors.onSurfaceVariant,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 14),
+        // Tab bar
+        _RequestTabBar(controller: _tabController),
+        const SizedBox(height: 4),
+        // Tab content
+        Expanded(
+          child: TabBarView(
+            controller: _tabController,
+            children: [
+              _RequestListView(
+                stream: _db.getAllRequests(),
+                filter: _applyFilters,
+                isMyTab: false,
+                currentUserId: userId,
+                isEffectivelyOpen: _isEffectivelyOpen,
+                onCall: (phone) async {
+                  final uri = Uri.parse('tel:$phone');
+                  if (await canLaunchUrl(uri)) launchUrl(uri);
+                },
+                onEdit: _editRequest,
+                onClose: _closeRequest,
+                onDelete: _deleteRequest,
+              ),
+              _RequestListView(
+                stream: _db.getUserRequests(userId),
+                filter: _applyFilters,
+                isMyTab: true,
+                currentUserId: userId,
+                isEffectivelyOpen: _isEffectivelyOpen,
+                onCall: (phone) async {
+                  final uri = Uri.parse('tel:$phone');
+                  if (await canLaunchUrl(uri)) launchUrl(uri);
+                },
+                onEdit: _editRequest,
+                onClose: _closeRequest,
+                onDelete: _deleteRequest,
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 
@@ -78,162 +316,213 @@ class _RequestsScreenState extends State<RequestsScreen> {
   Widget build(BuildContext context) {
     final user = _auth.currentUser;
     if (user == null) {
-      return const Center(child: Text('Please login to view your requests.'));
+      return const Center(child: Text('Please login to view requests.'));
     }
 
-    final content = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final body = Stack(
       children: [
-        // Title
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-          child: Text(
-            'Requests',
-            style: AppTheme.headline(fontSize: 24, fontWeight: FontWeight.w700, color: AppColors.primary),
-          ),
-        ),
-        // Search bar — outside StreamBuilder so it never loses focus
-        Padding(
-          padding: const EdgeInsets.fromLTRB(24, 4, 24, 8),
-          child: Container(
-            height: 48,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.03),
-                  blurRadius: 8,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+        _buildBody(user.uid),
+        Positioned(
+          right: 20,
+          bottom: 20,
+          child: FloatingActionButton.extended(
+            heroTag: 'requests_fab',
+            onPressed: () => Navigator.push(context,
+                MaterialPageRoute(builder: (_) => const AddRequestScreen())),
+            backgroundColor: AppColors.tertiary,
+            foregroundColor: Colors.white,
+            elevation: 4,
+            icon: const Icon(Icons.add_rounded, size: 20),
+            label: Text(
+              'Post Request',
+              style: AppTheme.body(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white),
             ),
-            child: Row(
-              children: [
-                const SizedBox(width: 14),
-                const Icon(Icons.search_rounded, color: AppColors.outline, size: 20),
-                const SizedBox(width: 10),
-                Expanded(
-                  child: TextField(
-                    controller: _searchController,
-                    style: AppTheme.body(fontSize: 15),
-                    decoration: InputDecoration(
-                      hintText: 'Search by category, location...',
-                      hintStyle: AppTheme.body(fontSize: 15, color: AppColors.outline),
-                      border: InputBorder.none,
-                    ),
-                    onChanged: (v) => setState(() => _query = v.trim().toLowerCase()),
-                  ),
-                ),
-                if (_query.isNotEmpty)
-                  GestureDetector(
-                    onTap: () {
-                      _searchController.clear();
-                      setState(() => _query = '');
-                    },
-                    child: const Padding(
-                      padding: EdgeInsets.all(10),
-                      child: Icon(Icons.close, color: AppColors.outline, size: 18),
-                    ),
-                  )
-                else
-                  const SizedBox(width: 14),
-              ],
-            ),
-          ),
-        ),
-        // Results from stream
-        Expanded(
-          child: StreamBuilder<List<RequestModel>>(
-            stream: widget.showOnlyMyRequests ? _db.getUserRequests(user.uid) : _db.getAllRequests(),
-            builder: (context, snapshot) {
-              if (snapshot.connectionState == ConnectionState.waiting) {
-                return const Center(child: CircularProgressIndicator());
-              }
-              if (snapshot.hasError) {
-                return Center(child: Text('Error: ${snapshot.error}'));
-              }
-              final filtered = _filterRequests(snapshot.data ?? []);
-              return _buildRequestsList(filtered, true, user.uid);
-            },
           ),
         ),
       ],
     );
 
-    // When used as standalone screen (showOnlyMyRequests), wrap with Scaffold + AppBar
-    if (widget.showOnlyMyRequests) {
+    if (widget.standalone) {
       return Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
-          title: Text(
-            'My Requests',
-            style: AppTheme.headline(fontSize: 20, fontWeight: FontWeight.w700),
-          ),
+          title: Text('My Requests',
+              style:
+                  AppTheme.headline(fontSize: 20, fontWeight: FontWeight.w700)),
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
           iconTheme: const IconThemeData(color: AppColors.onSurface),
         ),
-        body: content,
+        body: body,
       );
     }
 
-    // Inside MainShell — no Scaffold needed
-    return content;
+    return body;
   }
+}
 
-  Widget _buildRequestsList(List<RequestModel> jobs, bool isActive, String currentUserId) {
-    if (jobs.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(Icons.work_outline, size: 56, color: AppColors.outlineVariant.withValues(alpha: 0.5)),
-            const SizedBox(height: 16),
-            Text(
-              'No requests yet',
-              style: AppTheme.body(fontSize: 16, fontWeight: FontWeight.w600, color: AppColors.outline),
+// ── Custom Tab Bar ──────────────────────────────────────────────────────────
+
+class _RequestTabBar extends StatelessWidget {
+  final TabController controller;
+  const _RequestTabBar({required this.controller});
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final idx = controller.index;
+        return Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 24),
+          child: Container(
+            height: 44,
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainerHighest.withValues(alpha: 0.5),
+              borderRadius: BorderRadius.circular(14),
             ),
-            const SizedBox(height: 4),
-            Text(
-              'Post a request to find professionals near you',
-              style: AppTheme.body(fontSize: 13, color: AppColors.outlineVariant),
+            child: Row(
+              children: [
+                _TabItem(
+                  label: 'All Requests',
+                  icon: Icons.list_alt_rounded,
+                  selected: idx == 0,
+                  activeColor: AppColors.tertiary,
+                  onTap: () => controller.animateTo(0),
+                ),
+                _TabItem(
+                  label: 'My Posts',
+                  icon: Icons.person_rounded,
+                  selected: idx == 1,
+                  activeColor: AppColors.primary,
+                  onTap: () => controller.animateTo(1),
+                ),
+              ],
             ),
-          ],
-        ),
-      );
-    }
+          ),
+        );
+      },
+    );
+  }
+}
 
-    return ListView.builder(
-      padding: const EdgeInsets.all(24),
-      itemCount: jobs.length,
-      itemBuilder: (context, index) {
-        final job = jobs[index];
-        final isOwner = job.userId == currentUserId;
+class _TabItem extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final Color activeColor;
+  final VoidCallback onTap;
 
-        return _RequestCard(
-          job: job,
-          showActions: widget.showOnlyMyRequests && isOwner,
-          onEdit: () => _editRequest(job),
-          onDelete: () => _deleteRequest(job),
-          onRebook: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => AddRequestScreen(
-                  requestToEdit: RequestModel(
-                    id: '',
-                    userId: job.userId,
-                    category: job.category,
-                    description: job.description,
-                    location: job.location,
-                    time: '',
-                    budgetRange: job.budgetRange,
-                  ),
+  const _TabItem({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.activeColor,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          margin: const EdgeInsets.all(4),
+          decoration: BoxDecoration(
+            color: selected ? Colors.white : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2))
+                  ]
+                : null,
+          ),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon,
+                  size: 16, color: selected ? activeColor : AppColors.outline),
+              const SizedBox(width: 6),
+              Text(
+                label,
+                style: AppTheme.body(
+                  fontSize: 13,
+                  fontWeight:
+                      selected ? FontWeight.w700 : FontWeight.w500,
+                  color: selected ? activeColor : AppColors.outline,
                 ),
               ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── List View ───────────────────────────────────────────────────────────────
+
+class _RequestListView extends StatelessWidget {
+  final Stream<List<RequestModel>> stream;
+  final List<RequestModel> Function(List<RequestModel>) filter;
+  final bool isMyTab;
+  final String currentUserId;
+  final bool Function(RequestModel) isEffectivelyOpen;
+  final void Function(String phone) onCall;
+  final void Function(RequestModel) onEdit;
+  final void Function(RequestModel) onClose;
+  final void Function(RequestModel) onDelete;
+
+  const _RequestListView({
+    required this.stream,
+    required this.filter,
+    required this.isMyTab,
+    required this.currentUserId,
+    required this.isEffectivelyOpen,
+    required this.onCall,
+    required this.onEdit,
+    required this.onClose,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return StreamBuilder<List<RequestModel>>(
+      stream: stream,
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return const Center(child: CircularProgressIndicator());
+        }
+        if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        }
+        final filtered = filter(snapshot.data ?? []);
+        if (filtered.isEmpty) {
+          return _EmptyState(isMyTab: isMyTab);
+        }
+        return ListView.builder(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 100),
+          itemCount: filtered.length,
+          itemBuilder: (_, i) {
+            final r = filtered[i];
+            final isOwner = r.userId == currentUserId;
+            return _RequestCard(
+              request: r,
+              isOpen: isEffectivelyOpen(r),
+              showCallButton: !isMyTab && r.phone.isNotEmpty,
+              showMyActions: isMyTab && isOwner,
+              onCall: () => onCall(r.phone),
+              onEdit: () => onEdit(r),
+              onClose: () => onClose(r),
+              onDelete: () => onDelete(r),
             );
           },
         );
@@ -242,372 +531,532 @@ class _RequestsScreenState extends State<RequestsScreen> {
   }
 }
 
-class _RequestCard extends StatefulWidget {
-  final RequestModel job;
-  final bool showActions;
+// ── Request Card ────────────────────────────────────────────────────────────
+
+class _RequestCard extends StatelessWidget {
+  final RequestModel request;
+  final bool isOpen;
+  final bool showCallButton;
+  final bool showMyActions;
+  final VoidCallback onCall;
   final VoidCallback onEdit;
+  final VoidCallback onClose;
   final VoidCallback onDelete;
-  final VoidCallback? onRebook;
 
   const _RequestCard({
-    required this.job,
-    this.showActions = false,
+    required this.request,
+    required this.isOpen,
+    required this.showCallButton,
+    required this.showMyActions,
+    required this.onCall,
     required this.onEdit,
+    required this.onClose,
     required this.onDelete,
-    this.onRebook,
   });
 
-  @override
-  State<_RequestCard> createState() => _RequestCardState();
-}
+  static const _palette = [
+    Color(0xFF1565C0), Color(0xFF2E7D32), Color(0xFF6A1B9A),
+    Color(0xFF00838F), Color(0xFFE65100), Color(0xFF37474F),
+    Color(0xFFC62828), Color(0xFF4527A0), Color(0xFF00695C),
+    Color(0xFF558B2F),
+  ];
 
-class _RequestCardState extends State<_RequestCard> {
-  bool _expanded = false;
-  String? _posterName;
-  String? _posterPhoto;
-  bool _loadingPoster = false;
-
-  Future<void> _loadPoster() async {
-    if (_posterName != null || _loadingPoster) return;
-    setState(() => _loadingPoster = true);
-    try {
-      final db = context.read<DatabaseService>();
-      final data = await db.getUserData(widget.job.userId);
-      if (mounted) {
-        setState(() {
-          _posterName = data?['name'] as String? ?? 'Unknown';
-          _posterPhoto = data?['photoUrl'] as String?;
-          _loadingPoster = false;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _loadingPoster = false);
-    }
-  }
-
-  String _initials(String name) {
-    final parts = name.trim().split(' ');
-    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
-    return name.isNotEmpty ? name[0].toUpperCase() : '?';
-  }
-
-  Future<void> _call(String phone) async {
-    final uri = Uri.parse('tel:$phone');
-    if (await canLaunchUrl(uri)) launchUrl(uri);
-  }
-
-  Widget _posterFallback() {
-    final name = _posterName ?? '?';
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: AppColors.primary.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Center(
-        child: Text(
-          _initials(name),
-          style: AppTheme.headline(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.primary),
-        ),
-      ),
-    );
+  Color _categoryColor() {
+    if (request.category.isEmpty) return AppColors.primary;
+    final hash = request.category.codeUnits
+        .fold(0, (acc, c) => acc + c);
+    return _palette[hash % _palette.length];
   }
 
   @override
   Widget build(BuildContext context) {
-    final job = widget.job;
-    final bool canModify = widget.showActions && job.status == 'Finding';
-    final String dateStr = DateFormat('MMM d, h:mm a').format(job.createdAt ?? DateTime.now());
+    final color = _categoryColor();
+    final dateStr =
+        DateFormat('MMM d, h:mm a').format(request.createdAt ?? DateTime.now());
 
-    return GestureDetector(
-      onTap: () {
-        setState(() => _expanded = !_expanded);
-        if (_expanded) _loadPoster();
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 16),
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.15)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Category icon avatar
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: BoxDecoration(
-                    color: _getCategoryColor().withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: Icon(_getCategoryIcon(), color: _getCategoryColor(), size: 30),
-                ),
-                const SizedBox(width: 14),
-                // Info
-                Expanded(
+    return Container(
+      margin: const EdgeInsets.only(bottom: 14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 14,
+              offset: const Offset(0, 4)),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: IntrinsicHeight(
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Left accent strip
+              Container(width: 4, color: color),
+              // Card content
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(14, 14, 14, 14),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // ── Header row ──
                       Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Expanded(
-                            child: Text(
-                              job.category,
-                              style: AppTheme.headline(fontSize: 16),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                            width: 46,
+                            height: 46,
                             decoration: BoxDecoration(
-                              color: _getStatusColor().withValues(alpha: 0.1),
-                              borderRadius: BorderRadius.circular(8),
+                              color: color.withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(13),
                             ),
-                            child: Text(
-                              job.status.toUpperCase(),
-                              style: TextStyle(
-                                fontSize: 10,
-                                fontWeight: FontWeight.w800,
-                                color: _getStatusColor(),
-                                letterSpacing: 0.5,
+                            child: Center(
+                              child: Text(
+                                request.category.isNotEmpty
+                                    ? request.category.trim()[0].toUpperCase()
+                                    : '?',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w800,
+                                  color: color,
+                                  height: 1,
+                                ),
                               ),
                             ),
                           ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.calendar_today_rounded, size: 12, color: AppColors.outline),
-                          const SizedBox(width: 4),
+                          const SizedBox(width: 12),
                           Expanded(
-                            child: Text(
-                              dateStr,
-                              style: AppTheme.body(fontSize: 12, color: AppColors.outline),
-                              overflow: TextOverflow.ellipsis,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _toTitleCase(request.category),
+                                  style: AppTheme.headline(
+                                      fontSize: 15, fontWeight: FontWeight.w700),
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                                const SizedBox(height: 4),
+                                Row(
+                                  children: [
+                                    Icon(Icons.calendar_today_outlined,
+                                        size: 11, color: AppColors.outline),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      dateStr,
+                                      style: AppTheme.body(
+                                          fontSize: 11,
+                                          color: AppColors.outline),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          // Status pill
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 10, vertical: 5),
+                            decoration: BoxDecoration(
+                              color: isOpen
+                                  ? const Color(0xFFE8F5E9)
+                                  : AppColors.surfaceContainerHighest,
+                              borderRadius: BorderRadius.circular(20),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  width: 6,
+                                  height: 6,
+                                  decoration: BoxDecoration(
+                                    color: isOpen
+                                        ? const Color(0xFF2E7D32)
+                                        : AppColors.outline,
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                Text(
+                                  isOpen ? 'Open' : 'Closed',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w700,
+                                    color: isOpen
+                                        ? const Color(0xFF2E7D32)
+                                        : AppColors.outline,
+                                    letterSpacing: 0.1,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ],
                       ),
-                      const SizedBox(height: 10),
+                      // ── Location ──
+                      if (request.location.isNotEmpty) ...[
+                        const SizedBox(height: 8),
+                        Row(
+                          children: [
+                            Icon(Icons.location_on_outlined,
+                                size: 13, color: AppColors.outline),
+                            const SizedBox(width: 4),
+                            Expanded(
+                              child: Text(
+                                request.location,
+                                style: AppTheme.body(
+                                    fontSize: 12,
+                                    color: AppColors.onSurfaceVariant),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                      // ── Description ──
+                      if (request.description.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceContainerHighest
+                                .withValues(alpha: 0.45),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Text(
+                            request.description,
+                            style: AppTheme.body(
+                                fontSize: 13,
+                                color: AppColors.onSurfaceVariant,
+                                height: 1.45),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                      // ── Photo preview ──
+                      if (request.photoUrl != null &&
+                          request.photoUrl!.isNotEmpty) ...[
+                        const SizedBox(height: 10),
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: Image.network(
+                            request.photoUrl!,
+                            height: 140,
+                            width: double.infinity,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => const SizedBox.shrink(),
+                          ),
+                        ),
+                      ],
+                      // ── Footer ──
+                      const SizedBox(height: 12),
                       Row(
                         children: [
-                          const Icon(Icons.location_on_rounded, size: 14, color: AppColors.primary),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              job.location,
-                              style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w500, color: AppColors.onSurfaceVariant),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
+                          const Spacer(),
+                          // Call button (All tab)
+                          if (showCallButton)
+                            GestureDetector(
+                              onTap: onCall,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 18, vertical: 9),
+                                decoration: BoxDecoration(
+                                  color: AppColors.primary,
+                                  borderRadius: BorderRadius.circular(12),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primary
+                                          .withValues(alpha: 0.28),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.call_rounded,
+                                        size: 15, color: Colors.white),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'Call',
+                                      style: AppTheme.body(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                          ),
+                          // My Posts actions
+                          if (showMyActions) ...[
+                            _ActionBtn(
+                              icon: Icons.edit_outlined,
+                              label: 'Edit',
+                              color: AppColors.primary,
+                              onTap: onEdit,
+                              outlined: true,
+                            ),
+                            if (isOpen) ...[
+                              const SizedBox(width: 6),
+                              _ActionBtn(
+                                icon: Icons.check_circle_outline,
+                                label: 'Close',
+                                color: AppColors.outline,
+                                onTap: onClose,
+                                outlined: true,
+                              ),
+                            ],
+                            const SizedBox(width: 6),
+                            _ActionBtn(
+                              icon: Icons.delete_outline,
+                              label: '',
+                              color: AppColors.error,
+                              onTap: onDelete,
+                              outlined: true,
+                            ),
+                          ],
                         ],
                       ),
                     ],
                   ),
                 ),
-                const SizedBox(width: 4),
-                Icon(
-                  _expanded ? Icons.keyboard_arrow_up_rounded : Icons.chevron_right_rounded,
-                  size: 22,
-                  color: AppColors.outlineVariant,
-                ),
-              ],
-            ),
-
-            // Expanded content
-            AnimatedCrossFade(
-              firstChild: const SizedBox.shrink(),
-              secondChild: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 14),
-                  // Poster info + call button
-                  _loadingPoster
-                      ? const Center(child: SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2)))
-                      : Row(
-                          children: [
-                            // Avatar
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(22),
-                              child: _posterPhoto != null && _posterPhoto!.isNotEmpty
-                                  ? Image.network(
-                                      _posterPhoto!,
-                                      width: 44,
-                                      height: 44,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, _, _) => _posterFallback(),
-                                    )
-                                  : _posterFallback(),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    _posterName ?? '',
-                                    style: AppTheme.body(fontSize: 14, fontWeight: FontWeight.w700),
-                                  ),
-                                  Text(
-                                    'Posted by',
-                                    style: AppTheme.body(fontSize: 12, color: AppColors.outline),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            if (job.phone.isNotEmpty)
-                              GestureDetector(
-                                onTap: () => _call(job.phone),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.primary,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      const Icon(Icons.call_rounded, size: 16, color: Colors.white),
-                                      const SizedBox(width: 6),
-                                      Text('Call', style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w700, color: Colors.white)),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                  if (job.description.isNotEmpty) ...[
-                    const SizedBox(height: 12),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: AppColors.background,
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        job.description,
-                        style: AppTheme.body(fontSize: 13, color: AppColors.onSurfaceVariant, height: 1.5),
-                      ),
-                    ),
-                  ],
-                  if (job.photoUrl != null && job.photoUrl!.isNotEmpty) ...[
-                    const SizedBox(height: 10),
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Image.network(
-                        job.photoUrl!,
-                        height: 150,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => const SizedBox.shrink(),
-                      ),
-                    ),
-                  ],
-                  if (canModify || (widget.showActions && job.status == 'Completed')) ...[
-                    const SizedBox(height: 12),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
-                        if (canModify) ...[
-                          OutlinedButton.icon(
-                            onPressed: widget.onEdit,
-                            icon: const Icon(Icons.edit_outlined, size: 16),
-                            label: const Text('Edit', style: TextStyle(fontSize: 13)),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.primary,
-                              side: BorderSide(color: AppColors.primary.withValues(alpha: 0.3)),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          OutlinedButton.icon(
-                            onPressed: widget.onDelete,
-                            icon: const Icon(Icons.delete_outline, size: 16),
-                            label: const Text('Delete', style: TextStyle(fontSize: 13)),
-                            style: OutlinedButton.styleFrom(
-                              foregroundColor: AppColors.error,
-                              side: BorderSide(color: AppColors.error.withValues(alpha: 0.3)),
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                            ),
-                          ),
-                        ],
-                        if (job.status == 'Completed')
-                          ElevatedButton.icon(
-                            onPressed: widget.onRebook,
-                            icon: const Icon(Icons.replay_rounded, size: 16),
-                            label: const Text('Rebook', style: TextStyle(fontWeight: FontWeight.w700, fontSize: 13)),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.primary,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
-                              elevation: 0,
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                ],
               ),
-              crossFadeState: _expanded ? CrossFadeState.showSecond : CrossFadeState.showFirst,
-              duration: const Duration(milliseconds: 250),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _toTitleCase(String text) {
+    if (text.isEmpty) return text;
+    return text.split(' ').map((w) {
+      if (w.isEmpty) return w;
+      return w[0].toUpperCase() + w.substring(1).toLowerCase();
+    }).join(' ');
+  }
+}
+
+// ── Helper Widgets ──────────────────────────────────────────────────────────
+
+class _ActionBtn extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final Color color;
+  final VoidCallback onTap;
+  final bool outlined;
+
+  const _ActionBtn({
+    required this.icon,
+    required this.label,
+    required this.color,
+    required this.onTap,
+    this.outlined = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+        decoration: BoxDecoration(
+          color: outlined ? Colors.transparent : color,
+          borderRadius: BorderRadius.circular(9),
+          border: Border.all(
+              color: color.withValues(alpha: outlined ? 0.5 : 1)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 14, color: outlined ? color : Colors.white),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: AppTheme.body(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: outlined ? color : Colors.white,
+              ),
             ),
           ],
         ),
       ),
     );
   }
+}
 
-  IconData _getCategoryIcon() {
-    switch (widget.job.category) {
-      case 'Plumber': return Icons.plumbing;
-      case 'Electrician': return Icons.electrical_services;
-      case 'Cleaner': return Icons.cleaning_services;
-      case 'Painter': return Icons.imagesearch_roller;
-      case 'Carpenter': return Icons.carpenter;
-      default: return Icons.handyman;
-    }
-  }
+// ── Empty State ─────────────────────────────────────────────────────────────
 
-  Color _getCategoryColor() {
-    switch (widget.job.category) {
-      case 'Plumber': return Colors.blue;
-      case 'Electrician': return Colors.amber;
-      case 'Cleaner': return Colors.green;
-      case 'Painter': return Colors.purple;
-      case 'Carpenter': return Colors.orange;
-      default: return AppColors.primary;
-    }
-  }
+class _EmptyState extends StatelessWidget {
+  final bool isMyTab;
+  const _EmptyState({required this.isMyTab});
 
-  Color _getStatusColor() {
-    switch (widget.job.status) {
-      case 'Finding': return AppColors.primary;
-      case 'Assigned': return Colors.orange;
-      case 'On Way': return Colors.green;
-      case 'Completed': return AppColors.onSurfaceVariant;
-      default: return AppColors.primary;
-    }
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: AppColors.tertiary.withValues(alpha: 0.08),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isMyTab
+                  ? Icons.post_add_rounded
+                  : Icons.search_off_rounded,
+              size: 36,
+              color: AppColors.tertiary.withValues(alpha: 0.5),
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            isMyTab ? 'No posts yet' : 'No requests found',
+            style: AppTheme.body(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: AppColors.onSurfaceVariant),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            isMyTab
+                ? 'Tap "Post Request" to share what you need'
+                : 'Be the first to post a service request',
+            style: AppTheme.body(fontSize: 13, color: AppColors.outline),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
   }
 }
 
+// ── Filter Sheet ────────────────────────────────────────────────────────────
+
+class _FilterSheet extends StatefulWidget {
+  final _RequestFilter current;
+  const _FilterSheet({required this.current});
+
+  @override
+  State<_FilterSheet> createState() => _FilterSheetState();
+}
+
+class _FilterSheetState extends State<_FilterSheet> {
+  String? _status;
+
+  @override
+  void initState() {
+    super.initState();
+    _status = widget.current.status;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding:
+          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: AppColors.outlineVariant,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text('Filter Requests',
+                  style: AppTheme.headline(
+                      fontSize: 18, fontWeight: FontWeight.w700)),
+              const SizedBox(height: 20),
+              Text('STATUS',
+                  style: AppTheme.label(
+                      color: AppColors.onSurfaceVariant, letterSpacing: 1.5)),
+              const SizedBox(height: 10),
+              Wrap(
+                spacing: 8,
+                children: ['Open', 'Closed'].map((s) {
+                  final selected = _status == s;
+                  return GestureDetector(
+                    onTap: () =>
+                        setState(() => _status = selected ? null : s),
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 150),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: selected
+                            ? AppColors.tertiary
+                            : AppColors.surfaceContainerHighest,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text(
+                        s,
+                        style: AppTheme.body(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: selected
+                              ? Colors.white
+                              : AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+              const SizedBox(height: 28),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final result = _RequestFilter()
+                      ..status = _status;
+                    Navigator.pop(context, result);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.tertiary,
+                    foregroundColor: Colors.white,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                    elevation: 0,
+                  ),
+                  child: Text('Apply Filters',
+                      style: AppTheme.body(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}

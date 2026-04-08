@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 import '../models/worker_model.dart';
 import '../services/database_service.dart';
 import '../screens/worker_profile_screen.dart';
+import '../constants/app_categories.dart';
 
 class SearchResultsScreen extends StatefulWidget {
   const SearchResultsScreen({super.key});
@@ -26,32 +27,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   bool _availableOnly = false;
   String _sortBy = 'Best Match';
 
-  final List<String> _serviceTypes = [
-    'Electrician',
-    'Plumber',
-    'AC Repair',
-    'Carpenter',
-    'Tile Worker',
-    'Cleaning',
-    'Maid',
-    'Security',
-    'Gardening',
-    'Ride Sharing',
-    'Car Taxi',
-    'Auto',
-    'Personal Driver',
-    'Babysitter',
-    'Tailor',
-    'Home Salon',
-    'Roommate',
-    'HelpBuddy',
-    'Mechanic',
-    'Tile Worker',
-    'Rental Rooms',
-    'Core Cutting',
-    'Property',
-    'RO Service',
-  ];
+  final List<String> _serviceTypes = AppCategories.all;
 
   final List<String> _areas = [
     'Indore',
@@ -505,6 +481,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
               _selectedServiceType != null,
             ),
           ),
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: _showAreaFilter,
             child: _buildChip(
@@ -513,7 +490,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
               _selectedArea != null,
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 8),
           GestureDetector(
             onTap: () {
               setState(() {
@@ -570,14 +547,19 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
 
   Widget _buildChip(IconData icon, String label, bool selected) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       decoration: BoxDecoration(
         color: selected ? AppColors.primary : Colors.white,
         borderRadius: BorderRadius.circular(9999),
+        border: Border.all(
+          color: selected
+              ? AppColors.primary
+              : AppColors.outlineVariant.withValues(alpha: 0.5),
+        ),
         boxShadow: selected
             ? [
                 BoxShadow(
-                  color: AppColors.primary.withValues(alpha: 0.3),
+                  color: AppColors.primary.withValues(alpha: 0.25),
                   blurRadius: 8,
                   offset: const Offset(0, 2),
                 ),

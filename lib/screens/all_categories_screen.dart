@@ -51,7 +51,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   static final List<_ServiceSection> _sections = [
     _ServiceSection(
       title: 'Home Maintenance',
-      subtitle: '9 Services',
+      subtitle: '10 Services',
       subtitleColor: AppColors.primary,
       items: [
         _ServiceItem(
@@ -108,6 +108,12 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
               'https://lh3.googleusercontent.com/aida-public/AB6AXuC7xLSymgBC0zKuwIVZ9dQhRbLLQ5IjwbPDTxgXihEVMYF63msmSu68HjEx4sdp2i-beZvEXISuuY6NA8Ys24N0sSM0L4oUxbHxYk_UVK8Ks8cPmRJI3jE9UCSMcMxhtynaVo16F_3aoRpHVe357Sr9ZuLBBcf-oFOP5puDV1URXzb1yZZ90aeWB_GLvp6i3IDVM7cf6GX5kpIBQh7IQl57HMLKEhPfnXmmVGOXPVl5KL3_M_PzsxghQF7yofk6DEOEInUtwVdlADo',
           tags: ['garden', 'plants', 'lawn', 'grass', 'landscaping', 'tree trimming', 'flowers', 'mali'],
         ),
+        _ServiceItem(
+          name: 'Water Supplier',
+          imageUrl:
+              'https://images.unsplash.com/photo-1559827260-dc66d52bef19?w=400&q=80',
+          tags: ['water', 'water can', 'water delivery', 'drinking water', 'mineral water', 'water supply', 'water tanker', 'jar water'],
+        ),
       ],
     ),
     _ServiceSection(
@@ -116,7 +122,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
       subtitleColor: AppColors.primary,
       items: [
         _ServiceItem(
-          name: 'Ride Sharing',
+          name: 'Ridemate',
           imageUrl:
               'https://lh3.googleusercontent.com/aida-public/AB6AXuAHepeh83ksYE1GlpXqnCF95v_1Cfp4gS-v-6CLCZdamXVp26BIDHcTdI8jZjVwOWWskPOzIAh2CMuAGBQ8fDsvZ3N3_Od9S6jExRsmHdMp8vf3bKBqdPabrGd-iEYG5rVXUXGdRf_-UH8loAy4vLquh5blxjAKeKDY8ver3ney7MSooHwe-2QTWJFTLlZfdLTpYuFKsYBsEFkxFOkBjOTu0gee8a2Wr4ULuWOlB1dkRJ9iGoHFx63mgeLYLuUEATjjA_5URNQOnGY',
           tags: ['bike','bike taxi','rapido','carpool', 'share ride', 'commute', 'travel together', 'pooling', 'ride share', 'co rider'],
@@ -149,7 +155,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
     ),
     _ServiceSection(
       title: 'Personal & Lifestyle',
-      subtitle: '5 Services',
+      subtitle: '10 Services',
       subtitleColor: AppColors.tertiary,
       items: [
         _ServiceItem(
@@ -177,7 +183,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
           tags: ['roommate', 'flatmate', 'room share', 'paying guest', 'pg', 'accommodation', 'rent', 'room partner', 'sharing'],
         ),
         _ServiceItem(
-          name: 'HelpBuddy',
+          name: 'Helpmate',
           imageUrl:
               'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=400&q=80',
           tags: ['assistant', 'helper', 'errand', 'task', 'companion', 'support', 'personal assistant', 'help', 'buddy', 'aide'],
@@ -205,6 +211,12 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
           imageUrl:
               'https://media.istockphoto.com/id/1353114688/photo/image-of-unrecognisable-person-doing-a-maintenance-service-on-a-household-filtration-system.jpg?s=612x612&w=0&k=20&c=orSRdqtZP0ML0XpIy1o3ZE9jb9KMlkRNiumCnZL4Mmk=',
           tags: ['ro', 'water purifier', 'ro service', 'water filter', 'purifier repair', 'aquaguard', 'kent', 'water treatment'],
+        ),
+        _ServiceItem(
+          name: 'Makeup Artist',
+          imageUrl:
+              'https://images.unsplash.com/photo-1487412947147-5cebf100ffc2?w=400&q=80',
+          tags: ['makeup', 'makeup artist', 'bridal makeup', 'party makeup', 'mua', 'beauty', 'foundation', 'contouring', 'eyeshadow', 'mua'],
         ),
       ],
     ),

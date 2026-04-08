@@ -8,7 +8,7 @@ class RequestModel {
   final String location;
   final String time;
   final String budgetRange; // 'Economy', 'Standard', 'Premium'
-  final String status; // 'Finding', 'Assigned', 'On Way', 'Completed'
+  final String status; // 'Open' | 'Closed'
   final String phone;
   final double? price;
   final String? photoUrl;
@@ -22,7 +22,7 @@ class RequestModel {
     required this.location,
     required this.time,
     required this.budgetRange,
-    this.status = 'Finding',
+    this.status = 'Open',
     this.phone = '',
     this.price,
     this.photoUrl,
@@ -38,7 +38,7 @@ class RequestModel {
       location: map['location'] ?? '',
       time: map['time'] ?? '',
       budgetRange: map['budgetRange'] ?? 'Standard',
-      status: map['status'] ?? 'Finding',
+      status: map['status'] ?? 'Open',
       phone: map['phone'] ?? '',
       price: (map['price'] as num?)?.toDouble(),
       photoUrl: map['photoUrl'] as String?,

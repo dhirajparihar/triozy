@@ -381,19 +381,22 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
                     .map(
                       (tag) => Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+                          horizontal: 14,
+                          vertical: 7,
                         ),
                         decoration: BoxDecoration(
-                          color: AppColors.surfaceContainerHigh,
+                          color: AppColors.primary.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(9999),
+                          border: Border.all(
+                            color: AppColors.primary.withValues(alpha: 0.2),
+                          ),
                         ),
                         child: Text(
                           tag,
                           style: AppTheme.label(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: AppColors.onSurfaceVariant,
+                            color: AppColors.primary,
                           ),
                         ),
                       ),
@@ -410,44 +413,43 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
   }
 
   Widget _buildAreaCard(WorkerModel w) {
+    final location = w.location.isNotEmpty ? w.location : 'Your area';
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
         color: AppColors.blue50.withValues(alpha: 0.5),
         borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              const Icon(Icons.near_me, color: AppColors.primary, size: 20),
-              const SizedBox(width: 8),
-              Text('Area', style: AppTheme.headline(fontSize: 18)),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            'Serving ${w.location.isNotEmpty ? w.location : 'your area'} and surrounding neighborhoods.',
-            style: AppTheme.body(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppColors.onSurfaceVariant,
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              shape: BoxShape.circle,
             ),
+            child: const Icon(Icons.location_on_rounded, color: AppColors.primary, size: 26),
           ),
-          const SizedBox(height: 12),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(12),
-            child: Container(
-              height: 80,
-              color: AppColors.surfaceDim,
-              child: Center(
-                child: Icon(
-                  Icons.map,
-                  color: AppColors.outline.withValues(alpha: 0.5),
-                  size: 32,
-                ),
-              ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text('Service Area',
+                    style: AppTheme.label(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                        letterSpacing: 1.2)),
+                const SizedBox(height: 4),
+                Text(location,
+                    style: AppTheme.headline(fontSize: 16, fontWeight: FontWeight.w700)),
+                const SizedBox(height: 2),
+                Text('& surrounding neighborhoods',
+                    style: AppTheme.body(fontSize: 13, color: AppColors.onSurfaceVariant)),
+              ],
             ),
           ),
         ],

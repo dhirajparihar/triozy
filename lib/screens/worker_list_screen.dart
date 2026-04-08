@@ -428,10 +428,17 @@ class _WorkerListCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(32),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
@@ -477,26 +484,23 @@ class _WorkerListCard extends StatelessWidget {
                             vertical: 4,
                           ),
                           decoration: BoxDecoration(
-                            color: AppColors.secondaryContainer.withValues(
-                              alpha: 0.3,
-                            ),
+                            color: AppColors.amber500.withValues(alpha: 0.1),
                             borderRadius: BorderRadius.circular(8),
                           ),
                           child: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               const Icon(
-                                Icons.star,
-                                size: 16,
-                                color: AppColors.secondary,
+                                Icons.star_rounded,
+                                size: 15,
+                                color: AppColors.amber500,
                               ),
                               const SizedBox(width: 4),
                               Text(
                                 data.rating,
                                 style: AppTheme.body(
-                                  fontSize: 14,
+                                  fontSize: 13,
                                   fontWeight: FontWeight.w700,
-                                  color: AppColors.secondary,
                                 ),
                               ),
                             ],
@@ -555,54 +559,38 @@ class _WorkerListCard extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 24),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.surfaceContainerLow,
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Text(
+          if (data.description.isNotEmpty) ...[
+            const SizedBox(height: 16),
+            Text(
               data.description,
-              style: AppTheme.body(
-                fontSize: 14,
-                color: AppColors.onSurfaceVariant,
+              style: AppTheme.body(fontSize: 13, color: AppColors.onSurfaceVariant, height: 1.5),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            height: 48,
+            child: ElevatedButton.icon(
+              onPressed: data.isAvailable ? onCall : null,
+              icon: Icon(data.isAvailable ? Icons.call_rounded : Icons.call_end_rounded, size: 18),
+              label: Text(
+                data.isAvailable ? 'Call Now' : 'Offline',
+                style: AppTheme.body(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: data.isAvailable ? AppColors.secondary : AppColors.onSurfaceVariant,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                elevation: data.isAvailable ? 2 : 0,
+                shadowColor: AppColors.secondary.withValues(alpha: 0.3),
               ),
             ),
-          ),
-          const SizedBox(height: 32),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              ElevatedButton.icon(
-                onPressed: data.isAvailable ? onCall : null,
-                icon: const Icon(Icons.call, size: 20),
-                label: Text(
-                  data.isAvailable ? 'Call' : 'Offline',
-                  style: AppTheme.body(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onSecondary,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: data.isAvailable
-                      ? AppColors.secondary
-                      : AppColors.onSurfaceVariant,
-                  foregroundColor: AppColors.onSecondary,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 40,
-                    vertical: 16,
-                  ),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  elevation: data.isAvailable ? 4 : 0,
-                  shadowColor: AppColors.secondary.withValues(alpha: 0.2),
-                ),
-              ),
-            ],
           ),
         ],
       ),

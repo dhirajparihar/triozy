@@ -10,6 +10,7 @@ import '../services/location_service.dart';
 import '../services/auth_service.dart';
 import 'edit_profile_screen.dart';
 import 'help_support_screen.dart';
+import 'my_mates_screen.dart';
 
 class WorkerDashboardScreen extends StatefulWidget {
   const WorkerDashboardScreen({super.key});
@@ -265,9 +266,11 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
   }
 
   Widget _buildMetricCard() {
+    final calls = _worker?.totalJobs ?? 0;
+    final rating = _worker?.ratingDisplay ?? '0.0';
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 24),
+      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 24),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
@@ -280,37 +283,30 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
           ),
         ],
       ),
-      child: Column(
+      child: Row(
         children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: AppColors.blue50,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(Icons.call_rounded, color: AppColors.primary, size: 24),
-          ),
-          const SizedBox(height: 12),
-          Text(
-            '${_worker?.totalJobs ?? 0}',
-            style: AppTheme.headline(
-              fontSize: 40,
-              fontWeight: FontWeight.w900,
-              letterSpacing: -1.5,
-            ),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            'Total Calls Received',
-            style: AppTheme.body(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppColors.onSurfaceVariant,
-            ),
-          ),
+          Expanded(child: _metricStat(Icons.call_rounded, '$calls', 'Calls Received', AppColors.primary, AppColors.blue50)),
+          Container(width: 1, height: 56, color: AppColors.outlineVariant.withValues(alpha: 0.2)),
+          Expanded(child: _metricStat(Icons.star_rounded, rating, 'Avg Rating', AppColors.amber500, AppColors.amber500.withValues(alpha: 0.08))),
         ],
       ),
+    );
+  }
+
+  Widget _metricStat(IconData icon, String value, String label, Color color, Color bg) {
+    return Column(
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(color: bg, shape: BoxShape.circle),
+          child: Icon(icon, color: color, size: 22),
+        ),
+        const SizedBox(height: 10),
+        Text(value, style: AppTheme.headline(fontSize: 32, fontWeight: FontWeight.w900, letterSpacing: -1.0)),
+        const SizedBox(height: 2),
+        Text(label, style: AppTheme.body(fontSize: 12, color: AppColors.onSurfaceVariant)),
+      ],
     );
   }
 
@@ -345,8 +341,57 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
           ],
         ),
         const SizedBox(height: 16),
+        _myMatesCard(),
+        const SizedBox(height: 16),
         _updateLocationCard(),
       ],
+    );
+  }
+
+  Widget _myMatesCard() {
+    return GestureDetector(
+      onTap: () => Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const MyMatesScreen()),
+      ),
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+        ),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: const BoxDecoration(
+                color: AppColors.blue50,
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.people_alt_rounded, color: AppColors.primary, size: 24),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'My Mate Posts',
+                    style: AppTheme.body(fontSize: 16, fontWeight: FontWeight.w700),
+                  ),
+                  Text(
+                    'Manage your Roommate, Helpmate & Ridemate listings',
+                    style: AppTheme.body(fontSize: 12, color: AppColors.onSurfaceVariant),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.chevron_right, color: AppColors.outline),
+          ],
+        ),
+      ),
     );
   }
 

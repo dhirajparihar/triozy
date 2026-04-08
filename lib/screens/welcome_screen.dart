@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -121,7 +122,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     ),
                     const SizedBox(height: 12),
                     Text(
-                      'Find trusted local experts or grow your business today.',
+                      'Find services, post requests, or connect with a mate — all near you.',
                       style: AppTheme.body(
                         fontSize: 16,
                         color: AppColors.onSurfaceVariant,
@@ -250,7 +251,23 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                 ),
               ),
 
-              const SizedBox(height: 32),
+              const SizedBox(height: 28),
+
+              // Value props strip
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Row(
+                  children: [
+                    _valueProp(Icons.verified_user_rounded, 'Verified\nPros'),
+                    const SizedBox(width: 8),
+                    _valueProp(Icons.phone_rounded, 'Direct\nCall'),
+                    const SizedBox(width: 8),
+                    _valueProp(Icons.money_off_rounded, 'Zero\nFees'),
+                  ],
+                ),
+              ),
+
+              const SizedBox(height: 28),
 
               // CTA Section - Google Sign In
               Padding(
@@ -273,31 +290,31 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         ),
                         child: _isLoading
                             ? const SizedBox(
-                                width: 24,
-                                height: 24,
+                                width: 22,
+                                height: 22,
                                 child: CircularProgressIndicator(
-                                  strokeWidth: 2,
+                                  strokeWidth: 2.5,
                                   color: Colors.white,
                                 ),
                               )
                             : Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  // Google icon
                                   Container(
-                                    width: 24,
-                                    height: 24,
+                                    width: 26,
+                                    height: 26,
                                     decoration: BoxDecoration(
                                       color: Colors.white,
-                                      borderRadius: BorderRadius.circular(4),
+                                      borderRadius: BorderRadius.circular(5),
                                     ),
                                     child: Center(
                                       child: Text(
                                         'G',
-                                        style: AppTheme.headline(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w800,
                                           color: AppColors.primary,
+                                          height: 1,
                                         ),
                                       ),
                                     ),
@@ -306,7 +323,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                   Text(
                                     'Continue with Google',
                                     style: AppTheme.headline(
-                                      fontSize: 18,
+                                      fontSize: 17,
                                       fontWeight: FontWeight.w700,
                                       color: AppColors.onPrimary,
                                     ),
@@ -315,11 +332,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                               ),
                       ),
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     Text(
-                      'Trusted by homeowners across the country.',
+                      'By continuing you agree to our Terms & Privacy Policy',
                       style: AppTheme.body(
-                        fontSize: 14,
+                        fontSize: 12,
                         color: AppColors.onSurfaceVariant,
                       ),
                       textAlign: TextAlign.center,
@@ -331,115 +348,47 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
               const SizedBox(height: 40),
 
               // Popular Services Section
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 24),
-                child: Column(
-                  children: [
-                    Text('Popular Services',
-                        style: AppTheme.headline(fontSize: 22)),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      height: 160,
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Container(
-                              padding: const EdgeInsets.all(20),
-                              decoration: BoxDecoration(
-                                color: AppColors.surfaceContainerLow,
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                children: [
-                                  const Icon(Icons.home,
-                                      color: AppColors.primary, size: 28),
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Roommate',
-                                          style: AppTheme.headline(fontSize: 18)),
-                                      Text('Find your perfect roommate',
-                                          style: AppTheme.body(
-                                              fontSize: 12,
-                                              color: AppColors.onSurfaceVariant)),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              children: [
-                                Expanded(
-                                  child: Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.secondaryContainer.withValues(alpha: 0.2),
-                                      borderRadius: BorderRadius.circular(16),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 36,
-                                          height: 36,
-                                          decoration: const BoxDecoration(
-                                            color: Colors.white,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(Icons.directions_car,
-                                              color: AppColors.secondary, size: 20),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Text('Ride Sharing',
-                                            style: AppTheme.headline(fontSize: 16)),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(height: 16),
-                                Expanded(
-                                  child: Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.all(16),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.surfaceContainerLowest,
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: Border.all(
-                                        color: AppColors.outlineVariant.withValues(alpha: 0.3),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 36,
-                                          height: 36,
-                                          decoration: BoxDecoration(
-                                            color: AppColors.surfaceContainerLow,
-                                            shape: BoxShape.circle,
-                                          ),
-                                          child: const Icon(Icons.handshake,
-                                              color: AppColors.onSurfaceVariant, size: 20),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Text('Helpbuddy',
-                                            style: AppTheme.headline(fontSize: 16)),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 24),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Popular Services',
+                            style: AppTheme.headline(fontSize: 22, fontWeight: FontWeight.w800)),
+                        const SizedBox(height: 4),
+                        Text('Call professionals directly — no booking, no fees',
+                            style: AppTheme.body(fontSize: 14, color: AppColors.onSurfaceVariant)),
+                      ],
                     ),
-                  ],
-                ),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    height: 130,
+                    child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      children: [
+                        _serviceCard(Icons.electrical_services_rounded, 'Electrician',
+                            AppColors.blue600, AppColors.blue50),
+                        _serviceCard(Icons.plumbing_rounded, 'Plumber',
+                            AppColors.secondary, AppColors.green50),
+                        _serviceCard(Icons.ac_unit_rounded, 'AC Repair',
+                            AppColors.tertiary, AppColors.orange50),
+                        _serviceCard(Icons.format_paint_rounded, 'Painter',
+                            AppColors.primary, AppColors.primaryContainer),
+                        _serviceCard(Icons.carpenter, 'Carpenter',
+                            const Color(0xFF795548), const Color(0xFFFBE9E7)),
+                        _serviceCard(Icons.face_retouching_natural, 'Makeup Artist',
+                            const Color(0xFFAD1457), const Color(0xFFFCE4EC)),
+                        _serviceCard(Icons.water_drop_rounded, 'Water Supplier',
+                            AppColors.blue700, AppColors.blue50),
+                      ],
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 48),
             ],
@@ -469,6 +418,71 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _valueProp(IconData icon, String label) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+        ),
+        child: Column(
+          children: [
+            Icon(icon, size: 22, color: AppColors.primary),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: AppTheme.label(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.onSurface,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _serviceCard(IconData icon, String label, Color iconColor, Color bgColor) {
+    return Container(
+      width: 110,
+      margin: const EdgeInsets.only(right: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.7),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(icon, size: 20, color: iconColor),
+          ),
+          Text(
+            label,
+            style: AppTheme.body(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface,
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }
