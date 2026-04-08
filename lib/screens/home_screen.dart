@@ -659,13 +659,17 @@ class _MatePreviewCard extends StatelessWidget {
   String get _detail {
     switch (mate.type) {
       case MateType.roommate:
+        if (mate.description.isNotEmpty) return mate.description;
         final parts = <String>[];
         final b = mate.budget;
-        if (b != null && b.trim().isNotEmpty) parts.add(b.trim());
+        if (b != null && b.trim().isNotEmpty) {
+          final formatted = b.trim().startsWith('₹') ? b.trim() : '₹${b.trim()}';
+          parts.add(formatted);
+        }
         final g = mate.preferredGender;
         if (g != null && g.isNotEmpty && g != 'Any') parts.add('$g preferred');
         if (parts.isNotEmpty) return parts.join(' · ');
-        return mate.description.isNotEmpty ? mate.description : mate.location;
+        return mate.location;
       case MateType.helpmate:
         if (mate.helpTypes.isNotEmpty) {
           final label = mate.helpTypes.take(2).join(', ');
