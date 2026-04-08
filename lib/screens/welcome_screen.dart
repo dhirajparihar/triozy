@@ -1,9 +1,11 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
+import 'policy_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
@@ -560,6 +562,61 @@ class _ServiceCard extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Policy disclaimer text
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _PolicyDisclaimerText extends StatelessWidget {
+  const _PolicyDisclaimerText({required this.context});
+
+  // ignore: prefer_const_constructors_in_immutables
+  final BuildContext context;
+
+  void _open(PolicyType type) {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => PolicyScreen(type: type)),
+    );
+  }
+
+  @override
+  Widget build(BuildContext ctx) {
+    final base = GoogleFonts.inter(
+      fontSize: 12,
+      color: AppColors.slate400,
+    );
+    final link = GoogleFonts.inter(
+      fontSize: 12,
+      fontWeight: FontWeight.w600,
+      color: AppColors.primary,
+      decoration: TextDecoration.underline,
+      decorationColor: AppColors.primary.withValues(alpha: 0.4),
+    );
+
+    return RichText(
+      textAlign: TextAlign.center,
+      text: TextSpan(
+        style: base,
+        children: [
+          const TextSpan(text: 'By continuing you agree to our '),
+          TextSpan(
+            text: 'Terms of Service',
+            style: link,
+            recognizer: TapGestureRecognizer()
+              ..onTap = () => _open(PolicyType.terms),
+          ),
+          const TextSpan(text: ' & '),
+          TextSpan(
+            text: 'Privacy Policy',
+            style: link,
+            recognizer: TapGestureRecognizer()
+              ..onTap = () => _open(PolicyType.privacy),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Sticky CTA bar
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -649,14 +706,7 @@ class _StickyCtaBar extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              Text(
-                'By continuing you agree to our Terms & Privacy Policy',
-                style: AppTheme.body(
-                  fontSize: 12,
-                  color: AppColors.slate400,
-                ),
-                textAlign: TextAlign.center,
-              ),
+              _PolicyDisclaimerText(context: context),
             ],
           ),
         ),
