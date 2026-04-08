@@ -389,7 +389,7 @@ class _HomeScreenState extends State<HomeScreen> {
         const SizedBox(height: 16),
         if (_loading)
           SizedBox(
-            height: 120,
+            height: 178,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: 4,
@@ -399,7 +399,7 @@ class _HomeScreenState extends State<HomeScreen> {
           )
         else
           SizedBox(
-            height: 120,
+            height: 178,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: _recentMates.length,
@@ -416,24 +416,42 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Widget _buildMateSkeleton() {
     return Container(
-      width: 160,
-      padding: const EdgeInsets.all(14),
+      width: 190,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(children: [
-            _SkeletonBox(width: 32, height: 32),
-            const SizedBox(width: 8),
-            _SkeletonBox(width: 80, height: 13),
-          ]),
-          const SizedBox(height: 10),
-          _SkeletonBox(width: 100, height: 11),
-          const SizedBox(height: 6),
-          _SkeletonBox(width: 70, height: 11),
+          Container(
+            height: 4,
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceContainerHigh,
+              borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(children: [
+                  _SkeletonBox(width: 42, height: 42),
+                  const SizedBox(width: 10),
+                  Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                    _SkeletonBox(width: 90, height: 13),
+                    const SizedBox(height: 6),
+                    _SkeletonBox(width: 56, height: 18),
+                  ]),
+                ]),
+                const SizedBox(height: 10),
+                _SkeletonBox(width: 110, height: 11),
+                const SizedBox(height: 6),
+                _SkeletonBox(width: 140, height: 11),
+              ],
+            ),
+          ),
         ],
       ),
     );
@@ -641,14 +659,27 @@ class _MatePreviewCard extends StatelessWidget {
   String get _detail {
     switch (mate.type) {
       case MateType.roommate:
-        return mate.budget ?? mate.location;
+        final parts = <String>[];
+        final b = mate.budget;
+        if (b != null && b.trim().isNotEmpty) parts.add(b.trim());
+        final g = mate.preferredGender;
+        if (g != null && g.isNotEmpty && g != 'Any') parts.add('$g preferred');
+        if (parts.isNotEmpty) return parts.join(' · ');
+        return mate.description.isNotEmpty ? mate.description : mate.location;
       case MateType.helpmate:
-        return mate.available ? 'Available now' : mate.location;
+        if (mate.helpTypes.isNotEmpty) {
+          final label = mate.helpTypes.take(2).join(', ');
+          return mate.available ? 'Available · $label' : label;
+        }
+        return mate.available ? 'Available now' : mate.description;
       case MateType.ridemate:
         if (mate.fromLocation != null && mate.toLocation != null) {
           return '${mate.fromLocation} → ${mate.toLocation}';
         }
-        return mate.location;
+        if (mate.departureTime != null && mate.departureTime!.isNotEmpty) {
+          return 'Departs ${mate.departureTime}';
+        }
+        return mate.description.isNotEmpty ? mate.description : mate.location;
     }
   }
 
@@ -657,70 +688,117 @@ class _MatePreviewCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 170,
-        padding: const EdgeInsets.all(14),
+        width: 190,
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 10,
-              offset: const Offset(0, 3),
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 14,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                // Avatar
-                Container(
-                  width: 32,
-                  height: 32,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: AppColors.surfaceContainerHigh,
-                  ),
-                  clipBehavior: Clip.antiAlias,
-                  child: mate.userPhoto.isNotEmpty
-                      ? Image.network(mate.userPhoto, fit: BoxFit.cover,
-                          errorBuilder: (ctx, err, stack) => Icon(_icon, size: 18, color: _color))
-                      : Icon(_icon, size: 18, color: _color),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(18),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Colored top accent strip
+              Container(height: 4, color: _color),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Avatar
+                        Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: _color.withValues(alpha: 0.08),
+                            border: Border.all(
+                                color: _color.withValues(alpha: 0.2), width: 1.5),
+                          ),
+                          clipBehavior: Clip.antiAlias,
+                          child: mate.userPhoto.isNotEmpty
+                              ? Image.network(mate.userPhoto,
+                                  fit: BoxFit.cover,
+                                  errorBuilder: (ctx, e, s) =>
+                                      Icon(_icon, size: 20, color: _color))
+                              : Icon(_icon, size: 20, color: _color),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                mate.userName,
+                                style: AppTheme.headline(
+                                    fontSize: 13, fontWeight: FontWeight.w700),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              const SizedBox(height: 4),
+                              Container(
+                                padding: const EdgeInsets.symmetric(
+                                    horizontal: 7, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: _color.withValues(alpha: 0.1),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: Text(
+                                  mate.type.label,
+                                  style: TextStyle(
+                                    fontSize: 10,
+                                    fontWeight: FontWeight.w700,
+                                    color: _color,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on_outlined,
+                            size: 12, color: AppColors.outline),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            mate.location,
+                            style: AppTheme.body(
+                                fontSize: 11, color: AppColors.outline),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      _detail,
+                      style: AppTheme.body(
+                          fontSize: 11,
+                          color: AppColors.onSurfaceVariant,
+                          height: 1.35),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    mate.userName,
-                    style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w700),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 8),
-            // Type badge
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-              decoration: BoxDecoration(
-                color: _color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(6),
               ),
-              child: Text(
-                mate.type.label,
-                style: AppTheme.label(fontSize: 10, color: _color),
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              _detail,
-              style: AppTheme.label(fontSize: 11, color: AppColors.slate500),
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -749,7 +827,7 @@ class _SkeletonBox extends StatelessWidget {
 
 Widget _buildSkeletonCard() {
   return Container(
-    width: 240,
+    width: 220,
     decoration: BoxDecoration(
       color: Colors.white,
       borderRadius: BorderRadius.circular(20),
@@ -758,22 +836,24 @@ Widget _buildSkeletonCard() {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          height: 140,
+          height: 155,
           decoration: const BoxDecoration(
             color: AppColors.surfaceContainerHigh,
             borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
           ),
         ),
         Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: const [
-              _SkeletonBox(width: 120, height: 14),
-              SizedBox(height: 8),
-              _SkeletonBox(width: 80, height: 11),
-              SizedBox(height: 16),
-              _SkeletonBox(width: 160, height: 11),
+              _SkeletonBox(width: 110, height: 15),
+              SizedBox(height: 6),
+              _SkeletonBox(width: 75, height: 12),
+              SizedBox(height: 10),
+              _SkeletonBox(width: 140, height: 11),
+              SizedBox(height: 12),
+              _SkeletonBox(width: double.infinity, height: 38),
             ],
           ),
         ),
@@ -893,60 +973,91 @@ class _WorkerCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 240,
+        width: 220,
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.08),
-              blurRadius: 24,
-              offset: const Offset(0, 8),
-            ),
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
+              color: Colors.black.withValues(alpha: 0.07),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
           ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Photo
+            // ── Photo ──
             Stack(
               children: [
                 ClipRRect(
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-                  child: Image.network(
-                    data.imageUrl,
-                    height: 140,
-                    width: double.infinity,
-                    fit: BoxFit.cover,
-                    errorBuilder: (ctx, err, stack) => Container(
-                      height: 140,
-                      color: AppColors.surfaceContainerHighest,
-                      child: const Icon(Icons.person, size: 48, color: AppColors.outline),
-                    ),
+                  borderRadius:
+                      const BorderRadius.vertical(top: Radius.circular(20)),
+                  child: Stack(
+                    children: [
+                      Image.network(
+                        data.imageUrl,
+                        height: 155,
+                        width: double.infinity,
+                        fit: BoxFit.cover,
+                        errorBuilder: (ctx, e, s) => Container(
+                          height: 155,
+                          color: AppColors.surfaceContainerHighest,
+                          child: Center(
+                            child: Icon(Icons.person,
+                                size: 52,
+                                color: AppColors.outline.withValues(alpha: 0.4)),
+                          ),
+                        ),
+                      ),
+                      // Bottom gradient
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: Container(
+                          height: 60,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.bottomCenter,
+                              end: Alignment.topCenter,
+                              colors: [
+                                Colors.black.withValues(alpha: 0.4),
+                                Colors.transparent,
+                              ],
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
                 // Rating badge
                 Positioned(
-                  top: 12,
-                  right: 12,
+                  top: 10,
+                  right: 10,
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.92),
-                      borderRadius: BorderRadius.circular(9999),
+                      color: Colors.white.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.1),
+                            blurRadius: 6),
+                      ],
                     ),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.star_rounded, color: AppColors.amber500, size: 13),
+                        const Icon(Icons.star_rounded,
+                            color: AppColors.amber500, size: 13),
                         const SizedBox(width: 3),
                         Text(data.rating,
-                            style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w700)),
+                            style: AppTheme.body(
+                                fontSize: 12, fontWeight: FontWeight.w800)),
                       ],
                     ),
                   ),
@@ -954,26 +1065,29 @@ class _WorkerCard extends StatelessWidget {
                 // Available badge
                 if (data.available)
                   Positioned(
-                    top: 12,
-                    left: 12,
+                    top: 10,
+                    left: 10,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(
                         color: AppColors.secondary,
-                        borderRadius: BorderRadius.circular(9999),
+                        borderRadius: BorderRadius.circular(20),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Container(
-                            width: 6, height: 6,
+                            width: 5,
+                            height: 5,
                             decoration: const BoxDecoration(
-                              shape: BoxShape.circle, color: Colors.white),
+                                shape: BoxShape.circle, color: Colors.white),
                           ),
                           const SizedBox(width: 4),
                           Text('Available',
-                              style: GoogleFonts.inter(
-                                  fontSize: 10, fontWeight: FontWeight.w700,
+                              style: AppTheme.body(
+                                  fontSize: 10,
+                                  fontWeight: FontWeight.w700,
                                   color: Colors.white)),
                         ],
                       ),
@@ -981,33 +1095,44 @@ class _WorkerCard extends StatelessWidget {
                   ),
               ],
             ),
-            // Info
+            // ── Info ──
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(data.name,
-                      style: AppTheme.body(fontSize: 16, fontWeight: FontWeight.w700),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 2),
-                  Text(data.role,
-                      style: AppTheme.body(fontSize: 13, color: AppColors.outline),
-                      maxLines: 1, overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 10),
+                  Text(
+                    data.name,
+                    style: AppTheme.headline(
+                        fontSize: 15, fontWeight: FontWeight.w700),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    data.role,
+                    style: AppTheme.body(
+                        fontSize: 12, color: AppColors.onSurfaceVariant),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                  const SizedBox(height: 8),
                   Row(
                     children: [
-                      const Icon(Icons.location_on_rounded, size: 13, color: AppColors.outlineVariant),
-                      const SizedBox(width: 4),
+                      const Icon(Icons.location_on_rounded,
+                          size: 12, color: AppColors.outlineVariant),
+                      const SizedBox(width: 3),
                       Expanded(
-                        child: Text(data.location,
-                            style: AppTheme.body(fontSize: 12, color: AppColors.outlineVariant),
-                            overflow: TextOverflow.ellipsis),
+                        child: Text(
+                          data.location,
+                          style: AppTheme.body(
+                              fontSize: 11, color: AppColors.outlineVariant),
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 12),
-                  // CTA — reflects direct call model
                   SizedBox(
                     width: double.infinity,
                     child: ElevatedButton.icon(
