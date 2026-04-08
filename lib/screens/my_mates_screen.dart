@@ -287,6 +287,23 @@ class _MyMateCard extends StatelessWidget {
                 const Spacer(),
                 _TimeStamp(createdAt: mate.createdAt),
                 const SizedBox(width: 4),
+                // Edit
+                GestureDetector(
+                  onTap: onEdit,
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      Icons.edit_rounded,
+                      size: 16,
+                      color: accentColor,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
                 // Delete
                 GestureDetector(
                   onTap: onDelete,
