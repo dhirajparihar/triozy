@@ -676,26 +676,44 @@ class _MateCard extends StatelessWidget {
             // ── Action ────────────────────────────────
             if (!_isOwn && mate.phone.isNotEmpty) ...[
               const SizedBox(height: 14),
-              SizedBox(
-                width: double.infinity,
-                child: TextButton.icon(
-                  onPressed: () => _call(context),
-                  icon: const Icon(Icons.phone_rounded, size: 16),
-                  label: Text('Call ${mate.userName.split(' ').first}'),
-                  style: TextButton.styleFrom(
-                    foregroundColor: accentColor,
-                    backgroundColor: accentColor.withValues(alpha: 0.08),
-                    padding: const EdgeInsets.symmetric(vertical: 10),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
+              Builder(builder: (context) {
+                final isUnavailable =
+                    mate.type == MateType.helpmate && !mate.available;
+                return SizedBox(
+                  width: double.infinity,
+                  child: TextButton.icon(
+                    onPressed: isUnavailable ? null : () => _call(context),
+                    icon: Icon(
+                      isUnavailable
+                          ? Icons.do_not_disturb_rounded
+                          : Icons.phone_rounded,
+                      size: 16,
                     ),
-                    textStyle: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
+                    label: Text(
+                      isUnavailable
+                          ? 'Not Available'
+                          : 'Call ${mate.userName.split(' ').first}',
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor:
+                          isUnavailable ? AppColors.slate400 : accentColor,
+                      backgroundColor: isUnavailable
+                          ? AppColors.surfaceContainerLow
+                          : accentColor.withValues(alpha: 0.08),
+                      disabledForegroundColor: AppColors.slate400,
+                      disabledBackgroundColor: AppColors.surfaceContainerLow,
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      textStyle: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ),
-                ),
-              ),
+                );
+              }),
             ],
           ],
         ),
