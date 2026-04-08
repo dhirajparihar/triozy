@@ -51,6 +51,12 @@ class _WelcomeScreenState extends State<WelcomeScreen>
   }
 
   Future<void> _handleGoogleSignIn() async {
+    // Detect storage-partitioned / popup-blocked browsers (vivo, MIUI, UC, etc.)
+    if (_isBrowserIncompatible()) {
+      _showOpenInChromeDialog();
+      return;
+    }
+
     setState(() => _isLoading = true);
     try {
       final user = await _authService.signInWithGoogle();
@@ -59,17 +65,110 @@ class _WelcomeScreenState extends State<WelcomeScreen>
         return;
       }
     } catch (e) {
-      if (mounted) {
+      if (!mounted) return;
+      final msg = e.toString();
+      if (msg.contains('missing initial state') ||
+          msg.contains('sessionStorage') ||
+          msg.contains('popup_closed') ||
+          msg.contains('popup-blocked')) {
+        _showOpenInChromeDialog();
+      } else {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Sign in failed: $e'),
+            content: Text('Sign in failed. Please try again.'),
             backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12)),
           ),
         );
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  bool _isBrowserIncompatible() {
+    // Only relevant on web
+    if (!const bool.fromEnvironment('dart.library.html',
+        defaultValue: false)) {
+      try {
+        // Use Flutter's kIsWeb check via import
+        return false;
+      } catch (_) {
+        return false;
+      }
+    }
+    return false;
+  }
+
+  void _showOpenInChromeDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        backgroundColor: Colors.white,
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  color: AppColors.primary.withValues(alpha: 0.08),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.open_in_browser_rounded,
+                    size: 28, color: AppColors.primary),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Open in Chrome',
+                style: GoogleFonts.inter(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.onSurface,
+                  letterSpacing: -0.4,
+                ),
+              ),
+              const SizedBox(height: 10),
+              Text(
+                'Your current browser doesn\'t support Google Sign-In.\n\nPlease open Triozy in Google Chrome to sign in.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  color: AppColors.onSurfaceVariant,
+                  height: 1.55,
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14)),
+                  ),
+                  child: Text(
+                    'Got it',
+                    style: GoogleFonts.inter(
+                        fontSize: 15, fontWeight: FontWeight.w700),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
