@@ -269,6 +269,14 @@ class DatabaseService {
         });
   }
 
+  /// Update an existing mate listing (only by the owner)
+  Future<void> updateMate(MateModel mate) async {
+    final uid = _auth.currentUser?.uid;
+    if (uid == null) throw Exception('Unauthorized: not logged in.');
+    if (mate.userId != uid) throw Exception('Unauthorized: you can only edit your own listings.');
+    await _firestore.collection('mates').doc(mate.id).update(mate.toMap(includeCreatedAt: false));
+  }
+
   /// Delete a mate listing (only by the owner)
   Future<void> deleteMate(String mateId) async {
     final uid = _auth.currentUser?.uid;

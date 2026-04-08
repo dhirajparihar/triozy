@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/gestures.dart';
 import 'policy_screen.dart';
+import 'dart:async';
 import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -96,13 +97,26 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
         request.files.add(await http.MultipartFile.fromPath('file', _requestImage!.path));
       }
 
-      final response = await request.send();
+      final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      final response = await http.Response.fromStream(streamedResponse);
       if (response.statusCode == 200) {
-        final data = json.decode(await response.stream.bytesToString());
+        final data = json.decode(response.body);
         return data['secure_url'] as String?;
       }
-    } catch (_) {}
-    return null;
+      throw Exception('Upload failed (${response.statusCode})');
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Photo upload failed — request will be posted without image.'),
+            backgroundColor: AppColors.error,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+      return null;
+    }
   }
 
   Future<void> _detectLocation() async {

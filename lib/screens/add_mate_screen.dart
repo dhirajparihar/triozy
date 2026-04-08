@@ -12,7 +12,8 @@ import '../theme/app_theme.dart';
 
 class AddMateScreen extends StatefulWidget {
   final MateType initialType;
-  const AddMateScreen({super.key, this.initialType = MateType.roommate});
+  final MateModel? mateToEdit;
+  const AddMateScreen({super.key, this.initialType = MateType.roommate, this.mateToEdit});
 
   @override
   State<AddMateScreen> createState() => _AddMateScreenState();
@@ -78,15 +79,42 @@ class _AddMateScreenState extends State<AddMateScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedType = widget.initialType;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      final loc = context.read<LocationProvider>();
-      if (loc.address.isNotEmpty && _locationCtrl.text.isEmpty) {
-        _locationCtrl.text = loc.address;
-        _latitude = loc.latitude;
-        _longitude = loc.longitude;
-      }
-    });
+    final edit = widget.mateToEdit;
+    _selectedType = edit?.type ?? widget.initialType;
+
+    if (edit != null) {
+      _phoneCtrl.text = edit.phone;
+      _locationCtrl.text = edit.location;
+      _descCtrl.text = edit.description;
+      _latitude = edit.latitude;
+      _longitude = edit.longitude;
+      // Roommate
+      _budgetCtrl.text = edit.budget ?? '';
+      _preferredGender = edit.preferredGender ?? 'Any';
+      _lifestyle
+        ..clear()
+        ..addAll(edit.lifestyle);
+      // Helpmate
+      _helpTypes
+        ..clear()
+        ..addAll(edit.helpTypes);
+      _available = edit.available;
+      // Ridemate
+      _fromCtrl.text = edit.fromLocation ?? '';
+      _toCtrl.text = edit.toLocation ?? '';
+      _timeCtrl.text = edit.departureTime ?? '';
+      _frequency = edit.frequency ?? 'Daily';
+      _vehicleType = edit.vehicleType ?? 'Bike';
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        final loc = context.read<LocationProvider>();
+        if (loc.address.isNotEmpty && _locationCtrl.text.isEmpty) {
+          _locationCtrl.text = loc.address;
+          _latitude = loc.latitude;
+          _longitude = loc.longitude;
+        }
+      });
+    }
   }
 
   @override
@@ -134,19 +162,20 @@ class _AddMateScreenState extends State<AddMateScreen> {
     setState(() => _isLoading = true);
     try {
       final db = context.read<DatabaseService>();
-      final id = const Uuid().v4();
+      final isEdit = widget.mateToEdit != null;
 
       final mate = MateModel(
-        id: id,
+        id: widget.mateToEdit?.id ?? const Uuid().v4(),
         type: _selectedType,
-        userId: user.uid,
-        userName: user.displayName ?? 'User',
-        userPhoto: user.photoURL ?? '',
+        userId: widget.mateToEdit?.userId ?? user.uid,
+        userName: widget.mateToEdit?.userName ?? user.displayName ?? 'User',
+        userPhoto: widget.mateToEdit?.userPhoto ?? user.photoURL ?? '',
         phone: _phoneCtrl.text.trim(),
         location: _locationCtrl.text.trim(),
         latitude: _latitude,
         longitude: _longitude,
         description: _descCtrl.text.trim(),
+        createdAt: widget.mateToEdit?.createdAt,
         // Roommate
         budget: _selectedType == MateType.roommate ? _budgetCtrl.text.trim() : null,
         preferredGender: _selectedType == MateType.roommate ? _preferredGender : null,
@@ -162,12 +191,30 @@ class _AddMateScreenState extends State<AddMateScreen> {
         vehicleType: _selectedType == MateType.ridemate ? _vehicleType : null,
       );
 
-      await db.postMate(mate);
-      if (mounted) Navigator.pop(context);
+      if (isEdit) {
+        await db.updateMate(mate);
+      } else {
+        await db.postMate(mate);
+      }
+
+      if (mounted) {
+        Navigator.pop(context);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(isEdit ? '${_selectedType.label} post updated' : '${_selectedType.label} post published'),
+            backgroundColor: _accentColor,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to post: $e'), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text('Failed to ${widget.mateToEdit != null ? 'update' : 'post'}: $e'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     } finally {
@@ -188,7 +235,7 @@ class _AddMateScreenState extends State<AddMateScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Post a Mate',
+          widget.mateToEdit != null ? 'Edit ${widget.mateToEdit!.type.label}' : 'Post a Mate',
           style: AppTheme.headline(fontSize: 20, fontWeight: FontWeight.w800),
         ),
       ),
@@ -281,7 +328,9 @@ class _AddMateScreenState extends State<AddMateScreen> {
                         ),
                       )
                     : Text(
-                        'Post ${_selectedType.label}',
+                        widget.mateToEdit != null
+                            ? 'Update ${_selectedType.label}'
+                            : 'Post ${_selectedType.label}',
                         style: GoogleFonts.inter(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,

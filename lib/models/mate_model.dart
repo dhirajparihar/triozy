@@ -113,29 +113,32 @@ class MateModel {
     );
   }
 
-  Map<String, dynamic> toMap() => {
-    'type': type.value,
-    'userId': userId,
-    'userName': userName,
-    'userPhoto': userPhoto,
-    'phone': phone,
-    'location': location,
-    'latitude': latitude,
-    'longitude': longitude,
-    'description': description,
-    'createdAt': FieldValue.serverTimestamp(),
-    // Roommate
-    'budget': budget,
-    'preferredGender': preferredGender,
-    'lifestyle': lifestyle,
-    // Helpmate
-    'helpTypes': helpTypes,
-    'available': available,
-    // Ridemate
-    'fromLocation': fromLocation,
-    'toLocation': toLocation,
-    'departureTime': departureTime,
-    'frequency': frequency,
-    'vehicleType': vehicleType,
-  };
+  Map<String, dynamic> toMap({bool includeCreatedAt = true}) {
+    final map = <String, dynamic>{
+      'type': type.value,
+      'userId': userId,
+      'userName': userName,
+      'userPhoto': userPhoto,
+      'phone': phone,
+      'location': location,
+      'latitude': latitude,
+      'longitude': longitude,
+      'description': description,
+      // Roommate
+      'budget': budget,
+      'preferredGender': preferredGender,
+      'lifestyle': lifestyle,
+      // Helpmate
+      'helpTypes': helpTypes,
+      'available': available,
+      // Ridemate
+      'fromLocation': fromLocation,
+      'toLocation': toLocation,
+      'departureTime': departureTime,
+      'frequency': frequency,
+      'vehicleType': vehicleType,
+    };
+    if (includeCreatedAt) map['createdAt'] = FieldValue.serverTimestamp();
+    return map;
+  }
 }

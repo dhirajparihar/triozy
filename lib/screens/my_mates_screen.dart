@@ -98,8 +98,7 @@ class MyMatesScreen extends StatelessWidget {
                             onEdit: () => Navigator.push(
                               context,
                               MaterialPageRoute(
-                                builder: (_) =>
-                                    AddMateScreen(initialType: mate.type),
+                                builder: (_) => AddMateScreen(mateToEdit: mate),
                               ),
                             ),
                           ),
