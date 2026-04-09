@@ -70,14 +70,45 @@ class TriozyTopAppBar extends StatelessWidget {
               ),
               const Spacer(),
               // Brand
-              Text(
-                'Triozy',
-                style: GoogleFonts.manrope(
-                  fontWeight: FontWeight.w900,
-                  fontSize: 20,
-                  color: AppColors.blue700,
-                  letterSpacing: -1.0,
-                ),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 26,
+                    height: 26,
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(7),
+                      border: Border.all(
+                        color: AppColors.blue700.withValues(alpha: 0.18),
+                      ),
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(6),
+                      child: Image.asset(
+                        'assets/logo.png',
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, _, _) => Container(
+                          color: AppColors.surfaceContainerHigh,
+                          child: const Icon(
+                            Icons.handyman_rounded,
+                            color: AppColors.blue700,
+                            size: 15,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Triozy',
+                    style: GoogleFonts.manrope(
+                      fontWeight: FontWeight.w900,
+                      fontSize: 20,
+                      color: AppColors.blue700,
+                      letterSpacing: -1.0,
+                    ),
+                  ),
+                ],
               ),
               const Spacer(),
               // Avatar
