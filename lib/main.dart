@@ -9,11 +9,13 @@ import 'theme/app_colors.dart';
 import 'services/auth_service.dart';
 import 'services/database_service.dart';
 import 'services/location_service.dart';
+import 'services/session_service.dart';
 import 'providers/location_provider.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/worker_setup_screen.dart';
 import 'screens/worker_profile_screen.dart';
+import 'screens/account_deletion_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,6 +48,9 @@ class TriozyApp extends StatelessWidget {
         Provider<AuthService>(create: (_) => AuthService()),
         Provider<DatabaseService>(create: (_) => DatabaseService()),
         Provider<LocationService>(create: (_) => LocationService()),
+        ChangeNotifierProvider<SessionService>(
+          create: (_) => SessionService(),
+        ),
 
         // Shared location state — depends on LocationService
         ChangeNotifierProxyProvider<LocationService, LocationProvider>(
@@ -60,6 +65,14 @@ class TriozyApp extends StatelessWidget {
         theme: AppTheme.lightTheme,
         onGenerateRoute: (settings) {
           final uri = Uri.tryParse(settings.name ?? '');
+          if (uri != null &&
+              uri.pathSegments.length == 1 &&
+              uri.pathSegments[0] == 'account-delete') {
+            return MaterialPageRoute(
+              builder: (_) => const AccountDeletionScreen(),
+              settings: settings,
+            );
+          }
           if (uri != null && uri.pathSegments.length == 2 && uri.pathSegments[0] == 'worker') {
             final workerId = uri.pathSegments[1];
             return MaterialPageRoute(
@@ -85,28 +98,33 @@ class _DeepLinkGate extends StatefulWidget {
 }
 
 class _DeepLinkGateState extends State<_DeepLinkGate> {
+  Widget? _entryScreen;
+
   @override
   void initState() {
     super.initState();
     if (kIsWeb) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _handleWebUrl());
+      _entryScreen = _resolveWebEntryScreen();
     }
   }
 
-  void _handleWebUrl() {
-    if (!mounted) return;
+  Widget? _resolveWebEntryScreen() {
+    final path = Uri.base.path;
     final fragment = Uri.base.fragment; // e.g. "/worker/abc123"
+    if (path == '/account-delete' || fragment == '/account-delete') {
+      return const AccountDeletionScreen();
+    }
+
     final uri = Uri.tryParse(fragment);
     if (uri != null && uri.pathSegments.length == 2 && uri.pathSegments[0] == 'worker') {
       final workerId = uri.pathSegments[1];
-      Navigator.of(context).pushReplacement(
-        MaterialPageRoute(builder: (_) => WorkerProfileScreen(workerId: workerId)),
-      );
+      return WorkerProfileScreen(workerId: workerId);
     }
+    return null;
   }
 
   @override
-  Widget build(BuildContext context) => const AuthGate();
+  Widget build(BuildContext context) => _entryScreen ?? const AuthGate();
 }
 
 /// AuthGate listens to Firebase auth state and routes accordingly
@@ -115,6 +133,8 @@ class AuthGate extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final session = context.watch<SessionService>();
+
     return StreamBuilder<User?>(
       stream: FirebaseAuth.instance.authStateChanges(),
       builder: (context, snapshot) {
@@ -145,6 +165,9 @@ class AuthGate extends StatelessWidget {
 
         // Not logged in → Welcome screen
         if (!snapshot.hasData || snapshot.data == null) {
+          if (session.isGuest) {
+            return const MainShell(isWorker: false, isGuest: true);
+          }
           return const WelcomeScreen();
         }
 

@@ -43,6 +43,22 @@ class AuthService {
     }
   }
 
+  /// Sign in using email/password for app-review accounts.
+  Future<User?> signInWithEmail({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final userCredential = await _auth.signInWithEmailAndPassword(
+        email: email,
+        password: password,
+      );
+      return userCredential.user;
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// Generates the user document ID as "Name_uid" for readability in Firestore console
   String _userDocId(String name, String uid) {
     final sanitized = name.trim()

@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/mate_model.dart';
 import '../services/database_service.dart';
 import '../services/location_service.dart';
+import '../services/session_service.dart';
 import '../providers/location_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -224,6 +225,85 @@ class _AddMateScreenState extends State<AddMateScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = FirebaseAuth.instance.currentUser;
+
+    if (user == null) {
+      return Scaffold(
+        backgroundColor: AppColors.background,
+        appBar: AppBar(
+          backgroundColor: AppColors.background,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_rounded, color: AppColors.onSurface),
+            onPressed: () => Navigator.pop(context),
+          ),
+          title: Text(
+            'Post a Mate',
+            style: AppTheme.headline(fontSize: 20, fontWeight: FontWeight.w800),
+          ),
+        ),
+        body: Center(
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 72,
+                  height: 72,
+                  decoration: BoxDecoration(
+                    color: AppColors.green50,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.group_off_rounded,
+                    color: AppColors.secondary,
+                    size: 34,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'Sign in to post mate listings',
+                  style: AppTheme.headline(fontSize: 22),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Guest mode can browse public mate posts, but creating or editing your own listing requires sign-in.',
+                  style: AppTheme.body(
+                    fontSize: 14,
+                    color: AppColors.onSurfaceVariant,
+                    height: 1.6,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 20),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                      context.read<SessionService>().exitGuestMode();
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 16),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    child: const Text('Go to Sign In'),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(

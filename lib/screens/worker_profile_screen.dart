@@ -473,7 +473,15 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
     if (_selectedRating == 0 || _worker == null) return;
 
     final uid = FirebaseAuth.instance.currentUser?.uid;
-    if (uid == null) return;
+    if (uid == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please sign in to rate this professional.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     final db = context.read<DatabaseService>();
     try {

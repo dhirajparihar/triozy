@@ -15,7 +15,13 @@ import 'add_request_screen.dart';
 
 class MainShell extends StatefulWidget {
   final bool isWorker;
-  const MainShell({super.key, this.isWorker = false});
+  final bool isGuest;
+
+  const MainShell({
+    super.key,
+    this.isWorker = false,
+    this.isGuest = false,
+  });
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -33,7 +39,9 @@ class _MainShellState extends State<MainShell> {
     const SearchResultsScreen(),
     const RequestsScreen(),
     const MateScreen(),
-    widget.isWorker ? const WorkerDashboardScreen() : const UserProfileScreen(),
+    widget.isWorker
+        ? const WorkerDashboardScreen()
+        : UserProfileScreen(isGuest: widget.isGuest),
   ];
 
   @override

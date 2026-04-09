@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
+import '../services/session_service.dart';
 import 'policy_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -86,6 +87,38 @@ class _WelcomeScreenState extends State<WelcomeScreen>
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
+  }
+
+  Future<void> _handleReviewSignIn() async {
+    setState(() => _isLoading = true);
+    try {
+      final user = await _authService.signInWithEmail(
+        email: 'test@triozy.com',
+        password: '123456',
+      );
+      if (user == null || !mounted) {
+        setState(() => _isLoading = false);
+        return;
+      }
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: const Text('Review sign-in failed. Please verify the test account in Firebase Auth.'),
+          backgroundColor: AppColors.error,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _handleContinueAsGuest() {
+    context.read<SessionService>().enterGuestMode();
   }
 
   bool _isBrowserIncompatible() {
@@ -206,6 +239,8 @@ class _WelcomeScreenState extends State<WelcomeScreen>
             child: _StickyCtaBar(
               isLoading: _isLoading,
               onSignIn: _handleGoogleSignIn,
+              onReviewSignIn: _handleReviewSignIn,
+              onContinueAsGuest: _handleContinueAsGuest,
             ),
           ),
         ],
@@ -719,8 +754,15 @@ class _PolicyDisclaimerText extends StatelessWidget {
 class _StickyCtaBar extends StatelessWidget {
   final bool isLoading;
   final VoidCallback onSignIn;
+  final VoidCallback onReviewSignIn;
+  final VoidCallback onContinueAsGuest;
 
-  const _StickyCtaBar({required this.isLoading, required this.onSignIn});
+  const _StickyCtaBar({
+    required this.isLoading,
+    required this.onSignIn,
+    required this.onReviewSignIn,
+    required this.onContinueAsGuest,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -798,8 +840,55 @@ class _StickyCtaBar extends StatelessWidget {
                               ),
                             ),
                           ],
-                        ),
+                  ),
                 ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: isLoading ? null : onReviewSignIn,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: BorderSide(
+                          color: AppColors.primary.withValues(alpha: 0.22),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(
+                        'Review Sign-In',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: TextButton(
+                      onPressed: isLoading ? null : onContinueAsGuest,
+                      style: TextButton.styleFrom(
+                        foregroundColor: AppColors.onSurfaceVariant,
+                        padding: const EdgeInsets.symmetric(vertical: 15),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(
+                        'Continue as Guest',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               const _PolicyDisclaimerText(),
