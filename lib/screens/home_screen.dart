@@ -37,6 +37,8 @@ class HomeScreenState extends State<HomeScreen> {
   List<MateModel> _recentMates = [];
   bool _loading = true;
   bool _locationUsed = false;
+  String _proximityLabel = 'Within 25 km';
+  IconData _proximityIcon = Icons.my_location;
 
   static const _searchHints = AppCategories.searchHints;
   int _hintIndex = 0;
@@ -63,21 +65,41 @@ class HomeScreenState extends State<HomeScreen> {
     final locService = context.read<LocationService>();
 
     try {
-      final matesFuture = db.getRecentMates(limit: 8);
+      Future<List<MateModel>> matesFuture;
 
       List<WorkerModel> workers;
       bool geoUsed = false;
+      String proximityLabel = 'Within 25 km';
+      IconData proximityIcon = Icons.my_location;
 
       if (locProvider.isAvailable) {
-        workers = await locService.getNearbyWorkers(
+        final nearbyResult = await locService.getNearbyWorkersWithFallback(
           latitude: locProvider.latitude!,
           longitude: locProvider.longitude!,
           radiusKm: 25,
+          limit: 5,
         );
-        workers = workers.take(5).toList();
+        workers = nearbyResult.workers;
+        proximityLabel = nearbyResult.scopeLabel;
+        proximityIcon = switch (nearbyResult.scope) {
+          WorkerProximityScope.radius => Icons.my_location,
+          WorkerProximityScope.city => Icons.location_city,
+          WorkerProximityScope.state => Icons.map,
+          WorkerProximityScope.none => Icons.star_rounded,
+        };
+        final locationParts = _extractCityState(locProvider.address);
+        matesFuture = db.getNearbyMatesWithFallback(
+          latitude: locProvider.latitude!,
+          longitude: locProvider.longitude!,
+          city: locationParts.$1,
+          state: locationParts.$2,
+          limit: 8,
+          radiusKm: 25,
+        );
         geoUsed = true;
       } else {
         workers = await db.getTopWorkers(limit: 5);
+        matesFuture = db.getRecentMates(limit: 8);
       }
 
       final mates = await matesFuture;
@@ -87,12 +109,27 @@ class HomeScreenState extends State<HomeScreen> {
           _topWorkers = workers;
           _recentMates = mates;
           _locationUsed = geoUsed;
+          _proximityLabel = proximityLabel;
+          _proximityIcon = proximityIcon;
           _loading = false;
         });
       }
     } catch (e) {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  (String?, String?) _extractCityState(String address) {
+    final parts = address
+        .split(',')
+        .map((p) => p.trim())
+        .where((p) => p.isNotEmpty)
+        .toList();
+    if (parts.isEmpty) return (null, null);
+
+    final city = parts.length >= 2 ? parts[parts.length - 2] : parts.first;
+    final state = parts.length >= 2 ? parts.last : null;
+    return (city, state);
   }
 
   Future<void> _onRefresh() async {
@@ -477,9 +514,9 @@ class HomeScreenState extends State<HomeScreen> {
                 padding: const EdgeInsets.only(top: 4),
                 child: Row(
                   children: [
-                    const Icon(Icons.my_location, size: 12, color: AppColors.secondary),
+                    Icon(_proximityIcon, size: 12, color: AppColors.secondary),
                     const SizedBox(width: 4),
-                    Text('Within 25 km',
+                    Text(_proximityLabel,
                         style: AppTheme.body(
                             fontSize: 12,
                             fontWeight: FontWeight.w600,

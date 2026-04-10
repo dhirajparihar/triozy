@@ -7,6 +7,35 @@ import 'package:geoflutterfire_plus/geoflutterfire_plus.dart';
 import 'package:http/http.dart' as http;
 import '../models/worker_model.dart';
 
+enum WorkerProximityScope { radius, city, state, none }
+
+class NearbyWorkersResult {
+  final List<WorkerModel> workers;
+  final WorkerProximityScope scope;
+  final String? city;
+  final String? state;
+
+  const NearbyWorkersResult({
+    required this.workers,
+    required this.scope,
+    this.city,
+    this.state,
+  });
+
+  String get scopeLabel {
+    switch (scope) {
+      case WorkerProximityScope.radius:
+        return 'Within 25 km';
+      case WorkerProximityScope.city:
+        return city == null || city!.isEmpty ? 'In your city' : 'In $city';
+      case WorkerProximityScope.state:
+        return state == null || state!.isEmpty ? 'In your state' : 'In $state';
+      case WorkerProximityScope.none:
+        return 'Top rated';
+    }
+  }
+}
+
 class LocationService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -186,6 +215,98 @@ class LocationService {
     });
 
     return workers;
+  }
+
+  /// Fallback strategy:
+  /// 1) Within [radiusKm]
+  /// 2) Same city (string match against worker.location)
+  /// 3) Same state (string match against worker.location)
+  Future<NearbyWorkersResult> getNearbyWorkersWithFallback({
+    required double latitude,
+    required double longitude,
+    double radiusKm = 25,
+    int limit = 5,
+  }) async {
+    final nearby = await getNearbyWorkers(
+      latitude: latitude,
+      longitude: longitude,
+      radiusKm: radiusKm,
+    );
+    if (nearby.isNotEmpty) {
+      return NearbyWorkersResult(
+        workers: nearby.take(limit).toList(),
+        scope: WorkerProximityScope.radius,
+      );
+    }
+
+    String? city;
+    String? state;
+    try {
+      final placemarks = await placemarkFromCoordinates(latitude, longitude);
+      if (placemarks.isNotEmpty) {
+        final p = placemarks.first;
+        city = p.locality?.trim();
+        if (city == null || city.isEmpty) {
+          city = p.subAdministrativeArea?.trim();
+        }
+        state = p.administrativeArea?.trim();
+      }
+    } catch (_) {
+      // Fall through to top-rated fallback.
+    }
+
+    final allSnap = await _firestore
+        .collection('workers')
+        .where('isAvailable', isEqualTo: true)
+        .limit(250)
+        .get();
+
+    final allWorkers = allSnap.docs
+        .map((doc) => WorkerModel.fromMap(doc.data()))
+        .where((w) => w.location.trim().isNotEmpty)
+        .toList();
+
+    String normalized(String s) => s.toLowerCase().trim();
+
+    if (city != null && city.isNotEmpty) {
+      final cityValue = city;
+      final cityMatch = allWorkers
+          .where((w) => normalized(w.location).contains(normalized(cityValue)))
+          .toList();
+      cityMatch.sort((a, b) => b.rating.compareTo(a.rating));
+      if (cityMatch.isNotEmpty) {
+        return NearbyWorkersResult(
+          workers: cityMatch.take(limit).toList(),
+          scope: WorkerProximityScope.city,
+          city: city,
+          state: state,
+        );
+      }
+    }
+
+    if (state != null && state.isNotEmpty) {
+      final stateValue = state;
+      final stateMatch = allWorkers
+          .where((w) => normalized(w.location).contains(normalized(stateValue)))
+          .toList();
+      stateMatch.sort((a, b) => b.rating.compareTo(a.rating));
+      if (stateMatch.isNotEmpty) {
+        return NearbyWorkersResult(
+          workers: stateMatch.take(limit).toList(),
+          scope: WorkerProximityScope.state,
+          city: city,
+          state: state,
+        );
+      }
+    }
+
+    allWorkers.sort((a, b) => b.rating.compareTo(a.rating));
+    return NearbyWorkersResult(
+      workers: allWorkers.take(limit).toList(),
+      scope: WorkerProximityScope.none,
+      city: city,
+      state: state,
+    );
   }
 
   /// Haversine formula to calculate distance between two points in km.

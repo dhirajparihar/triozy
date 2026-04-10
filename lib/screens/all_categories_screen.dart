@@ -51,7 +51,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
   static final List<_ServiceSection> _sections = [
     _ServiceSection(
       title: 'Home Maintenance',
-      subtitle: '10 Services',
+      subtitle: '12 Services',
       subtitleColor: AppColors.primary,
       items: [
         _ServiceItem(
@@ -71,6 +71,18 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
           imageUrl:
               'https://lh3.googleusercontent.com/aida-public/AB6AXuCwJdWFNgZs5x6jOIZ_TD3QLZlaYKCr0IFVtFr-Y6js2VvkJvyM2Y4vCVnHNcl2X9uI9DXL0NpyIWgXl2bb0Rv05Yykpxk6ooavynLjBDx-dIahugWk8hDsFiqDkf8ocIn6Pv-AUPAzBAYehZCUa-Q73mbN9x_ZpMIpOxI-aRso0RGCdvpQZCqYaP40WrVLmn2Pbq7zdZXTDgIHaQcZfxBCSl0tk-AYg7n_q9PkfvOhRERWWfby5v6QHS_FLc_g81ixfPBcIiaTPQI',
           tags: ['air conditioner', 'aircon', 'cooling', 'hvac', 'air condition', 'split ac', 'service ac'],
+        ),
+        _ServiceItem(
+          name: 'Solar Services',
+          imageUrl:
+              'https://images.unsplash.com/photo-1509391366360-2e959784a276?w=400&q=80',
+          tags: ['solar', 'solar panel', 'inverter', 'renewable', 'energy', 'solar installation', 'solar repair'],
+        ),
+        _ServiceItem(
+          name: 'Painter',
+          imageUrl:
+              'https://images.unsplash.com/photo-1562259949-e8e7689d7828?w=400&q=80',
+          tags: ['painting', 'paint', 'wall paint', 'house paint', 'interior paint', 'exterior paint', 'putty', 'wall texture'],
         ),
         _ServiceItem(
           name: 'Carpenter',

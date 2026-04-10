@@ -1,6 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:geoflutterfire_plus/geoflutterfire_plus.dart';
+import 'package:geolocator/geolocator.dart';
 import '../models/worker_model.dart';
 import '../models/request_model.dart';
 import '../models/mate_model.dart';
@@ -299,7 +299,72 @@ class DatabaseService {
     );
     return mates.take(limit).toList();
   }
+  /// Fallback strategy for mates:
+  /// 1) Within [radiusKm]
+  /// 2) Same city (string match in mate.location)
+  /// 3) Same state (string match in mate.location)
+  /// 4) Most recent
+  Future<List<MateModel>> getNearbyMatesWithFallback({
+    required double latitude,
+    required double longitude,
+    String? city,
+    String? state,
+    int limit = 8,
+    double radiusKm = 25,
+  }) async {
+    final snap = await _firestore.collection('mates').limit(300).get();
+    final mates = snap.docs
+        .map((doc) => MateModel.fromMap(doc.data(), doc.id))
+        .toList();
+    mates.sort(
+      (a, b) => (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)),
+    );
 
+    final near = <MapEntry<MateModel, double>>[];
+    for (final mate in mates) {
+      final lat = mate.latitude;
+      final lng = mate.longitude;
+      if (lat == null || lng == null) continue;
+
+      final distanceKm = Geolocator.distanceBetween(
+            latitude,
+            longitude,
+            lat,
+            lng,
+          ) /
+          1000;
+      if (distanceKm <= radiusKm) {
+        near.add(MapEntry(mate, distanceKm));
+      }
+    }
+
+    if (near.isNotEmpty) {
+      near.sort((a, b) => a.value.compareTo(b.value));
+      return near.map((e) => e.key).take(limit).toList();
+    }
+
+    String norm(String s) => s.toLowerCase().trim();
+
+    if (city != null && city.trim().isNotEmpty) {
+      final cityNorm = norm(city);
+      final cityMatches = mates
+          .where((m) => norm(m.location).contains(cityNorm))
+          .take(limit)
+          .toList();
+      if (cityMatches.isNotEmpty) return cityMatches;
+    }
+
+    if (state != null && state.trim().isNotEmpty) {
+      final stateNorm = norm(state);
+      final stateMatches = mates
+          .where((m) => norm(m.location).contains(stateNorm))
+          .take(limit)
+          .toList();
+      if (stateMatches.isNotEmpty) return stateMatches;
+    }
+
+    return mates.take(limit).toList();
+  }
   // ─── Users ───
 
   /// Get user data
@@ -314,3 +379,4 @@ class DatabaseService {
   }
 
 }
+
