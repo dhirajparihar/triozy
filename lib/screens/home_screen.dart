@@ -29,10 +29,10 @@ class HomeScreen extends StatefulWidget {
   });
 
   @override
-  State<HomeScreen> createState() => _HomeScreenState();
+  State<HomeScreen> createState() => HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> {
+class HomeScreenState extends State<HomeScreen> {
   List<WorkerModel> _topWorkers = [];
   List<MateModel> _recentMates = [];
   bool _loading = true;
@@ -103,6 +103,8 @@ class _HomeScreenState extends State<HomeScreen> {
     });
     await _loadData();
   }
+
+  Future<void> refreshFromShell() => _onRefresh();
 
   @override
   Widget build(BuildContext context) {

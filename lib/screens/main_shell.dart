@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_colors.dart';
@@ -29,9 +30,12 @@ class MainShell extends StatefulWidget {
 
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
+  DateTime? _lastBackPressedAt;
+  final GlobalKey<HomeScreenState> _homeScreenKey = GlobalKey<HomeScreenState>();
 
   late final List<Widget> _screens = [
     HomeScreen(
+      key: _homeScreenKey,
       onSearchTapped: () => setState(() => _currentIndex = 1),
       onRequestsTapped: () => setState(() => _currentIndex = 2),
       onMatesTapped: () => setState(() => _currentIndex = 3),
@@ -99,77 +103,114 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
+  void _handleBackNavigation() {
+    if (_currentIndex != 0) {
+      setState(() => _currentIndex = 0);
+      return;
+    }
+
+    final now = DateTime.now();
+    const exitWindow = Duration(seconds: 2);
+    final shouldExit = _lastBackPressedAt != null &&
+        now.difference(_lastBackPressedAt!) <= exitWindow;
+
+    if (shouldExit) {
+      SystemNavigator.pop();
+      return;
+    }
+
+    _lastBackPressedAt = now;
+    _homeScreenKey.currentState?.refreshFromShell();
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Tap again to exit'),
+          duration: Duration(seconds: 2),
+        ),
+      );
+  }
+
   @override
   Widget build(BuildContext context) {
     final locationProvider = context.watch<LocationProvider>();
 
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      body: Stack(
-        children: [
-          Padding(
-            padding: EdgeInsets.only(
-              top: MediaQuery.of(context).padding.top + 60,
-              bottom: MediaQuery.of(context).padding.bottom + 72,
+    return PopScope(
+      canPop: false,
+      onPopInvokedWithResult: (didPop, result) {
+        if (didPop) {
+          return;
+        }
+        _handleBackNavigation();
+      },
+      child: Scaffold(
+        backgroundColor: AppColors.background,
+        body: Stack(
+          children: [
+            Padding(
+              padding: EdgeInsets.only(
+                top: MediaQuery.of(context).padding.top + 60,
+                bottom: MediaQuery.of(context).padding.bottom + 72,
+              ),
+              child: IndexedStack(index: _currentIndex, children: _screens),
             ),
-            child: IndexedStack(index: _currentIndex, children: _screens),
-          ),
-          // Top App Bar
-          Positioned(
-            top: 0,
-            left: 0,
-            right: 0,
-            child: TriozyTopAppBar(
-              location: locationProvider.address,
-              avatarUrl: FirebaseAuth.instance.currentUser?.photoURL,
-              onAvatarTap: () => setState(() => _currentIndex = 4),
-            ),
-          ),
-          // FAB on Home screen
-          if (_currentIndex == 0)
+            // Top App Bar
             Positioned(
-              right: 20,
-              bottom: MediaQuery.of(context).padding.bottom + 96,
-              child: GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AddRequestScreen()),
-                  );
-                },
-                child: Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [AppColors.primaryContainer, AppColors.primary],
-                    ),
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.3),
-                        blurRadius: 16,
-                        offset: const Offset(0, 6),
-                      ),
-                    ],
-                  ),
-                  child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
-                ),
+              top: 0,
+              left: 0,
+              right: 0,
+              child: TriozyTopAppBar(
+                location: locationProvider.address,
+                avatarUrl: FirebaseAuth.instance.currentUser?.photoURL,
+                onAvatarTap: () => setState(() => _currentIndex = 4),
               ),
             ),
-          // Bottom Nav Bar
-          Positioned(
-            bottom: 0,
-            left: 0,
-            right: 0,
-            child: AppBottomNavBar(
-              currentIndex: _currentIndex,
-              onTap: (index) => setState(() => _currentIndex = index),
+            // FAB on Home screen
+            if (_currentIndex == 0)
+              Positioned(
+                right: 20,
+                bottom: MediaQuery.of(context).padding.bottom + 96,
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(builder: (_) => const AddRequestScreen()),
+                    );
+                  },
+                  child: Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [AppColors.primaryContainer, AppColors.primary],
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 16,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+                  ),
+                ),
+              ),
+            // Bottom Nav Bar
+            Positioned(
+              bottom: 0,
+              left: 0,
+              right: 0,
+              child: AppBottomNavBar(
+                currentIndex: _currentIndex,
+                onTap: (index) => setState(() => _currentIndex = index),
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }

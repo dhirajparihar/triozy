@@ -91,7 +91,7 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
           tags: ['clean', 'sweep', 'mop', 'dust', 'housekeeping', 'sanitize', 'deep clean', 'home clean'],
         ),
         _ServiceItem(
-          name: 'Maid',
+          name: 'Cook',
           imageUrl:
               'https://lh3.googleusercontent.com/aida-public/AB6AXuBKW6YspQtlyL16TBJiYmx3RMB_z-mUwQuCDYKUVkjREH6fGUmZvhUPxfueBQZuo5QrIPTbERZ_est2TPfa7re4J9kEEVSBvaEwHoNdDFmRfHk0b6Ui-pR52ycN7U-xlK2KxQRKHSa5tsnismWqVDes_SR5WcbUwCo-XKfoK6zCrm0frCl_PB89_srfNi_lsUu8K0dJ9F4QSoz9zOGXqfl_ZV39knjkwxzkxGNsgxCDlKK8F5RytKNoA1xDPhSkh32A6oLnJR5uWcc',
           tags: ['housemaid', 'domestic', 'helper', 'cook', 'household', 'bai', 'servant', 'naukrani'],
@@ -118,15 +118,9 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
     ),
     _ServiceSection(
       title: 'Transport & Logistics',
-      subtitle: '6 Services',
+      subtitle: '4 Services',
       subtitleColor: AppColors.primary,
       items: [
-        _ServiceItem(
-          name: 'Ridemate',
-          imageUrl:
-              'https://lh3.googleusercontent.com/aida-public/AB6AXuAHepeh83ksYE1GlpXqnCF95v_1Cfp4gS-v-6CLCZdamXVp26BIDHcTdI8jZjVwOWWskPOzIAh2CMuAGBQ8fDsvZ3N3_Od9S6jExRsmHdMp8vf3bKBqdPabrGd-iEYG5rVXUXGdRf_-UH8loAy4vLquh5blxjAKeKDY8ver3ney7MSooHwe-2QTWJFTLlZfdLTpYuFKsYBsEFkxFOkBjOTu0gee8a2Wr4ULuWOlB1dkRJ9iGoHFx63mgeLYLuUEATjjA_5URNQOnGY',
-          tags: ['bike','bike taxi','rapido','carpool', 'share ride', 'commute', 'travel together', 'pooling', 'ride share', 'co rider'],
-        ),
         _ServiceItem(
           name: 'Car Taxi',
           imageUrl:
@@ -177,16 +171,16 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
           tags: ['beauty', 'parlour', 'makeup', 'facial', 'hair', 'waxing', 'manicure', 'pedicure', 'salon', 'threading'],
         ),
         _ServiceItem(
-          name: 'Roommate',
+          name: 'Tiffin Service',
           imageUrl:
-              'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=400&q=80',
-          tags: ['roommate', 'flatmate', 'room share', 'paying guest', 'pg', 'accommodation', 'rent', 'room partner', 'sharing'],
+              'https://images.unsplash.com/photo-1547592180-85f173990554?w=400&q=80',
+          tags: ['tiffin', 'meal', 'home food', 'lunch', 'dinner', 'dabba', 'mess', 'food delivery', 'subscription meal'],
         ),
         _ServiceItem(
-          name: 'Helpmate',
+          name: 'Emergency Medical',
           imageUrl:
-              'https://images.unsplash.com/photo-1582213782179-e0d53f98f2ca?w=400&q=80',
-          tags: ['assistant', 'helper', 'errand', 'task', 'companion', 'support', 'personal assistant', 'help', 'buddy', 'aide'],
+              'https://images.unsplash.com/photo-1516574187841-cb9cc2ca948b?w=400&q=80',
+          tags: ['emergency', 'medical', 'ambulance', 'first aid', 'doctor', 'hospital', 'urgent care', 'health'],
         ),
         _ServiceItem(
           name: 'Rental Rooms',
