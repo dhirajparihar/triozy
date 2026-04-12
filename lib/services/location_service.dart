@@ -131,18 +131,51 @@ class LocationService {
       throw Exception('Please enter a valid location.');
     }
 
-    try {
-      final results = await locationFromAddress(query);
-      if (results.isEmpty) {
-        throw Exception('No matching location found.');
+    // 1) Try native geocoding with progressively normalized queries.
+    final attempts = <String>{
+      query,
+      query.replaceAll(',', ' '),
+      query.replaceAll(RegExp(r'\s+'), ' '),
+    };
+
+    for (final attempt in attempts) {
+      try {
+        final results = await locationFromAddress(attempt.trim());
+        if (results.isNotEmpty) {
+          final first = results.first;
+          return (latitude: first.latitude, longitude: first.longitude);
+        }
+      } catch (_) {
+        // Try next fallback.
       }
-      final first = results.first;
-      return (latitude: first.latitude, longitude: first.longitude);
-    } catch (_) {
-      throw Exception(
-        'Could not find that location. Try city, area, or pincode.',
-      );
     }
+
+    // 2) Fallback to OpenStreetMap Nominatim forward search.
+    try {
+      final url = Uri.parse(
+        'https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeQueryComponent(query)}&limit=1&addressdetails=1',
+      );
+      final response = await http.get(url, headers: {
+        'User-Agent': 'TriozyApp/1.0',
+      });
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        if (data is List && data.isNotEmpty) {
+          final item = data.first as Map<String, dynamic>;
+          final lat = double.tryParse('${item['lat'] ?? ''}');
+          final lon = double.tryParse('${item['lon'] ?? ''}');
+          if (lat != null && lon != null) {
+            return (latitude: lat, longitude: lon);
+          }
+        }
+      }
+    } catch (_) {
+      // fall through to final error
+    }
+
+    throw Exception(
+      'Could not find that location. Try city, area, state, or pincode.',
+    );
   }
 
   // ─── Save Worker Geo Data ───
