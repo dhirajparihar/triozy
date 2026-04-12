@@ -338,21 +338,24 @@ class _MainShellState extends State<MainShell> {
             if (_currentIndex == 0 || _currentIndex == 1)
               Positioned(
                 right: 20,
-                bottom: MediaQuery.of(context).padding.bottom + 96,
-                child: GestureDetector(
-                  onTap: _currentIndex == 0
-                      ? () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const AddRequestScreen(),
-                            ),
-                          );
-                        }
-                      : _openWorkerRegistration,
-                  child: Container(
-                    width: 56,
-                    height: 56,
+                bottom: MediaQuery.of(context).padding.bottom + 90,
+                child: Builder(
+                  builder: (_) {
+                    const fabSize = 56.0;
+                    return GestureDetector(
+                      onTap: _currentIndex == 0
+                          ? () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AddRequestScreen(),
+                                ),
+                              );
+                            }
+                          : _openWorkerRegistration,
+                      child: Container(
+                        width: fabSize,
+                        height: fabSize,
                     decoration: BoxDecoration(
                       gradient: const LinearGradient(
                         begin: Alignment.topLeft,
@@ -368,8 +371,14 @@ class _MainShellState extends State<MainShell> {
                         ),
                       ],
                     ),
-                    child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
-                  ),
+                        child: Icon(
+                          Icons.add_rounded,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                    );
+                  },
                 ),
               ),
             // Bottom Nav Bar

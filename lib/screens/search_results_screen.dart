@@ -366,14 +366,14 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         // Sticky search bar + filters
         Container(
           color: AppColors.background,
-          padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _buildSearchBar(),
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
               _buildFilterChips(),
-              const SizedBox(height: 16),
+              const SizedBox(height: 8),
             ],
           ),
         ),
@@ -384,12 +384,12 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
             color: AppColors.primary,
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
               children: [
                 _buildHeader(),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 _buildResultsCount(),
-                const SizedBox(height: 16),
+                const SizedBox(height: 8),
                 _buildResultsList(context),
               ],
             ),
@@ -400,23 +400,9 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   }
 
   Widget _buildHeader() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Find your service',
-          style: AppTheme.headline(fontSize: 26, letterSpacing: -0.8),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          '${_results.length} pros available',
-          style: AppTheme.body(
-            fontSize: 14,
-            fontWeight: FontWeight.w500,
-            color: AppColors.slate500,
-          ),
-        ),
-      ],
+    return Text(
+      'Find your service',
+      style: AppTheme.headline(fontSize: 24, letterSpacing: -0.6),
     );
   }
 
@@ -582,6 +568,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                 size: 20,
               ),
             ),
+          const SizedBox(width: 8),
         ],
       ),
     );
@@ -589,7 +576,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
 
   Widget _buildChip(IconData icon, String label, bool selected) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: selected ? AppColors.primary : Colors.white,
         borderRadius: BorderRadius.circular(9999),
@@ -620,7 +607,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
           Text(
             label,
             style: AppTheme.label(
-              fontSize: 14,
+              fontSize: 13,
               fontWeight: FontWeight.w600,
               color: selected
                   ? AppColors.onPrimary

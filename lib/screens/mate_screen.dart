@@ -12,11 +12,11 @@ import 'add_mate_screen.dart';
 // ── Per-tab filter state ───────────────────────────────────────────────────────
 
 class _MateFilter {
-  String? gender;         // Roommate
-  bool availableOnly;     // Helpmate
+  String? gender; // Roommate
+  bool availableOnly; // Helpmate
   List<String> helpTypes; // Helpmate
-  String? vehicleType;    // Ridemate
-  String? frequency;      // Ridemate
+  String? vehicleType; // Ridemate
+  String? frequency; // Ridemate
 
   _MateFilter({
     this.gender,
@@ -44,7 +44,9 @@ class _MateFilter {
       gender: gender == _sentinel ? this.gender : gender as String?,
       availableOnly: availableOnly ?? this.availableOnly,
       helpTypes: helpTypes ?? List.from(this.helpTypes),
-      vehicleType: vehicleType == _sentinel ? this.vehicleType : vehicleType as String?,
+      vehicleType: vehicleType == _sentinel
+          ? this.vehicleType
+          : vehicleType as String?,
       frequency: frequency == _sentinel ? this.frequency : frequency as String?,
     );
   }
@@ -80,7 +82,11 @@ class _MateScreenState extends State<MateScreen>
     MateType.ridemate: _MateFilter(),
   };
 
-  static const _tabs = [MateType.roommate, MateType.helpmate, MateType.ridemate];
+  static const _tabs = [
+    MateType.roommate,
+    MateType.helpmate,
+    MateType.ridemate,
+  ];
 
   static const _tabColors = [
     AppColors.primary,
@@ -114,7 +120,8 @@ class _MateScreenState extends State<MateScreen>
     super.dispose();
   }
 
-  int get _activeFilterCount => _filters[_tabs[_tabController.index]]!.isActive ? 1 : 0;
+  int get _activeFilterCount =>
+      _filters[_tabs[_tabController.index]]!.isActive ? 1 : 0;
 
   void _showFilterSheet() {
     final type = _tabs[_tabController.index];
@@ -149,22 +156,19 @@ class _MateScreenState extends State<MateScreen>
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const SizedBox(height: 8),
+          const SizedBox(height: 2),
           // ── Header ──────────────────────────────────
           Padding(
-            padding: const EdgeInsets.fromLTRB(20, 4, 20, 16),
+            padding: const EdgeInsets.fromLTRB(20, 2, 20, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Mates', style: AppTheme.headline(fontSize: 28)),
-                const SizedBox(height: 4),
+                Text('Find Your Match', style: AppTheme.headline(fontSize: 26)),
+                const SizedBox(height: 2),
                 Text(
-                  'Find a roommate, helpmate, or ridemate nearby',
-                  style: AppTheme.body(
-                    fontSize: 13,
-                    color: AppColors.slate500,
-                  ),
-                  maxLines: 2,
+                  'Roommate, helpmate or ride partner nearby',
+                  style: AppTheme.body(fontSize: 13, color: AppColors.slate500),
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ],
@@ -180,7 +184,7 @@ class _MateScreenState extends State<MateScreen>
               icons: _tabIcons,
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           // ── Search + Filter Bar ──────────────────────
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -191,12 +195,12 @@ class _MateScreenState extends State<MateScreen>
                     height: 44,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(18),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.04),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2),
+                          blurRadius: 12,
+                          offset: const Offset(0, 3),
                         ),
                       ],
                     ),
@@ -205,76 +209,66 @@ class _MateScreenState extends State<MateScreen>
                       onChanged: (v) => setState(() => _searchQuery = v),
                       style: AppTheme.body(fontSize: 14),
                       decoration: InputDecoration(
-                        hintText: 'Search by name, location...',
-                        hintStyle: AppTheme.body(fontSize: 13, color: AppColors.slate400),
-                        prefixIcon: const Icon(Icons.search_rounded, size: 18, color: AppColors.slate400),
-                        suffixIcon: _searchQuery.isNotEmpty
-                            ? GestureDetector(
+                        hintText: 'Search people or location',
+                        hintStyle: AppTheme.body(
+                          fontSize: 13,
+                          color: AppColors.slate400,
+                        ),
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          size: 18,
+                          color: AppColors.slate400,
+                        ),
+                        suffixIcon: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            if (_searchQuery.isNotEmpty)
+                              GestureDetector(
                                 onTap: () => setState(() {
                                   _searchCtrl.clear();
                                   _searchQuery = '';
                                 }),
-                                child: const Icon(Icons.close_rounded, size: 16, color: AppColors.slate400),
-                              )
-                            : null,
-                        border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 10),
-                // Filter button
-                GestureDetector(
-                  onTap: _showFilterSheet,
-                  child: Stack(
-                    clipBehavior: Clip.none,
-                    children: [
-                      Container(
-                        width: 44,
-                        height: 44,
-                        decoration: BoxDecoration(
-                          color: _activeFilterCount > 0
-                              ? _tabColors[_tabController.index].withValues(alpha: 0.12)
-                              : Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
+                                child: const Icon(
+                                  Icons.close_rounded,
+                                  size: 16,
+                                  color: AppColors.slate400,
+                                ),
+                              ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: _showFilterSheet,
+                              child: Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  color: _activeFilterCount > 0
+                                      ? _tabColors[_tabController.index]
+                                            .withValues(alpha: 0.12)
+                                      : AppColors.surfaceContainerLow,
+                                  borderRadius: BorderRadius.circular(9),
+                                ),
+                                child: Icon(
+                                  Icons.tune_rounded,
+                                  size: 16,
+                                  color: _activeFilterCount > 0
+                                      ? _tabColors[_tabController.index]
+                                      : AppColors.slate400,
+                                ),
+                              ),
                             ),
+                            const SizedBox(width: 10),
                           ],
                         ),
-                        child: Icon(
-                          Icons.tune_rounded,
-                          size: 20,
-                          color: _activeFilterCount > 0
-                              ? _tabColors[_tabController.index]
-                              : AppColors.slate400,
-                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
                       ),
-                      if (_activeFilterCount > 0)
-                        Positioned(
-                          top: -3,
-                          right: -3,
-                          child: Container(
-                            width: 10,
-                            height: 10,
-                            decoration: BoxDecoration(
-                              color: _tabColors[_tabController.index],
-                              shape: BoxShape.circle,
-                              border: Border.all(color: AppColors.background, width: 1.5),
-                            ),
-                          ),
-                        ),
-                    ],
+                    ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           // ── Tab Views ───────────────────────────────
           Expanded(
             child: TabBarView(
@@ -293,20 +287,32 @@ class _MateScreenState extends State<MateScreen>
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton.extended(
-        onPressed: _openAddMate,
-        backgroundColor: _tabColors[_tabController.index],
-        foregroundColor: Colors.white,
-        elevation: 4,
-        icon: const Icon(Icons.add_rounded, size: 22),
-        label: FittedBox(
-          fit: BoxFit.scaleDown,
-          child: Text(
-            'Post ${_tabs[_tabController.index].label}',
-            style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14),
+      floatingActionButton: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              AppColors.primaryContainer,
+              AppColors.primary,
+            ],
           ),
+          borderRadius: BorderRadius.circular(999),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.28),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: FloatingActionButton(
+          onPressed: _openAddMate,
+          backgroundColor: Colors.transparent,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          child: const Icon(Icons.add_rounded, size: 22),
+        ),
       ),
     );
   }
@@ -330,22 +336,22 @@ class _MateTabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      height: 48,
+      height: 50,
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFFF1F5F9),
+        borderRadius: BorderRadius.circular(18),
       ),
       child: TabBar(
         controller: controller,
         padding: const EdgeInsets.all(4),
         indicator: BoxDecoration(
           color: colors[controller.index],
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(14),
           boxShadow: [
             BoxShadow(
-              color: colors[controller.index].withValues(alpha: 0.3),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
+              color: colors[controller.index].withValues(alpha: 0.25),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
             ),
           ],
         ),
@@ -442,7 +448,9 @@ class _MateListView extends StatelessWidget {
 
     // Ridemate filters
     if (filter.vehicleType != null) {
-      result = result.where((m) => m.vehicleType == filter.vehicleType).toList();
+      result = result
+          .where((m) => m.vehicleType == filter.vehicleType)
+          .toList();
     }
     if (filter.frequency != null) {
       result = result.where((m) => m.frequency == filter.frequency).toList();
@@ -460,13 +468,18 @@ class _MateListView extends StatelessWidget {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(
-            child: CircularProgressIndicator(color: accentColor, strokeWidth: 2),
+            child: CircularProgressIndicator(
+              color: accentColor,
+              strokeWidth: 2,
+            ),
           );
         }
         if (snapshot.hasError) {
           return Center(
-            child: Text('Something went wrong',
-                style: AppTheme.body(color: AppColors.outline)),
+            child: Text(
+              'Something went wrong',
+              style: AppTheme.body(color: AppColors.outline),
+            ),
           );
         }
 
@@ -485,12 +498,20 @@ class _MateListView extends StatelessWidget {
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Icon(Icons.search_off_rounded, size: 40, color: AppColors.slate400),
+                Icon(
+                  Icons.search_off_rounded,
+                  size: 40,
+                  color: AppColors.slate400,
+                ),
                 const SizedBox(height: 12),
                 Text(
                   'No results match your search\nor filters.',
                   textAlign: TextAlign.center,
-                  style: AppTheme.body(fontSize: 14, color: AppColors.slate500, height: 1.5),
+                  style: AppTheme.body(
+                    fontSize: 14,
+                    color: AppColors.slate500,
+                    height: 1.5,
+                  ),
                 ),
               ],
             ),
@@ -498,13 +519,11 @@ class _MateListView extends StatelessWidget {
         }
 
         return ListView.separated(
-          padding: const EdgeInsets.fromLTRB(20, 0, 20, 120),
+          padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
           itemCount: filtered.length,
           separatorBuilder: (context, i) => const SizedBox(height: 12),
-          itemBuilder: (context, i) => _MateCard(
-            mate: filtered[i],
-            accentColor: accentColor,
-          ),
+          itemBuilder: (context, i) =>
+              _MateCard(mate: filtered[i], accentColor: accentColor),
         );
       },
     );
@@ -539,7 +558,11 @@ class _EmptyState extends StatelessWidget {
                 color: accentColor.withValues(alpha: 0.08),
                 shape: BoxShape.circle,
               ),
-              child: Icon(Icons.group_add_rounded, size: 36, color: accentColor),
+              child: Icon(
+                Icons.group_add_rounded,
+                size: 36,
+                color: accentColor,
+              ),
             ),
             const SizedBox(height: 20),
             Text(
@@ -585,32 +608,38 @@ class _MateCard extends StatelessWidget {
     if (await canLaunchUrl(uri)) await launchUrl(uri);
   }
 
-  bool get _isOwn =>
-      FirebaseAuth.instance.currentUser?.uid == mate.userId;
+  bool get _isOwn => FirebaseAuth.instance.currentUser?.uid == mate.userId;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.18),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 16,
-            offset: const Offset(0, 4),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── User row ──────────────────────────────
             Row(
               children: [
-                _Avatar(photoUrl: mate.userPhoto, name: mate.userName, size: 44),
+                _Avatar(
+                  photoUrl: mate.userPhoto,
+                  name: mate.userName,
+                  size: 48,
+                ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Column(
@@ -622,8 +651,8 @@ class _MateCard extends StatelessWidget {
                             child: Text(
                               mate.userName,
                               style: AppTheme.body(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
                               ),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
@@ -632,14 +661,20 @@ class _MateCard extends StatelessWidget {
                           if (_isOwn) ...[
                             const SizedBox(width: 6),
                             Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
                               decoration: BoxDecoration(
                                 color: accentColor.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
                                 'You',
-                                style: AppTheme.label(fontSize: 10, color: accentColor),
+                                style: AppTheme.label(
+                                  fontSize: 10,
+                                  color: accentColor,
+                                ),
                               ),
                             ),
                           ],
@@ -649,12 +684,19 @@ class _MateCard extends StatelessWidget {
                         const SizedBox(height: 2),
                         Row(
                           children: [
-                            Icon(Icons.location_on_rounded, size: 12, color: AppColors.slate400),
+                            Icon(
+                              Icons.location_on_rounded,
+                              size: 12,
+                              color: AppColors.slate400,
+                            ),
                             const SizedBox(width: 3),
                             Flexible(
                               child: Text(
                                 mate.location,
-                                style: AppTheme.label(fontSize: 12),
+                                style: AppTheme.label(
+                                  fontSize: 12,
+                                  color: AppColors.slate500,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -688,45 +730,48 @@ class _MateCard extends StatelessWidget {
             ],
             // ── Action ────────────────────────────────
             if (!_isOwn && mate.phone.isNotEmpty) ...[
-              const SizedBox(height: 14),
-              Builder(builder: (context) {
-                final isUnavailable =
-                    mate.type == MateType.helpmate && !mate.available;
-                return SizedBox(
-                  width: double.infinity,
-                  child: TextButton.icon(
-                    onPressed: isUnavailable ? null : () => _call(context),
-                    icon: Icon(
-                      isUnavailable
-                          ? Icons.do_not_disturb_rounded
-                          : Icons.phone_rounded,
-                      size: 16,
-                    ),
-                    label: Text(
-                      isUnavailable
-                          ? 'Not Available'
-                          : 'Call ${mate.userName.split(' ').first}',
-                    ),
-                    style: TextButton.styleFrom(
-                      foregroundColor:
-                          isUnavailable ? AppColors.slate400 : accentColor,
-                      backgroundColor: isUnavailable
-                          ? AppColors.surfaceContainerLow
-                          : accentColor.withValues(alpha: 0.08),
-                      disabledForegroundColor: AppColors.slate400,
-                      disabledBackgroundColor: AppColors.surfaceContainerLow,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+              const SizedBox(height: 20),
+              Builder(
+                builder: (context) {
+                  final isUnavailable =
+                      mate.type == MateType.helpmate && !mate.available;
+                  return SizedBox(
+                    width: double.infinity,
+                    child: TextButton.icon(
+                      onPressed: isUnavailable ? null : () => _call(context),
+                      icon: Icon(
+                        isUnavailable
+                            ? Icons.do_not_disturb_rounded
+                            : Icons.phone_rounded,
+                        size: 16,
                       ),
-                      textStyle: GoogleFonts.inter(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
+                      label: Text(
+                        isUnavailable
+                            ? 'Not Available'
+                            : 'Call ${mate.userName.split(' ').first}',
+                      ),
+                      style: TextButton.styleFrom(
+                        foregroundColor: isUnavailable
+                            ? AppColors.slate400
+                            : accentColor,
+                        backgroundColor: isUnavailable
+                            ? AppColors.surfaceContainerLow
+                            : accentColor.withValues(alpha: 0.08),
+                        disabledForegroundColor: AppColors.slate400,
+                        disabledBackgroundColor: AppColors.surfaceContainerLow,
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        textStyle: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
                       ),
                     ),
-                  ),
-                );
-              }),
+                  );
+                },
+              ),
             ],
           ],
         ),
@@ -758,16 +803,16 @@ class _RoommateContent extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
-            if (mate.budget != null) ...[
+            if (mate.budget != null)
               _InfoChip(
                 icon: Icons.currency_rupee_rounded,
                 label: mate.budget!,
                 color: accentColor,
               ),
-              const SizedBox(width: 8),
-            ],
             if (mate.preferredGender != null)
               _InfoChip(
                 icon: Icons.person_rounded,
@@ -815,7 +860,9 @@ class _HelpmateContent extends StatelessWidget {
                     height: 7,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: mate.available ? AppColors.secondary : AppColors.slate400,
+                      color: mate.available
+                          ? AppColors.secondary
+                          : AppColors.slate400,
                     ),
                   ),
                   const SizedBox(width: 5),
@@ -823,7 +870,9 @@ class _HelpmateContent extends StatelessWidget {
                     mate.available ? 'Available Now' : 'Not Available',
                     style: AppTheme.label(
                       fontSize: 12,
-                      color: mate.available ? AppColors.secondary : AppColors.slate400,
+                      color: mate.available
+                          ? AppColors.secondary
+                          : AppColors.slate400,
                     ),
                   ),
                 ],
@@ -856,26 +905,40 @@ class _RidemateContent extends StatelessWidget {
         if (mate.fromLocation != null && mate.toLocation != null)
           Row(
             children: [
-              Icon(Icons.trip_origin_rounded, size: 14, color: AppColors.secondary),
+              Icon(
+                Icons.trip_origin_rounded,
+                size: 14,
+                color: AppColors.secondary,
+              ),
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
                   mate.fromLocation!,
-                  style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w600),
+                  style: AppTheme.body(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
               ),
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6),
-                child: Icon(Icons.arrow_forward_rounded, size: 14, color: AppColors.slate400),
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 14,
+                  color: AppColors.slate400,
+                ),
               ),
               Icon(Icons.location_on_rounded, size: 14, color: AppColors.error),
               const SizedBox(width: 4),
               Flexible(
                 child: Text(
                   mate.toLocation!,
-                  style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w600),
+                  style: AppTheme.body(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -883,7 +946,9 @@ class _RidemateContent extends StatelessWidget {
             ],
           ),
         const SizedBox(height: 8),
-        Row(
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
           children: [
             if (mate.departureTime != null)
               _InfoChip(
@@ -891,22 +956,18 @@ class _RidemateContent extends StatelessWidget {
                 label: mate.departureTime!,
                 color: accentColor,
               ),
-            if (mate.departureTime != null && mate.frequency != null)
-              const SizedBox(width: 8),
             if (mate.frequency != null)
               _InfoChip(
                 icon: Icons.repeat_rounded,
                 label: mate.frequency!,
                 color: accentColor,
               ),
-            if (mate.vehicleType != null) ...[
-              const SizedBox(width: 8),
+            if (mate.vehicleType != null)
               _InfoChip(
                 icon: Icons.two_wheeler_rounded,
                 label: mate.vehicleType!,
                 color: accentColor,
               ),
-            ],
           ],
         ),
       ],
@@ -924,14 +985,18 @@ class _TypeBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Text(
         type.label,
-        style: AppTheme.label(fontSize: 11, color: color),
+        style: AppTheme.label(
+          fontSize: 11,
+          color: color,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -941,7 +1006,11 @@ class _InfoChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
-  const _InfoChip({required this.icon, required this.label, required this.color});
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -975,17 +1044,19 @@ class _ChipRow extends StatelessWidget {
       spacing: 6,
       runSpacing: 6,
       children: [
-        ...visible.map((tag) => Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(8),
+        ...visible.map(
+          (tag) => Container(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Text(
+              tag,
+              style: AppTheme.label(fontSize: 12, color: AppColors.slate500),
+            ),
           ),
-          child: Text(
-            tag,
-            style: AppTheme.label(fontSize: 12, color: AppColors.slate500),
-          ),
-        )),
+        ),
         if (tags.length > 4)
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -1007,7 +1078,11 @@ class _Avatar extends StatelessWidget {
   final String photoUrl;
   final String name;
   final double size;
-  const _Avatar({required this.photoUrl, required this.name, required this.size});
+  const _Avatar({
+    required this.photoUrl,
+    required this.name,
+    required this.size,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1020,14 +1095,22 @@ class _Avatar extends StatelessWidget {
       ),
       clipBehavior: Clip.antiAlias,
       child: photoUrl.isNotEmpty
-          ? Image.network(photoUrl, fit: BoxFit.cover,
-              errorBuilder: (ctx, err, stack) => _initials(name, size))
+          ? Image.network(
+              photoUrl,
+              fit: BoxFit.cover,
+              errorBuilder: (ctx, err, stack) => _initials(name, size),
+            )
           : _initials(name, size),
     );
   }
 
   Widget _initials(String name, double size) {
-    final initials = name.trim().split(' ').take(2).map((p) => p.isNotEmpty ? p[0].toUpperCase() : '').join();
+    final initials = name
+        .trim()
+        .split(' ')
+        .take(2)
+        .map((p) => p.isNotEmpty ? p[0].toUpperCase() : '')
+        .join();
     return Center(
       child: Text(
         initials,
@@ -1067,8 +1150,14 @@ class _FilterSheetState extends State<_FilterSheet> {
 
   static const _genderOptions = ['Any', 'Male', 'Female'];
   static const _helpTypeOptions = [
-    'Errands', 'Emergency', 'Medical', 'Moving help',
-    'Companionship', 'Tech help', 'Grocery', 'Other',
+    'Errands',
+    'Emergency',
+    'Medical',
+    'Moving help',
+    'Companionship',
+    'Tech help',
+    'Grocery',
+    'Other',
   ];
   static const _vehicleOptions = ['Bike', 'Scooty', 'Car'];
   static const _frequencyOptions = ['Daily', 'Weekdays', 'Weekends', 'Once'];
@@ -1157,7 +1246,10 @@ class _FilterSheetState extends State<_FilterSheet> {
                 ),
                 child: Text(
                   'Apply Filters',
-                  style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700),
+                  style: GoogleFonts.inter(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
@@ -1215,20 +1307,27 @@ class _RoommateFilters extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Preferred Gender',
-            style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w700,
-                color: AppColors.onSurfaceVariant)),
+        Text(
+          'Preferred Gender',
+          style: AppTheme.body(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 10),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: genderOptions.map((g) {
-            final selected = local.gender == g || (g == 'Any' && local.gender == null);
+            final selected =
+                local.gender == g || (g == 'Any' && local.gender == null);
             return _FilterChip(
               label: g,
               selected: selected,
               accentColor: accentColor,
-              onTap: () => onUpdate(local.copyWith(gender: g == 'Any' ? null : g)),
+              onTap: () =>
+                  onUpdate(local.copyWith(gender: g == 'Any' ? null : g)),
             );
           }).toList(),
         ),
@@ -1266,16 +1365,24 @@ class _HelpmateFilters extends StatelessWidget {
           child: Row(
             children: [
               Container(
-                width: 8, height: 8,
+                width: 8,
+                height: 8,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: local.availableOnly ? AppColors.secondary : AppColors.slate400,
+                  color: local.availableOnly
+                      ? AppColors.secondary
+                      : AppColors.slate400,
                 ),
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text('Available now only',
-                    style: AppTheme.body(fontSize: 15, fontWeight: FontWeight.w600)),
+                child: Text(
+                  'Available now only',
+                  style: AppTheme.body(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
               Switch.adaptive(
                 value: local.availableOnly,
@@ -1287,9 +1394,14 @@ class _HelpmateFilters extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 20),
-        Text('Help Type',
-            style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w700,
-                color: AppColors.onSurfaceVariant)),
+        Text(
+          'Help Type',
+          style: AppTheme.body(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 10),
         Wrap(
           spacing: 8,
@@ -1334,9 +1446,14 @@ class _RidemateFilters extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text('Vehicle',
-            style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w700,
-                color: AppColors.onSurfaceVariant)),
+        Text(
+          'Vehicle',
+          style: AppTheme.body(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 10),
         Wrap(
           spacing: 8,
@@ -1347,16 +1464,20 @@ class _RidemateFilters extends StatelessWidget {
               label: v,
               selected: selected,
               accentColor: accentColor,
-              onTap: () => onUpdate(
-                local.copyWith(vehicleType: selected ? null : v),
-              ),
+              onTap: () =>
+                  onUpdate(local.copyWith(vehicleType: selected ? null : v)),
             );
           }).toList(),
         ),
         const SizedBox(height: 20),
-        Text('Frequency',
-            style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w700,
-                color: AppColors.onSurfaceVariant)),
+        Text(
+          'Frequency',
+          style: AppTheme.body(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurfaceVariant,
+          ),
+        ),
         const SizedBox(height: 10),
         Wrap(
           spacing: 8,
@@ -1367,9 +1488,8 @@ class _RidemateFilters extends StatelessWidget {
               label: f,
               selected: selected,
               accentColor: accentColor,
-              onTap: () => onUpdate(
-                local.copyWith(frequency: selected ? null : f),
-              ),
+              onTap: () =>
+                  onUpdate(local.copyWith(frequency: selected ? null : f)),
             );
           }).toList(),
         ),

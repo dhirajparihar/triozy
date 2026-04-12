@@ -25,7 +25,7 @@ class TriozyTopAppBar extends StatelessWidget {
         child: LayoutBuilder(
           builder: (context, constraints) {
             final width = constraints.maxWidth;
-            final wordmarkSize = width < 360 ? 17.0 : 20.0;
+            final wordmarkSize = width < 360 ? 16.0 : 18.0;
             return Container(
               height: MediaQuery.of(context).padding.top + 60,
               padding: EdgeInsets.only(
@@ -135,8 +135,8 @@ class TriozyTopAppBar extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Container(
-                          width: 26,
-                          height: 26,
+                          width: 24,
+                          height: 24,
                           decoration: BoxDecoration(
                             borderRadius: BorderRadius.circular(7),
                             border: Border.all(

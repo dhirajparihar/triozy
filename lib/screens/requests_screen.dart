@@ -135,13 +135,17 @@ class _RequestsScreenState extends State<RequestsScreen>
     await _db.updateRequest(r.copyWith(status: 'Closed'));
   }
 
+  Future<void> _reopenRequest(RequestModel r) async {
+    await _db.updateRequest(r.copyWith(status: 'Open'));
+  }
+
   Widget _buildBody(String userId) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Header row
         Padding(
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+          padding: const EdgeInsets.fromLTRB(20, 8, 20, 0),
           child: Row(
             children: [
               Expanded(
@@ -176,10 +180,10 @@ class _RequestsScreenState extends State<RequestsScreen>
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         // Search + Filter row
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(
             children: [
               Expanded(
@@ -268,10 +272,10 @@ class _RequestsScreenState extends State<RequestsScreen>
             ],
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 10),
         // Tab bar
         _RequestTabBar(controller: _tabController),
-        const SizedBox(height: 4),
+        const SizedBox(height: 2),
         // Tab content
         Expanded(
           child: TabBarView(
@@ -289,6 +293,7 @@ class _RequestsScreenState extends State<RequestsScreen>
                 },
                 onEdit: _editRequest,
                 onClose: _closeRequest,
+                onReopen: _reopenRequest,
                 onDelete: _deleteRequest,
               ),
               _RequestListView(
@@ -303,6 +308,7 @@ class _RequestsScreenState extends State<RequestsScreen>
                 },
                 onEdit: _editRequest,
                 onClose: _closeRequest,
+                onReopen: _reopenRequest,
                 onDelete: _deleteRequest,
               ),
             ],
@@ -323,23 +329,18 @@ class _RequestsScreenState extends State<RequestsScreen>
       children: [
         _buildBody(user.uid),
         Positioned(
-          right: 20,
-          bottom: 20,
-          child: FloatingActionButton.extended(
+          right: 16,
+          bottom: 14,
+          child: FloatingActionButton(
             heroTag: 'requests_fab',
-            onPressed: () => Navigator.push(context,
-                MaterialPageRoute(builder: (_) => const AddRequestScreen())),
-            backgroundColor: AppColors.tertiary,
-            foregroundColor: Colors.white,
-            elevation: 4,
-            icon: const Icon(Icons.add_rounded, size: 20),
-            label: Text(
-              'Post Request',
-              style: AppTheme.body(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AddRequestScreen()),
             ),
+            backgroundColor: AppColors.primary,
+            foregroundColor: Colors.white,
+            elevation: 3,
+            child: const Icon(Icons.add_rounded, size: 24),
           ),
         ),
       ],
@@ -378,7 +379,7 @@ class _RequestTabBar extends StatelessWidget {
       builder: (context, _) {
         final idx = controller.index;
         return Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 24),
+          padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Container(
             height: 44,
             decoration: BoxDecoration(
@@ -479,6 +480,7 @@ class _RequestListView extends StatelessWidget {
   final void Function(String phone) onCall;
   final void Function(RequestModel) onEdit;
   final void Function(RequestModel) onClose;
+  final void Function(RequestModel) onReopen;
   final void Function(RequestModel) onDelete;
 
   const _RequestListView({
@@ -490,6 +492,7 @@ class _RequestListView extends StatelessWidget {
     required this.onCall,
     required this.onEdit,
     required this.onClose,
+    required this.onReopen,
     required this.onDelete,
   });
 
@@ -509,7 +512,7 @@ class _RequestListView extends StatelessWidget {
           return _EmptyState(isMyTab: isMyTab);
         }
         return ListView.builder(
-          padding: const EdgeInsets.fromLTRB(24, 8, 24, 100),
+          padding: const EdgeInsets.fromLTRB(20, 6, 20, 96),
           itemCount: filtered.length,
           itemBuilder: (_, i) {
             final r = filtered[i];
@@ -522,6 +525,7 @@ class _RequestListView extends StatelessWidget {
               onCall: () => onCall(r.phone),
               onEdit: () => onEdit(r),
               onClose: () => onClose(r),
+              onReopen: () => onReopen(r),
               onDelete: () => onDelete(r),
             );
           },
@@ -541,6 +545,7 @@ class _RequestCard extends StatelessWidget {
   final VoidCallback onCall;
   final VoidCallback onEdit;
   final VoidCallback onClose;
+  final VoidCallback onReopen;
   final VoidCallback onDelete;
 
   const _RequestCard({
@@ -551,6 +556,7 @@ class _RequestCard extends StatelessWidget {
     required this.onCall,
     required this.onEdit,
     required this.onClose,
+    required this.onReopen,
     required this.onDelete,
   });
 
@@ -757,47 +763,48 @@ class _RequestCard extends StatelessWidget {
                       ],
                       // ── Footer ──
                       const SizedBox(height: 12),
-                      Row(
-                        children: [
-                          const Spacer(),
-                          // Call button (All tab)
-                          if (showCallButton)
-                            GestureDetector(
-                              onTap: onCall,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                    horizontal: 18, vertical: 9),
-                                decoration: BoxDecoration(
-                                  color: AppColors.primary,
-                                  borderRadius: BorderRadius.circular(12),
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: AppColors.primary
-                                          .withValues(alpha: 0.28),
-                                      blurRadius: 8,
-                                      offset: const Offset(0, 3),
-                                    ),
-                                  ],
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.call_rounded,
-                                        size: 15, color: Colors.white),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'Call',
-                                      style: AppTheme.body(
-                                          fontSize: 13,
-                                          fontWeight: FontWeight.w700,
-                                          color: Colors.white),
-                                    ),
-                                  ],
-                                ),
+                      if (showCallButton && !showMyActions)
+                        SizedBox(
+                          width: double.infinity,
+                          child: GestureDetector(
+                            onTap: onCall,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 18, vertical: 11),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(12),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color:
+                                        AppColors.primary.withValues(alpha: 0.22),
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(Icons.call_rounded,
+                                      size: 15, color: Colors.white),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Call',
+                                    style: AppTheme.body(
+                                        fontSize: 13,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.white),
+                                  ),
+                                ],
                               ),
                             ),
-                          // My Posts actions
-                          if (showMyActions) ...[
+                          ),
+                        ),
+                      if (showMyActions)
+                        Row(
+                          children: [
+                            const Spacer(),
                             _ActionBtn(
                               icon: Icons.edit_outlined,
                               label: 'Edit',
@@ -814,6 +821,15 @@ class _RequestCard extends StatelessWidget {
                                 onTap: onClose,
                                 outlined: true,
                               ),
+                            ] else ...[
+                              const SizedBox(width: 6),
+                              _ActionBtn(
+                                icon: Icons.refresh_rounded,
+                                label: 'Reopen',
+                                color: AppColors.secondary,
+                                onTap: onReopen,
+                                outlined: true,
+                              ),
                             ],
                             const SizedBox(width: 6),
                             _ActionBtn(
@@ -824,8 +840,7 @@ class _RequestCard extends StatelessWidget {
                               outlined: true,
                             ),
                           ],
-                        ],
-                      ),
+                        ),
                     ],
                   ),
                 ),
