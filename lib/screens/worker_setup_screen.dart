@@ -12,6 +12,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 import '../services/location_service.dart';
+import '../services/permission_center.dart';
 import 'main_shell.dart';
 import '../constants/app_categories.dart';
 
@@ -71,7 +72,8 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
       _latitude = position.latitude;
       _longitude = position.longitude;
       final address = await _locationService.getAddressFromCoordinates(
-        _latitude!, _longitude!,
+        _latitude!,
+        _longitude!,
       );
       if (mounted) {
         setState(() {
@@ -82,12 +84,18 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLocating = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('$e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        if (PermissionCenter.looksPermissionDenied(e)) {
+          PermissionCenter.showDenied(
+            context,
+            key: 'location_worker_setup_denied',
+            message:
+                'Location permission is required for auto-detect. You can still type location manually.',
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('$e'), backgroundColor: AppColors.error),
+          );
+        }
       }
     }
   }
@@ -106,12 +114,21 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Error picking image: $e'),
-            backgroundColor: AppColors.error,
-          ),
-        );
+        if (PermissionCenter.looksPermissionDenied(e)) {
+          PermissionCenter.showDenied(
+            context,
+            key: 'photos_worker_setup_denied',
+            message:
+                'Photo permission denied. You can continue without a photo.',
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error picking image: $e'),
+              backgroundColor: AppColors.error,
+            ),
+          );
+        }
       }
     }
   }
@@ -119,6 +136,7 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
   Future<void> _showServicePicker() async {
     final tempSelected = List<String>.from(_selectedServices);
     String query = '';
+    final sheetSearchController = TextEditingController();
 
     final result = await showModalBottomSheet<List<String>>(
       context: context,
@@ -142,7 +160,8 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                 children: [
                   const SizedBox(height: 12),
                   Container(
-                    width: 40, height: 4,
+                    width: 40,
+                    height: 4,
                     decoration: BoxDecoration(
                       color: AppColors.outlineVariant,
                       borderRadius: BorderRadius.circular(2),
@@ -152,14 +171,24 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 12),
                     child: Row(
                       children: [
-                        Text('Select Services',
-                            style: AppTheme.headline(fontSize: 18, fontWeight: FontWeight.w700)),
+                        Text(
+                          'Select Services',
+                          style: AppTheme.headline(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
                         const Spacer(),
                         TextButton(
                           onPressed: () => Navigator.pop(ctx, tempSelected),
-                          child: Text('Done',
-                              style: AppTheme.body(
-                                  fontSize: 15, fontWeight: FontWeight.w700, color: AppColors.primary)),
+                          child: Text(
+                            'Done',
+                            style: AppTheme.body(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
                         ),
                       ],
                     ),
@@ -167,9 +196,14 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                   Padding(
                     padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
                     child: TextField(
+                      controller: sheetSearchController,
                       onChanged: (v) => setSheet(() => query = v),
                       decoration: InputDecoration(
-                        prefixIcon: const Icon(Icons.search_rounded, color: AppColors.outline, size: 20),
+                        prefixIcon: const Icon(
+                          Icons.search_rounded,
+                          color: AppColors.outline,
+                          size: 20,
+                        ),
                         hintText: 'Search services...',
                         filled: true,
                         fillColor: Colors.white,
@@ -177,32 +211,43 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                           borderRadius: BorderRadius.circular(14),
                           borderSide: BorderSide.none,
                         ),
-                        contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 14,
+                        ),
                       ),
                     ),
                   ),
                   Expanded(
                     child: filtered.isEmpty
                         ? Center(
-                            child: Text('No service found',
-                                style: AppTheme.body(color: AppColors.outline)),
+                            child: Text(
+                              'No service found',
+                              style: AppTheme.body(color: AppColors.outline),
+                            ),
                           )
                         : ListView.separated(
                             controller: scrollCtrl,
                             padding: const EdgeInsets.symmetric(horizontal: 20),
                             itemCount: filtered.length,
-                            separatorBuilder: (_, _) => const Divider(height: 1),
+                            separatorBuilder: (_, _) =>
+                                const Divider(height: 1),
                             itemBuilder: (_, i) {
                               final svc = filtered[i];
                               final isSelected = tempSelected.contains(svc);
                               return CheckboxListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                                title: Text(svc,
-                                    style: AppTheme.body(
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w500,
-                                      color: isSelected ? AppColors.primary : AppColors.onSurface,
-                                    )),
+                                contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                ),
+                                title: Text(
+                                  svc,
+                                  style: AppTheme.body(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w500,
+                                    color: isSelected
+                                        ? AppColors.primary
+                                        : AppColors.onSurface,
+                                  ),
+                                ),
                                 value: isSelected,
                                 activeColor: AppColors.primary,
                                 onChanged: (checked) => setSheet(() {
@@ -223,11 +268,14 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
         },
       ),
     );
+    sheetSearchController.dispose();
 
     if (result != null && mounted) {
-      setState(() => _selectedServices
-        ..clear()
-        ..addAll(result));
+      setState(
+        () => _selectedServices
+          ..clear()
+          ..addAll(result),
+      );
     }
   }
 
@@ -235,7 +283,9 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedServices.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select at least one service type')),
+        const SnackBar(
+          content: Text('Please select at least one service type'),
+        ),
       );
       return;
     }
@@ -249,22 +299,26 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
       if (_profileImage != null) {
         setState(() => _isUploadingImage = true);
         try {
-          final uri = Uri.parse('https://api.cloudinary.com/v1_1/dwydpp8ip/image/upload');
+          final uri = Uri.parse(
+            'https://api.cloudinary.com/v1_1/dwydpp8ip/image/upload',
+          );
           final request = http.MultipartRequest('POST', uri)
             ..fields['upload_preset'] = 'Triozy';
 
           if (kIsWeb) {
             final imageBytes = await _profileImage!.readAsBytes();
-            request.files.add(http.MultipartFile.fromBytes(
-              'file',
-              imageBytes,
-              filename: 'profile_${DateTime.now().millisecondsSinceEpoch}.jpg',
-            ));
+            request.files.add(
+              http.MultipartFile.fromBytes(
+                'file',
+                imageBytes,
+                filename:
+                    'profile_${DateTime.now().millisecondsSinceEpoch}.jpg',
+              ),
+            );
           } else {
-            request.files.add(await http.MultipartFile.fromPath(
-              'file',
-              _profileImage!.path,
-            ));
+            request.files.add(
+              await http.MultipartFile.fromPath('file', _profileImage!.path),
+            );
           }
 
           final response = await request.send();
@@ -276,7 +330,9 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
             if (mounted) {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text('Photo upload failed. Continuing without photo.'),
+                  content: Text(
+                    'Photo upload failed. Continuing without photo.',
+                  ),
                   backgroundColor: AppColors.tertiary,
                 ),
               );
@@ -391,12 +447,15 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                           radius: 20,
                           backgroundColor: AppColors.surfaceContainerHigh,
                           backgroundImage:
-                              FirebaseAuth.instance.currentUser?.photoURL != null
+                              FirebaseAuth.instance.currentUser?.photoURL !=
+                                  null
                               ? NetworkImage(
                                   FirebaseAuth.instance.currentUser!.photoURL!,
                                 )
                               : null,
-                          child: FirebaseAuth.instance.currentUser?.photoURL == null
+                          child:
+                              FirebaseAuth.instance.currentUser?.photoURL ==
+                                  null
                               ? const Icon(
                                   Icons.person,
                                   color: AppColors.outline,
@@ -406,7 +465,10 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                         ),
                         const SizedBox(width: 8),
                         IconButton(
-                          icon: const Icon(Icons.logout, color: AppColors.error),
+                          icon: const Icon(
+                            Icons.logout,
+                            color: AppColors.error,
+                          ),
                           tooltip: 'Logout',
                           onPressed: () => _authService.signOut(),
                         ),
@@ -502,15 +564,21 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                                 ),
                               const SizedBox(height: 16),
                               Text(
-                                _profileImage != null ? 'Change Profile Photo' : 'Upload Profile Photo',
+                                _profileImage != null
+                                    ? 'Change Profile Photo'
+                                    : 'Upload Profile Photo',
                                 style: AppTheme.headline(fontSize: 16),
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                _profileImage != null ? 'Image selected' : 'Show customers who you are',
+                                _profileImage != null
+                                    ? 'Image selected'
+                                    : 'Show customers who you are',
                                 style: AppTheme.body(
                                   fontSize: 14,
-                                  color: _profileImage != null ? AppColors.primary : AppColors.onSurfaceVariant,
+                                  color: _profileImage != null
+                                      ? AppColors.primary
+                                      : AppColors.onSurfaceVariant,
                                 ),
                               ),
                             ],
@@ -572,7 +640,9 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                                 },
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
-                                      horizontal: 12, vertical: 16),
+                                    horizontal: 12,
+                                    vertical: 16,
+                                  ),
                                   child: _selectedServices.isEmpty
                                       ? Text(
                                           'Select your expertise',
@@ -586,31 +656,41 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                                           spacing: 6,
                                           runSpacing: 4,
                                           children: _selectedServices
-                                              .map((s) => Chip(
-                                                    label: Text(s,
-                                                        style: AppTheme.body(
-                                                            fontSize: 13,
-                                                            color: AppColors.primary)),
-                                                    backgroundColor:
-                                                        AppColors.primaryFixed,
-                                                    padding: EdgeInsets.zero,
-                                                    materialTapTargetSize:
-                                                        MaterialTapTargetSize
-                                                            .shrinkWrap,
-                                                    side: BorderSide.none,
-                                                  ))
+                                              .map(
+                                                (s) => Chip(
+                                                  label: Text(
+                                                    s,
+                                                    style: AppTheme.body(
+                                                      fontSize: 13,
+                                                      color: AppColors.primary,
+                                                    ),
+                                                  ),
+                                                  backgroundColor:
+                                                      AppColors.primaryFixed,
+                                                  padding: EdgeInsets.zero,
+                                                  materialTapTargetSize:
+                                                      MaterialTapTargetSize
+                                                          .shrinkWrap,
+                                                  side: BorderSide.none,
+                                                ),
+                                              )
                                               .toList(),
                                         ),
                                 ),
                               ),
                               if (field.hasError)
                                 Padding(
-                                  padding:
-                                      const EdgeInsets.only(left: 12, bottom: 8),
-                                  child: Text(field.errorText!,
-                                      style: AppTheme.body(
-                                          fontSize: 12,
-                                          color: AppColors.error)),
+                                  padding: const EdgeInsets.only(
+                                    left: 12,
+                                    bottom: 8,
+                                  ),
+                                  child: Text(
+                                    field.errorText!,
+                                    style: AppTheme.body(
+                                      fontSize: 12,
+                                      color: AppColors.error,
+                                    ),
+                                  ),
                                 ),
                             ],
                           ),
@@ -628,23 +708,22 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                             fontSize: 16,
                             fontWeight: FontWeight.w500,
                           ),
-                          decoration: _inputDecoration(
-                            'Enter city or use GPS',
-                          ).copyWith(
-                            suffixIcon: _isLocating
-                                ? const Padding(
-                                    padding: EdgeInsets.all(12),
-                                    child: SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: AppColors.primary,
-                                      ),
-                                    ),
-                                  )
-                                : null,
-                          ),
+                          decoration: _inputDecoration('Enter city or use GPS')
+                              .copyWith(
+                                suffixIcon: _isLocating
+                                    ? const Padding(
+                                        padding: EdgeInsets.all(12),
+                                        child: SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: AppColors.primary,
+                                          ),
+                                        ),
+                                      )
+                                    : null,
+                              ),
                           validator: (v) =>
                               v == null || v.trim().isEmpty ? 'Required' : null,
                         ),
@@ -810,8 +889,14 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                                 color: AppColors.primary,
                               ),
                               recognizer: TapGestureRecognizer()
-                                ..onTap = () => Navigator.push(context,
-                                    MaterialPageRoute(builder: (_) => const PolicyScreen(type: PolicyType.terms))),
+                                ..onTap = () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const PolicyScreen(
+                                      type: PolicyType.terms,
+                                    ),
+                                  ),
+                                ),
                             ),
                             TextSpan(
                               text: ' and ',
@@ -828,8 +913,14 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                                 color: AppColors.primary,
                               ),
                               recognizer: TapGestureRecognizer()
-                                ..onTap = () => Navigator.push(context,
-                                    MaterialPageRoute(builder: (_) => const PolicyScreen(type: PolicyType.privacy))),
+                                ..onTap = () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => const PolicyScreen(
+                                      type: PolicyType.privacy,
+                                    ),
+                                  ),
+                                ),
                             ),
                             TextSpan(
                               text: '.',
@@ -852,7 +943,11 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.15)),
+                                border: Border.all(
+                                  color: AppColors.outlineVariant.withValues(
+                                    alpha: 0.15,
+                                  ),
+                                ),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withValues(alpha: 0.03),
@@ -894,7 +989,11 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                               decoration: BoxDecoration(
                                 color: Colors.white,
                                 borderRadius: BorderRadius.circular(16),
-                                border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.15)),
+                                border: Border.all(
+                                  color: AppColors.outlineVariant.withValues(
+                                    alpha: 0.15,
+                                  ),
+                                ),
                                 boxShadow: [
                                   BoxShadow(
                                     color: Colors.black.withValues(alpha: 0.03),
@@ -967,7 +1066,9 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.3)),
+            border: Border.all(
+              color: AppColors.outlineVariant.withValues(alpha: 0.3),
+            ),
           ),
           child: Row(
             children: [

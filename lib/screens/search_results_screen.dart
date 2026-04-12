@@ -461,14 +461,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
               ),
             )
           else
-            const Padding(
-              padding: EdgeInsets.all(12),
-              child: Icon(
-                Icons.mic_none_rounded,
-                color: AppColors.slate400,
-                size: 20,
-              ),
-            ),
+            const SizedBox(width: 12),
         ],
       ),
     );
