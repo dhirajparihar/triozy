@@ -46,11 +46,46 @@ class AppBottomNavBar extends StatelessWidget {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(child: _NavItem(icon: Icons.home_rounded, label: 'Home', isSelected: currentIndex == 0, onTap: () => onTap(0))),
-                Expanded(child: _NavItem(icon: Icons.search_rounded, label: 'Search', isSelected: currentIndex == 1, onTap: () => onTap(1))),
-                Expanded(child: _NavItem(icon: Icons.work_outline_rounded, label: 'Requests', isSelected: currentIndex == 2, onTap: () => onTap(2))),
-                Expanded(child: _NavItem(icon: Icons.people_alt_rounded, label: 'Mates', isSelected: currentIndex == 3, onTap: () => onTap(3))),
-                Expanded(child: _NavItem(icon: Icons.person_outline_rounded, label: 'Profile', isSelected: currentIndex == 4, onTap: () => onTap(4))),
+                Expanded(
+                  child: _NavItem(
+                    icon: Icons.home_rounded,
+                    label: 'Home',
+                    isSelected: currentIndex == 0,
+                    onTap: () => onTap(0),
+                  ),
+                ),
+                Expanded(
+                  child: _NavItem(
+                    icon: Icons.search_rounded,
+                    label: 'Search',
+                    isSelected: currentIndex == 1,
+                    onTap: () => onTap(1),
+                  ),
+                ),
+                Expanded(
+                  child: _NavItem(
+                    icon: Icons.work_outline_rounded,
+                    label: 'Requests',
+                    isSelected: currentIndex == 2,
+                    onTap: () => onTap(2),
+                  ),
+                ),
+                Expanded(
+                  child: _NavItem(
+                    icon: Icons.people_alt_rounded,
+                    label: 'Mates',
+                    isSelected: currentIndex == 3,
+                    onTap: () => onTap(3),
+                  ),
+                ),
+                Expanded(
+                  child: _NavItem(
+                    icon: Icons.person_outline_rounded,
+                    label: 'Profile',
+                    isSelected: currentIndex == 4,
+                    onTap: () => onTap(4),
+                  ),
+                ),
               ],
             ),
           ),
@@ -80,10 +115,12 @@ class _NavItem extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 8),
         decoration: BoxDecoration(
-          color: isSelected ? AppColors.primary.withValues(alpha: 0.08) : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
+          color: isSelected
+              ? AppColors.primary.withValues(alpha: 0.08)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -94,14 +131,16 @@ class _NavItem extends StatelessWidget {
               size: 22,
             ),
             const SizedBox(height: 4),
-            Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: GoogleFonts.inter(
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                color: isSelected ? AppColors.primary : AppColors.slate400,
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              child: Text(
+                label,
+                maxLines: 1,
+                style: GoogleFonts.inter(
+                  fontSize: 10.5,
+                  fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
+                  color: isSelected ? AppColors.primary : AppColors.slate400,
+                ),
               ),
             ),
           ],

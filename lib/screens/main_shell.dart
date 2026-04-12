@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_colors.dart';
+import '../services/auth_service.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/top_app_bar.dart';
 import '../providers/location_provider.dart';
@@ -13,6 +14,7 @@ import 'mate_screen.dart';
 import 'user_profile_screen.dart';
 import 'worker_dashboard_screen.dart';
 import 'add_request_screen.dart';
+import 'worker_setup_screen.dart';
 
 class MainShell extends StatefulWidget {
   final bool isWorker;
@@ -103,6 +105,144 @@ class _MainShellState extends State<MainShell> {
     );
   }
 
+  void _showChangeLocationSheet() {
+    final locationProvider = context.read<LocationProvider>();
+    final controller = TextEditingController(
+      text: locationProvider.address == 'Locating...' ||
+              locationProvider.address == 'Location unavailable'
+          ? ''
+          : locationProvider.address,
+    );
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.fromLTRB(
+            20,
+            18,
+            20,
+            MediaQuery.of(ctx).viewInsets.bottom + 18,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Change Location',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Use GPS or enter your city/area/pincode.',
+                style: TextStyle(fontSize: 13, color: AppColors.outline),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: controller,
+                textInputAction: TextInputAction.done,
+                decoration: InputDecoration(
+                  hintText: 'e.g. Jakkur, Bengaluru',
+                  prefixIcon: const Icon(Icons.search_rounded),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 14,
+                  ),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                onSubmitted: (_) async {
+                  final value = controller.text.trim();
+                  Navigator.pop(ctx);
+                  if (value.isEmpty) return;
+                  await _applyManualLocation(value);
+                },
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton.icon(
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        await _useCurrentLocation();
+                      },
+                      icon: const Icon(Icons.my_location_rounded, size: 16),
+                      label: const Text('Use Current'),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () async {
+                        final value = controller.text.trim();
+                        Navigator.pop(ctx);
+                        if (value.isEmpty) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Please enter a location'),
+                            ),
+                          );
+                          return;
+                        }
+                        await _applyManualLocation(value);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                      ),
+                      child: const Text('Apply'),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Future<void> _useCurrentLocation() async {
+    try {
+      await context.read<LocationProvider>().refreshLocation();
+      _homeScreenKey.currentState?.refreshFromShell();
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not update location: $e')),
+      );
+    }
+  }
+
+  Future<void> _applyManualLocation(String value) async {
+    try {
+      await context.read<LocationProvider>().setLocationFromAddress(value);
+      _homeScreenKey.currentState?.refreshFromShell();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Location updated to ${context.read<LocationProvider>().address}')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not update location: $e')),
+      );
+    }
+  }
+
   void _handleBackNavigation() {
     if (_currentIndex != 0) {
       setState(() => _currentIndex = 0);
@@ -129,6 +269,34 @@ class _MainShellState extends State<MainShell> {
           duration: Duration(seconds: 2),
         ),
       );
+  }
+
+  Future<void> _openWorkerRegistration() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Please sign in to register as a service provider.'),
+        ),
+      );
+      return;
+    }
+
+    await context.read<AuthService>().saveUser(
+          uid: user.uid,
+          name: user.displayName ?? '',
+          email: user.email ?? '',
+          role: 'worker',
+          photoUrl: user.photoURL,
+        );
+
+    if (!mounted) return;
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(builder: (_) => const WorkerSetupScreen()),
+      (route) => false,
+    );
   }
 
   @override
@@ -163,20 +331,25 @@ class _MainShellState extends State<MainShell> {
                 location: locationProvider.address,
                 avatarUrl: FirebaseAuth.instance.currentUser?.photoURL,
                 onAvatarTap: () => setState(() => _currentIndex = 4),
+                onLocationTap: _showChangeLocationSheet,
               ),
             ),
-            // FAB on Home screen
-            if (_currentIndex == 0)
+            // FAB on Home and Search screens
+            if (_currentIndex == 0 || _currentIndex == 1)
               Positioned(
                 right: 20,
                 bottom: MediaQuery.of(context).padding.bottom + 96,
                 child: GestureDetector(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AddRequestScreen()),
-                    );
-                  },
+                  onTap: _currentIndex == 0
+                      ? () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AddRequestScreen(),
+                            ),
+                          );
+                        }
+                      : _openWorkerRegistration,
                   child: Container(
                     width: 56,
                     height: 56,

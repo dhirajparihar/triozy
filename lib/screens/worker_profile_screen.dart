@@ -23,6 +23,7 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
   bool _loading = true;
   int _selectedRating = 0;
   bool _reviewSubmitted = false;
+  bool _hasCalledWorker = false;
   StreamSubscription<WorkerModel?>? _workerSub;
 
   @override
@@ -49,20 +50,25 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
       } catch (_) {}
     }
 
-    _workerSub = db.streamWorker(widget.workerId).listen((w) {
-      if (mounted) {
-        setState(() {
-          _worker = w;
-          _loading = false;
-          if (existingRating != null && !_reviewSubmitted) {
-            _selectedRating = existingRating.toInt();
-            _reviewSubmitted = true;
-          }
-        });
-      }
-    }, onError: (_) {
-      if (mounted) setState(() => _loading = false);
-    });
+    _workerSub = db
+        .streamWorker(widget.workerId)
+        .listen(
+          (w) {
+            if (mounted) {
+              setState(() {
+                _worker = w;
+                _loading = false;
+                if (existingRating != null && !_reviewSubmitted) {
+                  _selectedRating = existingRating.toInt();
+                  _reviewSubmitted = true;
+                }
+              });
+            }
+          },
+          onError: (_) {
+            if (mounted) setState(() => _loading = false);
+          },
+        );
   }
 
   @override
@@ -83,6 +89,10 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
       );
     }
     final w = _worker!;
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    final isOwnProfile = currentUid != null && currentUid == w.uid;
+    final canShowRatingCard =
+        !isOwnProfile && (_hasCalledWorker || _reviewSubmitted);
 
     return Scaffold(
       backgroundColor: AppColors.background,
@@ -93,14 +103,27 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
               SliverToBoxAdapter(child: _buildHeader(context)),
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 24),
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
                   child: Column(
                     children: [
                       _buildHeroProfile(w),
-                      const SizedBox(height: 48),
+                      const SizedBox(height: 20),
                       _buildInfoGrid(w),
-                      const SizedBox(height: 32),
-                      _buildReviews(),
+                      const SizedBox(height: 24),
+                      if (isOwnProfile)
+                        _buildRatingLockedCard(
+                          title: 'Rating Unavailable',
+                          subtitle:
+                              'You cannot rate your own professional profile.',
+                        )
+                      else if (canShowRatingCard)
+                        _buildReviews()
+                      else
+                        _buildRatingLockedCard(
+                          title: 'Rate this Professional',
+                          subtitle:
+                              'Call this professional first to unlock rating.',
+                        ),
                       const SizedBox(height: 120),
                     ],
                   ),
@@ -126,7 +149,7 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
           ),
           height: MediaQuery.of(context).padding.top + 64,
           decoration: BoxDecoration(
-            color: const Color(0xFFF1F5F9).withValues(alpha: 0.8),
+            color: Colors.white.withValues(alpha: 0.86),
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -175,147 +198,133 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
   }
 
   Widget _buildHeroProfile(WorkerModel w) {
-    return Column(
-      children: [
-        const SizedBox(height: 16),
-        Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              width: 128,
-              height: 128,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: AppColors.surfaceContainerHighest,
-                  width: 4,
-                ),
-              ),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: w.photoUrl.isNotEmpty
-                    ? Image.network(
-                        w.photoUrl,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => _avatarFallback(),
-                      )
-                    : _avatarFallback(),
-              ),
-            ),
-            Positioned(
-              bottom: -8,
-              right: -8,
-              child: Container(
-                padding: const EdgeInsets.all(6),
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(top: 12),
+      padding: const EdgeInsets.fromLTRB(16, 18, 16, 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        children: [
+          Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Container(
+                width: 96,
+                height: 96,
+                padding: const EdgeInsets.all(3),
                 decoration: BoxDecoration(
-                  color: AppColors.secondary,
                   shape: BoxShape.circle,
-                  border: Border.all(color: AppColors.background, width: 4),
+                  gradient: const LinearGradient(
+                    colors: [AppColors.primaryContainer, AppColors.primary],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
                 ),
-                child: const Icon(
-                  Icons.verified,
-                  size: 14,
-                  color: AppColors.onSecondary,
+                child: ClipOval(
+                  child: w.photoUrl.isNotEmpty
+                      ? Image.network(
+                          w.photoUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => _avatarFallback(),
+                        )
+                      : _avatarFallback(),
                 ),
               ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Text(
-          w.name,
-          style: AppTheme.headline(fontSize: 28),
-          textAlign: TextAlign.center,
-        ),
-        const SizedBox(height: 4),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              w.serviceType.toUpperCase(),
-              style: AppTheme.label(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.secondary,
-                letterSpacing: 1.0,
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 8),
-              child: Text(
-                '•',
-                style: TextStyle(color: AppColors.outlineVariant),
-              ),
-            ),
-            Text(
-              '${w.experience}+ YEARS EXPERIENCE',
-              style: AppTheme.label(
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
-                color: AppColors.secondary,
-                letterSpacing: 1.0,
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 16),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainer,
-                borderRadius: BorderRadius.circular(9999),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.star, color: AppColors.tertiary, size: 20),
-                  const SizedBox(width: 4),
-                  Text(
-                    w.ratingDisplay,
-                    style: AppTheme.body(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
+              Positioned(
+                bottom: -2,
+                right: -2,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: AppColors.secondary,
+                    shape: BoxShape.circle,
+                    border: Border.all(color: Colors.white, width: 2),
                   ),
-                  const SizedBox(width: 4),
-                  Text(
-                    '(${w.totalJobs})',
-                    style: AppTheme.body(
-                      fontSize: 12,
-                      color: AppColors.outline,
-                    ),
+                  child: const Icon(
+                    Icons.verified,
+                    size: 12,
+                    color: Colors.white,
                   ),
-                ],
+                ),
               ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            w.name,
+            style: AppTheme.headline(fontSize: 26),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '${w.serviceType} - ${w.experience}+ years experience',
+            style: AppTheme.body(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.onSurfaceVariant,
             ),
-            const SizedBox(width: 12),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainer,
-                borderRadius: BorderRadius.circular(9999),
+            textAlign: TextAlign.center,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _metaPill(
+                  icon: Icons.star_rounded,
+                  iconColor: AppColors.tertiary,
+                  text: '${w.ratingDisplay} (${w.totalJobs})',
+                ),
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.history, color: AppColors.primary, size: 20),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${w.totalJobs} Requests',
-                    style: AppTheme.body(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
+              const SizedBox(width: 10),
+              Expanded(
+                child: _metaPill(
+                  icon: Icons.history_rounded,
+                  iconColor: AppColors.primary,
+                  text: '${w.totalJobs} Requests',
+                ),
               ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _metaPill({
+    required IconData icon,
+    required Color iconColor,
+    required String text,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xFFF3F6FB),
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, color: iconColor, size: 18),
+          const SizedBox(width: 6),
+          Expanded(
+            child: Text(
+              text,
+              style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w700),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
-          ],
-        ),
-      ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -332,10 +341,13 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
         // Service Expertise (full width)
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(32),
+          padding: const EdgeInsets.all(22),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(
+              color: AppColors.outlineVariant.withValues(alpha: 0.18),
+            ),
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -356,9 +368,13 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
                     ),
                   ),
                   const SizedBox(width: 12),
-                  Text(
-                    'Service Expertise',
-                    style: AppTheme.headline(fontSize: 20),
+                  Expanded(
+                    child: Text(
+                      'Service Expertise',
+                      style: AppTheme.headline(fontSize: 20),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
                 ],
               ),
@@ -415,11 +431,13 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
   Widget _buildAreaCard(WorkerModel w) {
     final location = w.location.isNotEmpty ? w.location : 'Your area';
     return Container(
-      padding: const EdgeInsets.all(24),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppColors.blue50.withValues(alpha: 0.5),
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.primary.withValues(alpha: 0.1)),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.2),
+        ),
       ),
       child: Row(
         children: [
@@ -430,25 +448,42 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
               color: AppColors.primary.withValues(alpha: 0.1),
               shape: BoxShape.circle,
             ),
-            child: const Icon(Icons.location_on_rounded, color: AppColors.primary, size: 26),
+            child: const Icon(
+              Icons.location_on_rounded,
+              color: AppColors.primary,
+              size: 26,
+            ),
           ),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Service Area',
-                    style: AppTheme.label(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
-                        letterSpacing: 1.2)),
+                Text(
+                  'Service Area',
+                  style: AppTheme.label(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                    letterSpacing: 1.2,
+                  ),
+                ),
                 const SizedBox(height: 4),
-                Text(location,
-                    style: AppTheme.headline(fontSize: 16, fontWeight: FontWeight.w700)),
+                Text(
+                  location,
+                  style: AppTheme.headline(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
                 const SizedBox(height: 2),
-                Text('& surrounding neighborhoods',
-                    style: AppTheme.body(fontSize: 13, color: AppColors.onSurfaceVariant)),
+                Text(
+                  '& surrounding neighborhoods',
+                  style: AppTheme.body(
+                    fontSize: 13,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
           ),
@@ -461,10 +496,11 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
     if (_worker == null) return;
     final w = _worker!;
     final profileUrl = 'https://triozy-app.web.app/#/worker/${w.uid}';
-    final text = '👷 Check out ${w.name} on Triozy!\n'
-        '🔧 Service: ${w.serviceType}\n'
-        '⭐ Rating: ${w.ratingDisplay}\n'
-        '📍 ${w.location}\n\n'
+    final text =
+        'ðŸ‘· Check out ${w.name} on Triozy!\n'
+        'ðŸ”§ Service: ${w.serviceType}\n'
+        'â­ Rating: ${w.ratingDisplay}\n'
+        'ðŸ“ ${w.location}\n\n'
         'Book now: $profileUrl';
     Share.share(text);
   }
@@ -482,15 +518,30 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
       );
       return;
     }
+    if (uid == _worker!.uid) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('You cannot rate your own profile.'),
+          backgroundColor: AppColors.error,
+        ),
+      );
+      return;
+    }
 
     final db = context.read<DatabaseService>();
     try {
-      await db.submitWorkerRating(_worker!.uid, uid, _selectedRating.toDouble());
+      await db.submitWorkerRating(
+        _worker!.uid,
+        uid,
+        _selectedRating.toDouble(),
+      );
       if (mounted) {
         setState(() => _reviewSubmitted = true);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Thanks! You rated ${_worker!.name.split(' ').first} $_selectedRating stars.'),
+            content: Text(
+              'Thanks! You rated ${_worker!.name.split(' ').first} $_selectedRating stars.',
+            ),
             backgroundColor: AppColors.secondary,
           ),
         );
@@ -498,10 +549,54 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Failed to submit rating: $e'), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text('Failed to submit rating: $e'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     }
+  }
+
+  Widget _buildRatingLockedCard({
+    required String title,
+    required String subtitle,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.2),
+        ),
+      ),
+      child: Column(
+        children: [
+          Icon(
+            Icons.lock_outline_rounded,
+            size: 32,
+            color: AppColors.outlineVariant,
+          ),
+          const SizedBox(height: 10),
+          Text(
+            title,
+            style: AppTheme.headline(fontSize: 20),
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: 8),
+          Text(
+            subtitle,
+            style: AppTheme.body(
+              fontSize: 14,
+              color: AppColors.onSurfaceVariant,
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildReviews() {
@@ -510,7 +605,10 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.2),
+        ),
       ),
       child: Column(
         children: [
@@ -523,7 +621,10 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
             _reviewSubmitted
                 ? 'You already rated. Tap a star to update.'
                 : 'Tap a star to rate your experience',
-            style: AppTheme.body(fontSize: 14, color: AppColors.onSurfaceVariant),
+            style: AppTheme.body(
+              fontSize: 14,
+              color: AppColors.onSurfaceVariant,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 24),
@@ -539,7 +640,9 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
                 child: Padding(
                   padding: const EdgeInsets.symmetric(horizontal: 6),
                   child: Icon(
-                    starIndex <= _selectedRating ? Icons.star_rounded : Icons.star_outline_rounded,
+                    starIndex <= _selectedRating
+                        ? Icons.star_rounded
+                        : Icons.star_outline_rounded,
                     size: 40,
                     color: starIndex <= _selectedRating
                         ? AppColors.tertiary
@@ -619,7 +722,9 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
                       boxShadow: w.isAvailable
                           ? [
                               BoxShadow(
-                                color: AppColors.secondary.withValues(alpha: 0.15),
+                                color: AppColors.secondary.withValues(
+                                  alpha: 0.15,
+                                ),
                                 blurRadius: 32,
                                 offset: const Offset(0, 12),
                               ),
@@ -636,14 +741,26 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
                                 if (w.phone.isNotEmpty) {
                                   final uri = Uri(scheme: 'tel', path: w.phone);
                                   if (await canLaunchUrl(uri)) {
-                                    await launchUrl(uri);
+                                    final launched = await launchUrl(uri);
+                                    if (!launched) return;
                                     // Record the call in Firestore
                                     db.incrementWorkerCalls(w.uid);
+                                    final uid =
+                                        FirebaseAuth.instance.currentUser?.uid;
+                                    if (uid != null &&
+                                        uid != w.uid &&
+                                        mounted) {
+                                      setState(() => _hasCalledWorker = true);
+                                    }
                                   }
                                 } else {
                                   if (context.mounted) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Phone number not available')),
+                                      const SnackBar(
+                                        content: Text(
+                                          'Phone number not available',
+                                        ),
+                                      ),
                                     );
                                   }
                                 }

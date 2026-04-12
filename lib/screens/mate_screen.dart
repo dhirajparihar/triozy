@@ -164,6 +164,8 @@ class _MateScreenState extends State<MateScreen>
                     fontSize: 13,
                     color: AppColors.slate500,
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
@@ -297,9 +299,12 @@ class _MateScreenState extends State<MateScreen>
         foregroundColor: Colors.white,
         elevation: 4,
         icon: const Icon(Icons.add_rounded, size: 22),
-        label: Text(
-          'Post ${_tabs[_tabController.index].label}',
-          style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14),
+        label: FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            'Post ${_tabs[_tabController.index].label}',
+            style: GoogleFonts.inter(fontWeight: FontWeight.w700, fontSize: 14),
+          ),
         ),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
@@ -350,24 +355,32 @@ class _MateTabBar extends StatelessWidget {
         tabs: List.generate(tabs.length, (i) {
           final isSelected = controller.index == i;
           return Tab(
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  icons[i],
-                  size: 16,
-                  color: isSelected ? Colors.white : AppColors.slate400,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 2),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(
+                      icons[i],
+                      size: 16,
+                      color: isSelected ? Colors.white : AppColors.slate400,
+                    ),
+                    const SizedBox(width: 6),
+                    Text(
+                      tabs[i].label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w700,
+                        color: isSelected ? Colors.white : AppColors.slate400,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 6),
-                Text(
-                  tabs[i].label,
-                  style: GoogleFonts.inter(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: isSelected ? Colors.white : AppColors.slate400,
-                  ),
-                ),
-              ],
+              ),
             ),
           );
         }),

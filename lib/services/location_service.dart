@@ -122,6 +122,29 @@ class LocationService {
     return 'Unknown location';
   }
 
+  /// Convert a user-entered address (city/area/pincode) to coordinates.
+  Future<({double latitude, double longitude})> getCoordinatesFromAddress(
+    String address,
+  ) async {
+    final query = address.trim();
+    if (query.isEmpty) {
+      throw Exception('Please enter a valid location.');
+    }
+
+    try {
+      final results = await locationFromAddress(query);
+      if (results.isEmpty) {
+        throw Exception('No matching location found.');
+      }
+      final first = results.first;
+      return (latitude: first.latitude, longitude: first.longitude);
+    } catch (_) {
+      throw Exception(
+        'Could not find that location. Try city, area, or pincode.',
+      );
+    }
+  }
+
   // ─── Save Worker Geo Data ───
 
   /// Save a GeoFirePoint to the worker's Firestore document.

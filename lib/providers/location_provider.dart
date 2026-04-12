@@ -62,4 +62,36 @@ class LocationProvider extends ChangeNotifier {
     notifyListeners();
     await fetchLocation();
   }
+
+  /// Manually set location from user-entered address/city text.
+  Future<void> setLocationFromAddress(String input) async {
+    final query = input.trim();
+    if (query.isEmpty) {
+      throw Exception('Please enter a location.');
+    }
+
+    _isLoading = true;
+    _hasError = false;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      final coordinates = await _locationService.getCoordinatesFromAddress(query);
+      _latitude = coordinates.latitude;
+      _longitude = coordinates.longitude;
+
+      final resolved = await _locationService.getAddressFromCoordinates(
+        _latitude!,
+        _longitude!,
+      );
+      _address = resolved == 'Unknown location' ? query : resolved;
+    } catch (e) {
+      _hasError = true;
+      _errorMessage = e.toString();
+      rethrow;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
 }

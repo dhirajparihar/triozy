@@ -25,6 +25,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   String? _selectedServiceType;
   String? _selectedArea;
   bool _availableOnly = false;
+  double? _minRating;
   String _sortBy = 'Best Match';
 
   final List<String> _serviceTypes = AppCategories.all;
@@ -91,8 +92,11 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     // Service Type filter
     if (_selectedServiceType != null) {
       filtered = filtered.where((w) {
-        return w.serviceType.toLowerCase() == _selectedServiceType!.toLowerCase() ||
-            w.skills.any((s) => s.toLowerCase() == _selectedServiceType!.toLowerCase());
+        return w.serviceType.toLowerCase() ==
+                _selectedServiceType!.toLowerCase() ||
+            w.skills.any(
+              (s) => s.toLowerCase() == _selectedServiceType!.toLowerCase(),
+            );
       }).toList();
     }
 
@@ -106,6 +110,9 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     // Availability filter
     if (_availableOnly) {
       filtered = filtered.where((w) => w.available).toList();
+    }
+    if (_minRating != null) {
+      filtered = filtered.where((w) => w.rating >= _minRating!).toList();
     }
 
     // Sort
@@ -170,18 +177,16 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                     });
                     Navigator.pop(ctx);
                   }),
-                  ..._areas.map((area) => _filterOption(
-                        ctx,
-                        area,
-                        _selectedArea == area,
-                        () {
+                  ..._areas.map(
+                    (area) =>
+                        _filterOption(ctx, area, _selectedArea == area, () {
                           setState(() {
                             _selectedArea = area;
                             _applyFilters();
                           });
                           Navigator.pop(ctx);
-                        },
-                      )),
+                        }),
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -234,18 +239,15 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                     });
                     Navigator.pop(ctx);
                   }),
-                  ..._serviceTypes.map((s) => _filterOption(
-                        ctx,
-                        s,
-                        _selectedServiceType == s,
-                        () {
-                          setState(() {
-                            _selectedServiceType = s;
-                            _applyFilters();
-                          });
-                          Navigator.pop(ctx);
-                        },
-                      )),
+                  ..._serviceTypes.map(
+                    (s) => _filterOption(ctx, s, _selectedServiceType == s, () {
+                      setState(() {
+                        _selectedServiceType = s;
+                        _applyFilters();
+                      });
+                      Navigator.pop(ctx);
+                    }),
+                  ),
                 ],
               ),
               const SizedBox(height: 24),
@@ -282,34 +284,39 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
             const SizedBox(height: 20),
             Text('Sort By', style: AppTheme.headline(fontSize: 20)),
             const SizedBox(height: 16),
-            ...['Best Match', 'Rating', 'Name'].map((option) => ListTile(
-                  title: Text(
-                    option,
-                    style: AppTheme.body(
-                      fontSize: 16,
-                      fontWeight: _sortBy == option
-                          ? FontWeight.w700
-                          : FontWeight.w500,
-                      color: _sortBy == option
-                          ? AppColors.primary
-                          : AppColors.onSurface,
-                    ),
+            ...['Best Match', 'Rating', 'Name'].map(
+              (option) => ListTile(
+                title: Text(
+                  option,
+                  style: AppTheme.body(
+                    fontSize: 16,
+                    fontWeight: _sortBy == option
+                        ? FontWeight.w700
+                        : FontWeight.w500,
+                    color: _sortBy == option
+                        ? AppColors.primary
+                        : AppColors.onSurface,
                   ),
-                  trailing: _sortBy == option
-                      ? const Icon(Icons.check_circle,
-                          color: AppColors.primary, size: 22)
-                      : null,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  onTap: () {
-                    setState(() {
-                      _sortBy = option;
-                      _applyFilters();
-                    });
-                    Navigator.pop(ctx);
-                  },
-                )),
+                ),
+                trailing: _sortBy == option
+                    ? const Icon(
+                        Icons.check_circle,
+                        color: AppColors.primary,
+                        size: 22,
+                      )
+                    : null,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                onTap: () {
+                  setState(() {
+                    _sortBy = option;
+                    _applyFilters();
+                  });
+                  Navigator.pop(ctx);
+                },
+              ),
+            ),
             const SizedBox(height: 16),
           ],
         ),
@@ -318,7 +325,11 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   }
 
   Widget _filterOption(
-      BuildContext ctx, String label, bool selected, VoidCallback onTap) {
+    BuildContext ctx,
+    String label,
+    bool selected,
+    VoidCallback onTap,
+  ) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -355,7 +366,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
         // Sticky search bar + filters
         Container(
           color: AppColors.background,
-          padding: const EdgeInsets.fromLTRB(24, 16, 24, 0),
+          padding: const EdgeInsets.fromLTRB(20, 14, 20, 0),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -373,7 +384,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
             color: AppColors.primary,
             child: ListView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 32),
+              padding: const EdgeInsets.fromLTRB(20, 0, 20, 32),
               children: [
                 _buildHeader(),
                 const SizedBox(height: 16),
@@ -389,38 +400,40 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   }
 
   Widget _buildHeader() {
-    return RichText(
-      text: TextSpan(
-        children: [
-          TextSpan(
-            text: 'Find the perfect\n',
-            style: AppTheme.headline(fontSize: 28, letterSpacing: -1.0),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Find your service',
+          style: AppTheme.headline(fontSize: 26, letterSpacing: -0.8),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          '${_results.length} pros available',
+          style: AppTheme.body(
+            fontSize: 14,
+            fontWeight: FontWeight.w500,
+            color: AppColors.slate500,
           ),
-          TextSpan(
-            text: 'solution.',
-            style: AppTheme.headline(
-              fontSize: 28,
-              color: AppColors.primary,
-              letterSpacing: -1.0,
-            ),
-          ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 
   Widget _buildSearchBar() {
     return Container(
-      height: 52,
+      height: 50,
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.25),
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.03),
-            blurRadius: 8,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 18,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
@@ -432,12 +445,12 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
           Expanded(
             child: TextField(
               controller: _searchController,
-              style: AppTheme.body(fontSize: 16),
+              style: AppTheme.body(fontSize: 15),
               decoration: InputDecoration(
-                hintText: 'Search services, skills, or names...',
+                hintText: 'Search services...',
                 hintStyle: AppTheme.body(
-                  fontSize: 16,
-                  color: AppColors.outline,
+                  fontSize: 15,
+                  color: AppColors.slate400,
                 ),
                 border: InputBorder.none,
               ),
@@ -462,7 +475,14 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
               ),
             )
           else
-            const SizedBox(width: 20),
+            const Padding(
+              padding: EdgeInsets.all(12),
+              child: Icon(
+                Icons.mic_none_rounded,
+                color: AppColors.slate400,
+                size: 20,
+              ),
+            ),
         ],
       ),
     );
@@ -494,6 +514,20 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
           GestureDetector(
             onTap: () {
               setState(() {
+                _minRating = _minRating == null ? 4.5 : null;
+                _applyFilters();
+              });
+            },
+            child: _buildChip(
+              Icons.star_rounded,
+              _minRating == null ? 'Rating' : '4.5+',
+              _minRating != null,
+            ),
+          ),
+          const SizedBox(width: 8),
+          GestureDetector(
+            onTap: () {
+              setState(() {
                 _availableOnly = !_availableOnly;
                 _applyFilters();
               });
@@ -506,13 +540,17 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
           ),
           const SizedBox(width: 12),
           // Clear filters
-          if (_selectedServiceType != null || _selectedArea != null || _availableOnly)
+          if (_selectedServiceType != null ||
+              _selectedArea != null ||
+              _availableOnly ||
+              _minRating != null)
             GestureDetector(
               onTap: () {
                 setState(() {
                   _selectedServiceType = null;
                   _selectedArea = null;
                   _availableOnly = false;
+                  _minRating = null;
                   _applyFilters();
                 });
               },
@@ -523,7 +561,11 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
                   color: AppColors.error.withValues(alpha: 0.1),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.clear, color: AppColors.error, size: 20),
+                child: const Icon(
+                  Icons.clear,
+                  color: AppColors.error,
+                  size: 20,
+                ),
               ),
             )
           else
@@ -547,7 +589,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
 
   Widget _buildChip(IconData icon, String label, bool selected) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       decoration: BoxDecoration(
         color: selected ? AppColors.primary : Colors.white,
         borderRadius: BorderRadius.circular(9999),
@@ -580,8 +622,9 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
             style: AppTheme.label(
               fontSize: 14,
               fontWeight: FontWeight.w600,
-              color:
-                  selected ? AppColors.onPrimary : AppColors.onSurfaceVariant,
+              color: selected
+                  ? AppColors.onPrimary
+                  : AppColors.onSurfaceVariant,
             ),
           ),
         ],
@@ -593,11 +636,12 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Expanded(
-          child: Text(
-            'Showing ${_results.length} pros in your area',
-            style: AppTheme.label(fontSize: 14, color: AppColors.outline),
-            overflow: TextOverflow.ellipsis,
+        Text(
+          '${_results.length} professionals',
+          style: AppTheme.body(
+            fontSize: 13,
+            fontWeight: FontWeight.w500,
+            color: AppColors.slate500,
           ),
         ),
         GestureDetector(
@@ -606,16 +650,16 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
             children: [
               Text(
                 _sortBy,
-                style: AppTheme.label(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.primary,
+                style: AppTheme.body(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.slate500,
                 ),
               ),
               const Icon(
                 Icons.keyboard_arrow_down,
-                size: 18,
-                color: AppColors.primary,
+                size: 16,
+                color: AppColors.slate500,
               ),
             ],
           ),
@@ -626,10 +670,63 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
 
   Widget _buildResultsList(BuildContext context) {
     if (_loading) {
-      return const SizedBox(
-        height: 200,
-        child: Center(
-          child: CircularProgressIndicator(color: AppColors.primary),
+      return Column(
+        children: List.generate(
+          4,
+          (i) => Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: AppColors.surfaceContainerHigh,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        height: 12,
+                        width: 120,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      const SizedBox(height: 8),
+                      Container(
+                        height: 10,
+                        width: 80,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Container(
+                        height: 28,
+                        width: 94,
+                        decoration: BoxDecoration(
+                          color: AppColors.surfaceContainerHigh,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
       );
     }
@@ -678,41 +775,51 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
           name: w.name,
           role: w.serviceType,
           rating: w.ratingDisplay,
-          tags: w.skills,
           imageUrl: w.photoUrl,
+          distance: w.distanceKm != null ? w.distanceDisplay : w.location,
+          available: w.available,
           verified: w.rating >= 4.8,
           uid: w.uid,
         );
         return Padding(
           padding: const EdgeInsets.only(bottom: 16),
-          child: _SearchResultCard(worker: sw),
+          child: _SearchResultCard(worker: sw, accentColor: AppColors.primary),
         );
       }).toList(),
     );
   }
 }
 
-
 class _SearchWorker {
   final String name, role, rating, imageUrl, uid;
-  final List<String> tags;
+  final String distance;
   final bool verified;
+  final bool available;
 
   _SearchWorker({
     required this.name,
     required this.role,
     required this.rating,
-    required this.tags,
     required this.imageUrl,
+    required this.distance,
+    required this.available,
     this.verified = false,
     this.uid = '',
   });
 }
 
-class _SearchResultCard extends StatelessWidget {
+class _SearchResultCard extends StatefulWidget {
   final _SearchWorker worker;
+  final Color accentColor;
 
-  const _SearchResultCard({required this.worker});
+  const _SearchResultCard({required this.worker, required this.accentColor});
+
+  @override
+  State<_SearchResultCard> createState() => _SearchResultCardState();
+}
+
+class _SearchResultCardState extends State<_SearchResultCard> {
+  bool _pressed = false;
 
   String _getInitials(String name) {
     final parts = name.trim().split(' ');
@@ -722,132 +829,237 @@ class _SearchResultCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final worker = widget.worker;
     return GestureDetector(
+      onTapDown: (_) => setState(() => _pressed = true),
+      onTapCancel: () => setState(() => _pressed = false),
+      onTapUp: (_) => setState(() => _pressed = false),
       onTap: () => Navigator.push(
         context,
         MaterialPageRoute(
           builder: (_) => WorkerProfileScreen(workerId: worker.uid),
         ),
       ),
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.15)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 8,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            // Avatar
-            Stack(
-              clipBehavior: Clip.none,
-              children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: worker.imageUrl.isNotEmpty
-                      ? Image.network(
-                          worker.imageUrl,
-                          width: 72,
-                          height: 72,
-                          fit: BoxFit.cover,
-                          errorBuilder: (_, _, _) => _avatarFallback(),
-                        )
-                      : _avatarFallback(),
-                ),
-                if (worker.verified)
-                  Positioned(
-                    bottom: -4,
-                    right: -4,
-                    child: Container(
-                      padding: const EdgeInsets.all(2),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondary,
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: const Icon(Icons.check, size: 10, color: Colors.white),
-                    ),
-                  ),
-              ],
-            ),
-            const SizedBox(width: 14),
-            // Info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+      child: AnimatedScale(
+        scale: _pressed ? 0.985 : 1,
+        duration: const Duration(milliseconds: 140),
+        child: Container(
+          padding: const EdgeInsets.all(14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
+                clipBehavior: Clip.none,
                 children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          worker.name,
-                          style: AppTheme.headline(fontSize: 16),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(14),
+                    child: worker.imageUrl.isNotEmpty
+                        ? Image.network(
+                            worker.imageUrl,
+                            width: 64,
+                            height: 64,
+                            fit: BoxFit.cover,
+                            errorBuilder: (_, _, _) => _avatarFallback(),
+                          )
+                        : _avatarFallback(),
+                  ),
+                  if (worker.available)
+                    Positioned(
+                      left: -2,
+                      bottom: -2,
+                      child: Container(
+                        width: 12,
+                        height: 12,
+                        decoration: BoxDecoration(
+                          color: AppColors.secondary,
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
                         ),
                       ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                        decoration: BoxDecoration(
-                          color: AppColors.amber500.withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(8),
+                    ),
+                ],
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            worker.name,
+                            style: AppTheme.headline(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w800,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
+                        const SizedBox(width: 8),
+                        Row(
                           children: [
-                            const Icon(Icons.star_rounded, size: 14, color: AppColors.amber500),
-                            const SizedBox(width: 3),
+                            const Icon(
+                              Icons.star_rounded,
+                              size: 15,
+                              color: AppColors.amber500,
+                            ),
+                            const SizedBox(width: 2),
                             Text(
                               worker.rating,
-                              style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w700),
+                              style: AppTheme.body(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    worker.role,
-                    style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.primary),
-                  ),
-                  const SizedBox(height: 10),
-                  Wrap(
-                    spacing: 6,
-                    runSpacing: 6,
-                    children: worker.tags
-                        .map(
-                          (tag) => Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      ],
+                    ),
+                    const SizedBox(height: 4),
+                    Wrap(
+                      spacing: 6,
+                      runSpacing: 6,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 8,
+                            vertical: 3,
+                          ),
+                          decoration: BoxDecoration(
+                            color: AppColors.blue50,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: Text(
+                            worker.role,
+                            style: AppTheme.label(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ),
+                        if (worker.verified)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
                             decoration: BoxDecoration(
-                              color: AppColors.blue50,
-                              borderRadius: BorderRadius.circular(6),
+                              color: AppColors.secondary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
-                              tag,
+                              'Top Rated',
                               style: AppTheme.label(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.primary,
+                                fontSize: 10.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.secondary,
                               ),
                             ),
                           ),
-                        )
-                        .toList(),
-                  ),
-                ],
+                        if (worker.available)
+                          Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 3,
+                            ),
+                            decoration: BoxDecoration(
+                              color: AppColors.secondary.withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(999),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(
+                                  Icons.circle,
+                                  size: 7,
+                                  color: AppColors.secondary,
+                                ),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Available',
+                                  style: AppTheme.label(
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: AppColors.secondary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.location_on_rounded,
+                          size: 14,
+                          color: AppColors.slate400,
+                        ),
+                        const SizedBox(width: 2),
+                        Expanded(
+                          child: Text(
+                            worker.distance,
+                            style: AppTheme.body(
+                              fontSize: 12,
+                              color: AppColors.slate500,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: SizedBox(
+                        height: 34,
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                                  WorkerProfileScreen(workerId: worker.uid),
+                            ),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            elevation: 0,
+                            backgroundColor: widget.accentColor,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            textStyle: AppTheme.label(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
+                          child: const Text('Book Now'),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(width: 4),
-            const Icon(Icons.chevron_right_rounded, size: 22, color: AppColors.outlineVariant),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -855,15 +1067,15 @@ class _SearchResultCard extends StatelessWidget {
 
   Widget _avatarFallback() {
     return Container(
-      width: 72,
-      height: 72,
+      width: 64,
+      height: 64,
       decoration: BoxDecoration(
         color: AppColors.primary.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(14),
       ),
       child: Center(
         child: Text(
-          _getInitials(worker.name),
+          _getInitials(widget.worker.name),
           style: AppTheme.headline(
             fontSize: 22,
             fontWeight: FontWeight.w700,
