@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../models/mate_model.dart';
+import '../providers/location_provider.dart';
 import '../services/database_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -13,50 +15,95 @@ import 'add_mate_screen.dart';
 
 class _MateFilter {
   String? gender; // Roommate
+  String? budgetBand; // Roommate
+  List<String> roommateLifestyle; // Roommate
+  bool photoOnly; // Roommate
+  String? roommateLocation; // Roommate
   bool availableOnly; // Helpmate
   List<String> helpTypes; // Helpmate
   String? vehicleType; // Ridemate
   String? frequency; // Ridemate
+  String? ridemateTimeBand; // Ridemate
+  String? ridemateRouteQuery; // Ridemate
 
   _MateFilter({
     this.gender,
+    this.budgetBand,
+    List<String>? roommateLifestyle,
+    this.photoOnly = false,
+    this.roommateLocation,
     this.availableOnly = false,
     List<String>? helpTypes,
     this.vehicleType,
     this.frequency,
-  }) : helpTypes = helpTypes ?? [];
+    this.ridemateTimeBand,
+    this.ridemateRouteQuery,
+  }) : roommateLifestyle = roommateLifestyle ?? [],
+       helpTypes = helpTypes ?? [];
 
   bool get isActive =>
       gender != null ||
+      budgetBand != null ||
+      roommateLifestyle.isNotEmpty ||
+      photoOnly ||
+      (roommateLocation != null && roommateLocation!.trim().isNotEmpty) ||
       availableOnly ||
       helpTypes.isNotEmpty ||
       vehicleType != null ||
-      frequency != null;
+      frequency != null ||
+      ridemateTimeBand != null ||
+      (ridemateRouteQuery != null && ridemateRouteQuery!.trim().isNotEmpty);
 
   _MateFilter copyWith({
     Object? gender = _sentinel,
+    Object? budgetBand = _sentinel,
+    List<String>? roommateLifestyle,
+    bool? photoOnly,
+    Object? roommateLocation = _sentinel,
     bool? availableOnly,
     List<String>? helpTypes,
     Object? vehicleType = _sentinel,
     Object? frequency = _sentinel,
+    Object? ridemateTimeBand = _sentinel,
+    Object? ridemateRouteQuery = _sentinel,
   }) {
     return _MateFilter(
       gender: gender == _sentinel ? this.gender : gender as String?,
+      budgetBand: budgetBand == _sentinel
+          ? this.budgetBand
+          : budgetBand as String?,
+      roommateLifestyle: roommateLifestyle ?? List.from(this.roommateLifestyle),
+      photoOnly: photoOnly ?? this.photoOnly,
+      roommateLocation: roommateLocation == _sentinel
+          ? this.roommateLocation
+          : roommateLocation as String?,
       availableOnly: availableOnly ?? this.availableOnly,
       helpTypes: helpTypes ?? List.from(this.helpTypes),
       vehicleType: vehicleType == _sentinel
           ? this.vehicleType
           : vehicleType as String?,
       frequency: frequency == _sentinel ? this.frequency : frequency as String?,
+      ridemateTimeBand: ridemateTimeBand == _sentinel
+          ? this.ridemateTimeBand
+          : ridemateTimeBand as String?,
+      ridemateRouteQuery: ridemateRouteQuery == _sentinel
+          ? this.ridemateRouteQuery
+          : ridemateRouteQuery as String?,
     );
   }
 
   void clear() {
     gender = null;
+    budgetBand = null;
+    roommateLifestyle.clear();
+    photoOnly = false;
+    roommateLocation = null;
     availableOnly = false;
     helpTypes.clear();
     vehicleType = null;
     frequency = null;
+    ridemateTimeBand = null;
+    ridemateRouteQuery = null;
   }
 }
 
@@ -410,6 +457,25 @@ class _MateListView extends StatelessWidget {
     if (filter.gender != null && filter.gender != 'Any') {
       result = result.where((m) => m.preferredGender == filter.gender).toList();
     }
+    if (filter.budgetBand != null) {
+      result = result
+          .where((m) => _matchesBudgetBand(m.budget, filter.budgetBand!))
+          .toList();
+    }
+    if (filter.roommateLifestyle.isNotEmpty) {
+      result = result.where((m) {
+        return filter.roommateLifestyle.any((tag) => m.lifestyle.contains(tag));
+      }).toList();
+    }
+    if (filter.photoOnly) {
+      result = result.where((m) => m.userPhoto.trim().isNotEmpty).toList();
+    }
+    final locationQuery = filter.roommateLocation?.trim().toLowerCase() ?? '';
+    if (locationQuery.isNotEmpty) {
+      result = result
+          .where((m) => m.location.toLowerCase().contains(locationQuery))
+          .toList();
+    }
 
     // Helpmate filters
     if (filter.availableOnly) {
@@ -430,13 +496,132 @@ class _MateListView extends StatelessWidget {
     if (filter.frequency != null) {
       result = result.where((m) => m.frequency == filter.frequency).toList();
     }
+    if (filter.ridemateTimeBand != null) {
+      result = result
+          .where(
+            (m) => _matchesDepartureTimeBand(
+              m.departureTime,
+              filter.ridemateTimeBand!,
+            ),
+          )
+          .toList();
+    }
+    final routeQuery = filter.ridemateRouteQuery?.trim().toLowerCase() ?? '';
+    if (routeQuery.isNotEmpty) {
+      result = result.where((m) {
+        final from = m.fromLocation?.toLowerCase() ?? '';
+        final to = m.toLocation?.toLowerCase() ?? '';
+        final location = m.location.toLowerCase();
+        return from.contains(routeQuery) ||
+            to.contains(routeQuery) ||
+            location.contains(routeQuery);
+      }).toList();
+    }
 
     return result;
+  }
+
+  List<MateModel> _sortByNearbyFirst(
+    List<MateModel> list,
+    double? userLat,
+    double? userLng,
+  ) {
+    final sorted = List<MateModel>.from(list);
+    if (userLat == null || userLng == null) {
+      return sorted;
+    }
+
+    double? distanceKm(MateModel m) {
+      if (m.latitude == null || m.longitude == null) return null;
+      return Geolocator.distanceBetween(
+            userLat,
+            userLng,
+            m.latitude!,
+            m.longitude!,
+          ) /
+          1000.0;
+    }
+
+    sorted.sort((a, b) {
+      final da = distanceKm(a);
+      final db = distanceKm(b);
+
+      if (da != null && db != null) {
+        final byDistance = da.compareTo(db);
+        if (byDistance != 0) return byDistance;
+      } else if (da != null && db == null) {
+        return -1; // known-distance first
+      } else if (da == null && db != null) {
+        return 1; // known-distance first
+      }
+
+      return (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0));
+    });
+
+    return sorted;
+  }
+
+  bool _matchesBudgetBand(String? budgetText, String budgetBand) {
+    if (budgetText == null || budgetText.trim().isEmpty) return false;
+
+    final matches = RegExp(r'\d+')
+        .allMatches(budgetText)
+        .map((m) => int.tryParse(m.group(0)!))
+        .whereType<int>()
+        .toList();
+    if (matches.isEmpty) return false;
+
+    final min = matches.reduce((a, b) => a < b ? a : b);
+    final max = matches.reduce((a, b) => a > b ? a : b);
+
+    switch (budgetBand) {
+      case 'Under ₹5k':
+        return min < 5000;
+      case '₹5k - ₹10k':
+        return max >= 5000 && min <= 10000;
+      case '₹10k - ₹15k':
+        return max >= 10000 && min <= 15000;
+      case '₹15k+':
+        return max >= 15000;
+      default:
+        return true;
+    }
+  }
+
+  bool _matchesDepartureTimeBand(String? departureTime, String band) {
+    if (departureTime == null || departureTime.trim().isEmpty) return false;
+
+    final raw = departureTime.trim().toUpperCase();
+    final match = RegExp(r'^(\d{1,2})(?::(\d{2}))?\s*(AM|PM)$').firstMatch(raw);
+    if (match == null) return false;
+
+    final hour = int.tryParse(match.group(1) ?? '');
+    final minute = int.tryParse(match.group(2) ?? '0') ?? 0;
+    final period = match.group(3);
+    if (hour == null || period == null) return false;
+
+    var h24 = hour % 12;
+    if (period == 'PM') h24 += 12;
+    final totalMinutes = h24 * 60 + minute;
+
+    switch (band) {
+      case 'Morning':
+        return totalMinutes >= 300 && totalMinutes < 720; // 5:00-11:59
+      case 'Afternoon':
+        return totalMinutes >= 720 && totalMinutes < 1020; // 12:00-16:59
+      case 'Evening':
+        return totalMinutes >= 1020 && totalMinutes < 1260; // 17:00-20:59
+      case 'Night':
+        return totalMinutes >= 1260 || totalMinutes < 300; // 21:00-04:59
+      default:
+        return true;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     final db = context.read<DatabaseService>();
+    final location = context.watch<LocationProvider>();
 
     return StreamBuilder<List<MateModel>>(
       stream: db.streamMates(type),
@@ -459,6 +644,11 @@ class _MateListView extends StatelessWidget {
         }
 
         final filtered = _apply(snapshot.data ?? []);
+        final sorted = _sortByNearbyFirst(
+          filtered,
+          location.latitude,
+          location.longitude,
+        );
 
         if ((snapshot.data ?? []).isEmpty) {
           return _EmptyState(
@@ -468,7 +658,7 @@ class _MateListView extends StatelessWidget {
           );
         }
 
-        if (filtered.isEmpty) {
+        if (sorted.isEmpty) {
           return Center(
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -495,10 +685,10 @@ class _MateListView extends StatelessWidget {
 
         return ListView.separated(
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
-          itemCount: filtered.length,
+          itemCount: sorted.length,
           separatorBuilder: (context, i) => const SizedBox(height: 12),
           itemBuilder: (context, i) =>
-              _MateCard(mate: filtered[i], accentColor: accentColor),
+              _MateCard(mate: sorted[i], accentColor: accentColor),
         );
       },
     );
@@ -1124,6 +1314,15 @@ class _FilterSheetState extends State<_FilterSheet> {
   late _MateFilter _local;
 
   static const _genderOptions = ['Any', 'Male', 'Female'];
+  static const _roommateLifestyleOptions = [
+    'Non-smoker',
+    'Vegetarian',
+    'Early riser',
+    'Night owl',
+    'Pet-friendly',
+    'Students only',
+    'Working professional',
+  ];
   static const _helpTypeOptions = [
     'Errands',
     'Emergency',
@@ -1240,6 +1439,7 @@ class _FilterSheetState extends State<_FilterSheet> {
         return _RoommateFilters(
           local: _local,
           genderOptions: _genderOptions,
+          lifestyleOptions: _roommateLifestyleOptions,
           accentColor: widget.accentColor,
           onUpdate: (f) => setState(() => _local = f),
         );
@@ -1264,18 +1464,57 @@ class _FilterSheetState extends State<_FilterSheet> {
 
 // ── Filter sub-widgets ─────────────────────────────────────────────────────────
 
-class _RoommateFilters extends StatelessWidget {
+class _RoommateFilters extends StatefulWidget {
   final _MateFilter local;
   final List<String> genderOptions;
+  final List<String> lifestyleOptions;
   final Color accentColor;
   final ValueChanged<_MateFilter> onUpdate;
 
   const _RoommateFilters({
     required this.local,
     required this.genderOptions,
+    required this.lifestyleOptions,
     required this.accentColor,
     required this.onUpdate,
   });
+
+  @override
+  State<_RoommateFilters> createState() => _RoommateFiltersState();
+}
+
+class _RoommateFiltersState extends State<_RoommateFilters> {
+  static const _budgetBands = [
+    'Under ₹5k',
+    '₹5k - ₹10k',
+    '₹10k - ₹15k',
+    '₹15k+',
+  ];
+
+  late final TextEditingController _locationCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _locationCtrl = TextEditingController(
+      text: widget.local.roommateLocation ?? '',
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _RoommateFilters oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextText = widget.local.roommateLocation ?? '';
+    if (_locationCtrl.text != nextText) {
+      _locationCtrl.text = nextText;
+    }
+  }
+
+  @override
+  void dispose() {
+    _locationCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1294,17 +1533,154 @@ class _RoommateFilters extends StatelessWidget {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: genderOptions.map((g) {
+          children: widget.genderOptions.map((g) {
             final selected =
-                local.gender == g || (g == 'Any' && local.gender == null);
+                widget.local.gender == g ||
+                (g == 'Any' && widget.local.gender == null);
             return _FilterChip(
               label: g,
               selected: selected,
-              accentColor: accentColor,
-              onTap: () =>
-                  onUpdate(local.copyWith(gender: g == 'Any' ? null : g)),
+              accentColor: widget.accentColor,
+              onTap: () => widget.onUpdate(
+                widget.local.copyWith(gender: g == 'Any' ? null : g),
+              ),
             );
           }).toList(),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Budget Range',
+          style: AppTheme.body(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _budgetBands.map((band) {
+            final selected = widget.local.budgetBand == band;
+            return _FilterChip(
+              label: band,
+              selected: selected,
+              accentColor: widget.accentColor,
+              onTap: () => widget.onUpdate(
+                widget.local.copyWith(budgetBand: selected ? null : band),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Lifestyle',
+          style: AppTheme.body(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: widget.lifestyleOptions.map((item) {
+            final selected = widget.local.roommateLifestyle.contains(item);
+            return _FilterChip(
+              label: item,
+              selected: selected,
+              accentColor: widget.accentColor,
+              onTap: () {
+                final updated = List<String>.from(
+                  widget.local.roommateLifestyle,
+                );
+                selected ? updated.remove(item) : updated.add(item);
+                widget.onUpdate(
+                  widget.local.copyWith(roommateLifestyle: updated),
+                );
+              },
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 20),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  'With profile photo only',
+                  style: AppTheme.body(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              Switch.adaptive(
+                value: widget.local.photoOnly,
+                onChanged: (v) =>
+                    widget.onUpdate(widget.local.copyWith(photoOnly: v)),
+                activeThumbColor: Colors.white,
+                activeTrackColor: widget.accentColor,
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Area Contains',
+          style: AppTheme.body(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: _locationCtrl,
+          decoration: InputDecoration(
+            hintText: 'e.g. Vaishali Nagar',
+            hintStyle: AppTheme.body(fontSize: 13, color: AppColors.slate400),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
+            suffixIcon: _locationCtrl.text.isEmpty
+                ? null
+                : IconButton(
+                    onPressed: () {
+                      _locationCtrl.clear();
+                      widget.onUpdate(
+                        widget.local.copyWith(roommateLocation: null),
+                      );
+                      setState(() {});
+                    },
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      size: 16,
+                      color: AppColors.slate400,
+                    ),
+                  ),
+          ),
+          onChanged: (v) {
+            widget.onUpdate(
+              widget.local.copyWith(
+                roommateLocation: v.trim().isEmpty ? null : v.trim(),
+              ),
+            );
+            setState(() {});
+          },
         ),
         const SizedBox(height: 24),
       ],
@@ -1401,7 +1777,7 @@ class _HelpmateFilters extends StatelessWidget {
   }
 }
 
-class _RidemateFilters extends StatelessWidget {
+class _RidemateFilters extends StatefulWidget {
   final _MateFilter local;
   final List<String> vehicleOptions;
   final List<String> frequencyOptions;
@@ -1415,6 +1791,38 @@ class _RidemateFilters extends StatelessWidget {
     required this.accentColor,
     required this.onUpdate,
   });
+
+  @override
+  State<_RidemateFilters> createState() => _RidemateFiltersState();
+}
+
+class _RidemateFiltersState extends State<_RidemateFilters> {
+  static const _timeBandOptions = ['Morning', 'Afternoon', 'Evening', 'Night'];
+
+  late final TextEditingController _routeCtrl;
+
+  @override
+  void initState() {
+    super.initState();
+    _routeCtrl = TextEditingController(
+      text: widget.local.ridemateRouteQuery ?? '',
+    );
+  }
+
+  @override
+  void didUpdateWidget(covariant _RidemateFilters oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    final nextText = widget.local.ridemateRouteQuery ?? '';
+    if (_routeCtrl.text != nextText) {
+      _routeCtrl.text = nextText;
+    }
+  }
+
+  @override
+  void dispose() {
+    _routeCtrl.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -1433,14 +1841,15 @@ class _RidemateFilters extends StatelessWidget {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: vehicleOptions.map((v) {
-            final selected = local.vehicleType == v;
+          children: widget.vehicleOptions.map((v) {
+            final selected = widget.local.vehicleType == v;
             return _FilterChip(
               label: v,
               selected: selected,
-              accentColor: accentColor,
-              onTap: () =>
-                  onUpdate(local.copyWith(vehicleType: selected ? null : v)),
+              accentColor: widget.accentColor,
+              onTap: () => widget.onUpdate(
+                widget.local.copyWith(vehicleType: selected ? null : v),
+              ),
             );
           }).toList(),
         ),
@@ -1457,16 +1866,93 @@ class _RidemateFilters extends StatelessWidget {
         Wrap(
           spacing: 8,
           runSpacing: 8,
-          children: frequencyOptions.map((f) {
-            final selected = local.frequency == f;
+          children: widget.frequencyOptions.map((f) {
+            final selected = widget.local.frequency == f;
             return _FilterChip(
               label: f,
               selected: selected,
-              accentColor: accentColor,
-              onTap: () =>
-                  onUpdate(local.copyWith(frequency: selected ? null : f)),
+              accentColor: widget.accentColor,
+              onTap: () => widget.onUpdate(
+                widget.local.copyWith(frequency: selected ? null : f),
+              ),
             );
           }).toList(),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Departure Time',
+          style: AppTheme.body(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: _timeBandOptions.map((band) {
+            final selected = widget.local.ridemateTimeBand == band;
+            return _FilterChip(
+              label: band,
+              selected: selected,
+              accentColor: widget.accentColor,
+              onTap: () => widget.onUpdate(
+                widget.local.copyWith(ridemateTimeBand: selected ? null : band),
+              ),
+            );
+          }).toList(),
+        ),
+        const SizedBox(height: 20),
+        Text(
+          'Route Contains',
+          style: AppTheme.body(
+            fontSize: 13,
+            fontWeight: FontWeight.w700,
+            color: AppColors.onSurfaceVariant,
+          ),
+        ),
+        const SizedBox(height: 10),
+        TextField(
+          controller: _routeCtrl,
+          decoration: InputDecoration(
+            hintText: 'e.g. BTM, Electronic City',
+            hintStyle: AppTheme.body(fontSize: 13, color: AppColors.slate400),
+            filled: true,
+            fillColor: Colors.white,
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+              borderSide: BorderSide.none,
+            ),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 12,
+            ),
+            suffixIcon: _routeCtrl.text.isEmpty
+                ? null
+                : IconButton(
+                    onPressed: () {
+                      _routeCtrl.clear();
+                      widget.onUpdate(
+                        widget.local.copyWith(ridemateRouteQuery: null),
+                      );
+                      setState(() {});
+                    },
+                    icon: const Icon(
+                      Icons.close_rounded,
+                      size: 16,
+                      color: AppColors.slate400,
+                    ),
+                  ),
+          ),
+          onChanged: (v) {
+            widget.onUpdate(
+              widget.local.copyWith(
+                ridemateRouteQuery: v.trim().isEmpty ? null : v.trim(),
+              ),
+            );
+            setState(() {});
+          },
         ),
         const SizedBox(height: 24),
       ],

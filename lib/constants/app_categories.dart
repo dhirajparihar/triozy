@@ -31,6 +31,7 @@ abstract final class AppCategories {
     'Core Cutting',
     'Property',
     'RO Service',
+    'Stock Advisor',
   ];
 
   /// Categories shown as search hints on the home screen (most popular first).
@@ -58,6 +59,7 @@ abstract final class AppCategories {
     'Core Cutting',
     'Property',
     'Tile Worker',
+    'Stock Advisor',
   ];
 
   /// Categories list for request/worker forms — includes 'Other' as last option.

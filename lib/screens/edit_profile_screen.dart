@@ -5,6 +5,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_storage/firebase_storage.dart';
 import 'package:image_picker/image_picker.dart';
+import '../constants/app_categories.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
@@ -38,38 +39,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String? _photoUrl;
   XFile? _pickedImage;
 
-  static const List<String> _services = [
-    'Electrician',
-    'Plumber',
-    'Solar Services',
-    'Painter',
+  static final List<String> _services = [
+    ...AppCategories.all,
+    // Keep legacy options for old profiles.
+    'Delivery',
+    'Pest Control',
     'Plumbing',
     'Electrical',
     'Painting',
-    'Carpenter',
-    'Cleaning',
-    'Cook',
-    'AC Repair',
-    'Security',
-    'Gardening',
-    'Water Supplier',
-    'Car Taxi',
-    'Auto',
-    'Personal Driver',
-    'Delivery',
-    'Babysitter',
-    'Tailor',
-    'Home Salon',
-    'Makeup Artist',
-    'Tiffin Service',
-    'Emergency Medical',
-    'Mechanic',
-    'Pest Control',
-    'Tile Worker',
-    'Rental Rooms',
-    'Core Cutting',
-    'Property',
-    'RO Service',
   ];
 
   @override
