@@ -260,7 +260,9 @@ class _MateScreenState extends State<MateScreen>
                           ],
                         ),
                         border: InputBorder.none,
-                        contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                        contentPadding: const EdgeInsets.symmetric(
+                          vertical: 10,
+                        ),
                       ),
                     ),
                   ),
@@ -286,33 +288,6 @@ class _MateScreenState extends State<MateScreen>
             ),
           ),
         ],
-      ),
-      floatingActionButton: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.primaryContainer,
-              AppColors.primary,
-            ],
-          ),
-          borderRadius: BorderRadius.circular(999),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.28),
-              blurRadius: 14,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
-        child: FloatingActionButton(
-          onPressed: _openAddMate,
-          backgroundColor: Colors.transparent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          child: const Icon(Icons.add_rounded, size: 22),
-        ),
       ),
     );
   }

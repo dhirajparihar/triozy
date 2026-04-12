@@ -70,11 +70,14 @@ class _RequestsScreenState extends State<RequestsScreen>
     var list = all;
     if (_query.isNotEmpty) {
       final q = _query.toLowerCase();
-      list = list.where((r) =>
-        r.category.toLowerCase().contains(q) ||
-        r.description.toLowerCase().contains(q) ||
-        r.location.toLowerCase().contains(q),
-      ).toList();
+      list = list
+          .where(
+            (r) =>
+                r.category.toLowerCase().contains(q) ||
+                r.description.toLowerCase().contains(q) ||
+                r.location.toLowerCase().contains(q),
+          )
+          .toList();
     }
     if (_filter.status != null) {
       final wantOpen = _filter.status == 'Open';
@@ -98,8 +101,10 @@ class _RequestsScreenState extends State<RequestsScreen>
   }
 
   void _editRequest(RequestModel r) {
-    Navigator.push(context,
-        MaterialPageRoute(builder: (_) => AddRequestScreen(requestToEdit: r)));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => AddRequestScreen(requestToEdit: r)),
+    );
   }
 
   void _deleteRequest(RequestModel r) {
@@ -111,8 +116,9 @@ class _RequestsScreenState extends State<RequestsScreen>
         content: const Text('This will permanently remove your request.'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx),
-              child: const Text('Cancel')),
+            onPressed: () => Navigator.pop(ctx),
+            child: const Text('Cancel'),
+          ),
           ElevatedButton(
             onPressed: () async {
               Navigator.pop(ctx);
@@ -122,7 +128,8 @@ class _RequestsScreenState extends State<RequestsScreen>
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
               shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10)),
+                borderRadius: BorderRadius.circular(10),
+              ),
             ),
             child: const Text('Delete'),
           ),
@@ -149,16 +156,22 @@ class _RequestsScreenState extends State<RequestsScreen>
           child: Row(
             children: [
               Expanded(
-                child: Text('Requests',
-                    style: AppTheme.headline(
-                        fontSize: 24, fontWeight: FontWeight.w700)),
+                child: Text(
+                  'Requests',
+                  style: AppTheme.headline(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
               ),
               if (_filter.isActive)
                 GestureDetector(
                   onTap: () => setState(() => _filter.clear()),
                   child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
                       color: AppColors.tertiary.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(8),
@@ -168,11 +181,14 @@ class _RequestsScreenState extends State<RequestsScreen>
                       children: [
                         Icon(Icons.close, size: 14, color: AppColors.tertiary),
                         const SizedBox(width: 4),
-                        Text('Clear',
-                            style: AppTheme.body(
-                                fontSize: 12,
-                                color: AppColors.tertiary,
-                                fontWeight: FontWeight.w600)),
+                        Text(
+                          'Clear',
+                          style: AppTheme.body(
+                            fontSize: 12,
+                            color: AppColors.tertiary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -193,19 +209,24 @@ class _RequestsScreenState extends State<RequestsScreen>
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
-                        color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+                      color: AppColors.outlineVariant.withValues(alpha: 0.4),
+                    ),
                     boxShadow: [
                       BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2)),
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
                     ],
                   ),
                   child: Row(
                     children: [
                       const SizedBox(width: 14),
-                      const Icon(Icons.search_rounded,
-                          color: AppColors.outline, size: 20),
+                      const Icon(
+                        Icons.search_rounded,
+                        color: AppColors.outline,
+                        size: 20,
+                      ),
                       const SizedBox(width: 10),
                       Expanded(
                         child: TextField(
@@ -214,7 +235,9 @@ class _RequestsScreenState extends State<RequestsScreen>
                           decoration: InputDecoration(
                             hintText: 'Search requests...',
                             hintStyle: AppTheme.body(
-                                fontSize: 14, color: AppColors.outline),
+                              fontSize: 14,
+                              color: AppColors.outline,
+                            ),
                             border: InputBorder.none,
                           ),
                           onChanged: (v) =>
@@ -228,9 +251,13 @@ class _RequestsScreenState extends State<RequestsScreen>
                             setState(() => _query = '');
                           },
                           child: const Padding(
-                              padding: EdgeInsets.all(10),
-                              child: Icon(Icons.close,
-                                  color: AppColors.outline, size: 18)),
+                            padding: EdgeInsets.all(10),
+                            child: Icon(
+                              Icons.close,
+                              color: AppColors.outline,
+                              size: 18,
+                            ),
+                          ),
                         )
                       else
                         const SizedBox(width: 14),
@@ -245,8 +272,7 @@ class _RequestsScreenState extends State<RequestsScreen>
                   height: 46,
                   width: 46,
                   decoration: BoxDecoration(
-                    color:
-                        _filter.isActive ? AppColors.tertiary : Colors.white,
+                    color: _filter.isActive ? AppColors.tertiary : Colors.white,
                     borderRadius: BorderRadius.circular(14),
                     border: Border.all(
                       color: _filter.isActive
@@ -255,9 +281,10 @@ class _RequestsScreenState extends State<RequestsScreen>
                     ),
                     boxShadow: [
                       BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.03),
-                          blurRadius: 8,
-                          offset: const Offset(0, 2)),
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 8,
+                        offset: const Offset(0, 2),
+                      ),
                     ],
                   ),
                   child: Icon(
@@ -328,21 +355,22 @@ class _RequestsScreenState extends State<RequestsScreen>
     final body = Stack(
       children: [
         _buildBody(user.uid),
-        Positioned(
-          right: 16,
-          bottom: 14,
-          child: FloatingActionButton(
-            heroTag: 'requests_fab',
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const AddRequestScreen()),
+        if (widget.standalone)
+          Positioned(
+            right: 16,
+            bottom: 14,
+            child: FloatingActionButton(
+              heroTag: 'requests_fab',
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AddRequestScreen()),
+              ),
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              elevation: 3,
+              child: const Icon(Icons.add_rounded, size: 24),
             ),
-            backgroundColor: AppColors.primary,
-            foregroundColor: Colors.white,
-            elevation: 3,
-            child: const Icon(Icons.add_rounded, size: 24),
           ),
-        ),
       ],
     );
 
@@ -350,9 +378,10 @@ class _RequestsScreenState extends State<RequestsScreen>
       return Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
-          title: Text('My Requests',
-              style:
-                  AppTheme.headline(fontSize: 20, fontWeight: FontWeight.w700)),
+          title: Text(
+            'My Requests',
+            style: AppTheme.headline(fontSize: 20, fontWeight: FontWeight.w700),
+          ),
           backgroundColor: Colors.transparent,
           elevation: 0,
           centerTitle: true,
@@ -440,24 +469,27 @@ class _TabItem extends StatelessWidget {
             boxShadow: selected
                 ? [
                     BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.06),
-                        blurRadius: 8,
-                        offset: const Offset(0, 2))
+                      color: Colors.black.withValues(alpha: 0.06),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
                   ]
                 : null,
           ),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Icon(icon,
-                  size: 16, color: selected ? activeColor : AppColors.outline),
+              Icon(
+                icon,
+                size: 16,
+                color: selected ? activeColor : AppColors.outline,
+              ),
               const SizedBox(width: 6),
               Text(
                 label,
                 style: AppTheme.body(
                   fontSize: 13,
-                  fontWeight:
-                      selected ? FontWeight.w700 : FontWeight.w500,
+                  fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
                   color: selected ? activeColor : AppColors.outline,
                 ),
               ),
@@ -561,24 +593,30 @@ class _RequestCard extends StatelessWidget {
   });
 
   static const _palette = [
-    Color(0xFF1565C0), Color(0xFF2E7D32), Color(0xFF6A1B9A),
-    Color(0xFF00838F), Color(0xFFE65100), Color(0xFF37474F),
-    Color(0xFFC62828), Color(0xFF4527A0), Color(0xFF00695C),
+    Color(0xFF1565C0),
+    Color(0xFF2E7D32),
+    Color(0xFF6A1B9A),
+    Color(0xFF00838F),
+    Color(0xFFE65100),
+    Color(0xFF37474F),
+    Color(0xFFC62828),
+    Color(0xFF4527A0),
+    Color(0xFF00695C),
     Color(0xFF558B2F),
   ];
 
   Color _categoryColor() {
     if (request.category.isEmpty) return AppColors.primary;
-    final hash = request.category.codeUnits
-        .fold(0, (acc, c) => acc + c);
+    final hash = request.category.codeUnits.fold(0, (acc, c) => acc + c);
     return _palette[hash % _palette.length];
   }
 
   @override
   Widget build(BuildContext context) {
     final color = _categoryColor();
-    final dateStr =
-        DateFormat('MMM d, h:mm a').format(request.createdAt ?? DateTime.now());
+    final dateStr = DateFormat(
+      'MMM d, h:mm a',
+    ).format(request.createdAt ?? DateTime.now());
 
     return Container(
       margin: const EdgeInsets.only(bottom: 14),
@@ -587,9 +625,10 @@ class _RequestCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 14,
-              offset: const Offset(0, 4)),
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 14,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: ClipRRect(
@@ -640,21 +679,27 @@ class _RequestCard extends StatelessWidget {
                                 Text(
                                   _toTitleCase(request.category),
                                   style: AppTheme.headline(
-                                      fontSize: 15, fontWeight: FontWeight.w700),
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w700,
+                                  ),
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                 ),
                                 const SizedBox(height: 4),
                                 Row(
                                   children: [
-                                    Icon(Icons.calendar_today_outlined,
-                                        size: 11, color: AppColors.outline),
+                                    Icon(
+                                      Icons.calendar_today_outlined,
+                                      size: 11,
+                                      color: AppColors.outline,
+                                    ),
                                     const SizedBox(width: 4),
                                     Text(
                                       dateStr,
                                       style: AppTheme.body(
-                                          fontSize: 11,
-                                          color: AppColors.outline),
+                                        fontSize: 11,
+                                        color: AppColors.outline,
+                                      ),
                                     ),
                                   ],
                                 ),
@@ -665,7 +710,9 @@ class _RequestCard extends StatelessWidget {
                           // Status pill
                           Container(
                             padding: const EdgeInsets.symmetric(
-                                horizontal: 10, vertical: 5),
+                              horizontal: 10,
+                              vertical: 5,
+                            ),
                             decoration: BoxDecoration(
                               color: isOpen
                                   ? const Color(0xFFE8F5E9)
@@ -707,15 +754,19 @@ class _RequestCard extends StatelessWidget {
                         const SizedBox(height: 8),
                         Row(
                           children: [
-                            Icon(Icons.location_on_outlined,
-                                size: 13, color: AppColors.outline),
+                            Icon(
+                              Icons.location_on_outlined,
+                              size: 13,
+                              color: AppColors.outline,
+                            ),
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
                                 request.location,
                                 style: AppTheme.body(
-                                    fontSize: 12,
-                                    color: AppColors.onSurfaceVariant),
+                                  fontSize: 12,
+                                  color: AppColors.onSurfaceVariant,
+                                ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                               ),
@@ -729,18 +780,22 @@ class _RequestCard extends StatelessWidget {
                         Container(
                           width: double.infinity,
                           padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 10),
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceContainerHighest
-                                .withValues(alpha: 0.45),
+                            color: AppColors.surfaceContainerHighest.withValues(
+                              alpha: 0.45,
+                            ),
                             borderRadius: BorderRadius.circular(10),
                           ),
                           child: Text(
                             request.description,
                             style: AppTheme.body(
-                                fontSize: 13,
-                                color: AppColors.onSurfaceVariant,
-                                height: 1.45),
+                              fontSize: 13,
+                              color: AppColors.onSurfaceVariant,
+                              height: 1.45,
+                            ),
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -770,14 +825,17 @@ class _RequestCard extends StatelessWidget {
                             onTap: onCall,
                             child: Container(
                               padding: const EdgeInsets.symmetric(
-                                  horizontal: 18, vertical: 11),
+                                horizontal: 18,
+                                vertical: 11,
+                              ),
                               decoration: BoxDecoration(
                                 color: AppColors.primary,
                                 borderRadius: BorderRadius.circular(12),
                                 boxShadow: [
                                   BoxShadow(
-                                    color:
-                                        AppColors.primary.withValues(alpha: 0.22),
+                                    color: AppColors.primary.withValues(
+                                      alpha: 0.22,
+                                    ),
                                     blurRadius: 8,
                                     offset: const Offset(0, 3),
                                   ),
@@ -786,15 +844,19 @@ class _RequestCard extends StatelessWidget {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(Icons.call_rounded,
-                                      size: 15, color: Colors.white),
+                                  const Icon(
+                                    Icons.call_rounded,
+                                    size: 15,
+                                    color: Colors.white,
+                                  ),
                                   const SizedBox(width: 6),
                                   Text(
                                     'Call',
                                     style: AppTheme.body(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white),
+                                      fontSize: 13,
+                                      fontWeight: FontWeight.w700,
+                                      color: Colors.white,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -854,10 +916,13 @@ class _RequestCard extends StatelessWidget {
 
   String _toTitleCase(String text) {
     if (text.isEmpty) return text;
-    return text.split(' ').map((w) {
-      if (w.isEmpty) return w;
-      return w[0].toUpperCase() + w.substring(1).toLowerCase();
-    }).join(' ');
+    return text
+        .split(' ')
+        .map((w) {
+          if (w.isEmpty) return w;
+          return w[0].toUpperCase() + w.substring(1).toLowerCase();
+        })
+        .join(' ');
   }
 }
 
@@ -888,7 +953,8 @@ class _ActionBtn extends StatelessWidget {
           color: outlined ? Colors.transparent : color,
           borderRadius: BorderRadius.circular(9),
           border: Border.all(
-              color: color.withValues(alpha: outlined ? 0.5 : 1)),
+            color: color.withValues(alpha: outlined ? 0.5 : 1),
+          ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -930,9 +996,7 @@ class _EmptyState extends StatelessWidget {
               shape: BoxShape.circle,
             ),
             child: Icon(
-              isMyTab
-                  ? Icons.post_add_rounded
-                  : Icons.search_off_rounded,
+              isMyTab ? Icons.post_add_rounded : Icons.search_off_rounded,
               size: 36,
               color: AppColors.tertiary.withValues(alpha: 0.5),
             ),
@@ -941,9 +1005,10 @@ class _EmptyState extends StatelessWidget {
           Text(
             isMyTab ? 'No posts yet' : 'No requests found',
             style: AppTheme.body(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: AppColors.onSurfaceVariant),
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 6),
           Text(
@@ -981,8 +1046,9 @@ class _FilterSheetState extends State<_FilterSheet> {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding:
-          EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+      padding: EdgeInsets.only(
+        bottom: MediaQuery.of(context).viewInsets.bottom,
+      ),
       decoration: const BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
@@ -1005,25 +1071,34 @@ class _FilterSheetState extends State<_FilterSheet> {
                 ),
               ),
               const SizedBox(height: 20),
-              Text('Filter Requests',
-                  style: AppTheme.headline(
-                      fontSize: 18, fontWeight: FontWeight.w700)),
+              Text(
+                'Filter Requests',
+                style: AppTheme.headline(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
               const SizedBox(height: 20),
-              Text('STATUS',
-                  style: AppTheme.label(
-                      color: AppColors.onSurfaceVariant, letterSpacing: 1.5)),
+              Text(
+                'STATUS',
+                style: AppTheme.label(
+                  color: AppColors.onSurfaceVariant,
+                  letterSpacing: 1.5,
+                ),
+              ),
               const SizedBox(height: 10),
               Wrap(
                 spacing: 8,
                 children: ['Open', 'Closed'].map((s) {
                   final selected = _status == s;
                   return GestureDetector(
-                    onTap: () =>
-                        setState(() => _status = selected ? null : s),
+                    onTap: () => setState(() => _status = selected ? null : s),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
                       padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 8),
+                        horizontal: 16,
+                        vertical: 8,
+                      ),
                       decoration: BoxDecoration(
                         color: selected
                             ? AppColors.tertiary
@@ -1049,8 +1124,7 @@ class _FilterSheetState extends State<_FilterSheet> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: () {
-                    final result = _RequestFilter()
-                      ..status = _status;
+                    final result = _RequestFilter()..status = _status;
                     Navigator.pop(context, result);
                   },
                   style: ElevatedButton.styleFrom(
@@ -1058,14 +1132,18 @@ class _FilterSheetState extends State<_FilterSheet> {
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                     elevation: 0,
                   ),
-                  child: Text('Apply Filters',
-                      style: AppTheme.body(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white)),
+                  child: Text(
+                    'Apply Filters',
+                    style: AppTheme.body(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ),
             ],

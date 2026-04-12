@@ -14,17 +14,14 @@ import 'mate_screen.dart';
 import 'user_profile_screen.dart';
 import 'worker_dashboard_screen.dart';
 import 'add_request_screen.dart';
+import 'add_mate_screen.dart';
 import 'worker_setup_screen.dart';
 
 class MainShell extends StatefulWidget {
   final bool isWorker;
   final bool isGuest;
 
-  const MainShell({
-    super.key,
-    this.isWorker = false,
-    this.isGuest = false,
-  });
+  const MainShell({super.key, this.isWorker = false, this.isGuest = false});
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -33,7 +30,8 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
   DateTime? _lastBackPressedAt;
-  final GlobalKey<HomeScreenState> _homeScreenKey = GlobalKey<HomeScreenState>();
+  final GlobalKey<HomeScreenState> _homeScreenKey =
+      GlobalKey<HomeScreenState>();
 
   late final List<Widget> _screens = [
     HomeScreen(
@@ -108,7 +106,8 @@ class _MainShellState extends State<MainShell> {
   void _showChangeLocationSheet() {
     final locationProvider = context.read<LocationProvider>();
     final controller = TextEditingController(
-      text: locationProvider.address == 'Locating...' ||
+      text:
+          locationProvider.address == 'Locating...' ||
               locationProvider.address == 'Location unavailable'
           ? ''
           : locationProvider.address,
@@ -135,9 +134,9 @@ class _MainShellState extends State<MainShell> {
             children: [
               Text(
                 'Change Location',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700),
               ),
               const SizedBox(height: 8),
               const Text(
@@ -221,9 +220,9 @@ class _MainShellState extends State<MainShell> {
       _homeScreenKey.currentState?.refreshFromShell();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not update location: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not update location: $e')));
     }
   }
 
@@ -233,13 +232,17 @@ class _MainShellState extends State<MainShell> {
       _homeScreenKey.currentState?.refreshFromShell();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Location updated to ${context.read<LocationProvider>().address}')),
+        SnackBar(
+          content: Text(
+            'Location updated to ${context.read<LocationProvider>().address}',
+          ),
+        ),
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not update location: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not update location: $e')));
     }
   }
 
@@ -251,7 +254,8 @@ class _MainShellState extends State<MainShell> {
 
     final now = DateTime.now();
     const exitWindow = Duration(seconds: 2);
-    final shouldExit = _lastBackPressedAt != null &&
+    final shouldExit =
+        _lastBackPressedAt != null &&
         now.difference(_lastBackPressedAt!) <= exitWindow;
 
     if (shouldExit) {
@@ -284,12 +288,12 @@ class _MainShellState extends State<MainShell> {
     }
 
     await context.read<AuthService>().saveUser(
-          uid: user.uid,
-          name: user.displayName ?? '',
-          email: user.email ?? '',
-          role: 'worker',
-          photoUrl: user.photoURL,
-        );
+      uid: user.uid,
+      name: user.displayName ?? '',
+      email: user.email ?? '',
+      role: 'worker',
+      photoUrl: user.photoURL,
+    );
 
     if (!mounted) return;
     Navigator.pushAndRemoveUntil(
@@ -297,6 +301,28 @@ class _MainShellState extends State<MainShell> {
       MaterialPageRoute(builder: (_) => const WorkerSetupScreen()),
       (route) => false,
     );
+  }
+
+  void _onGlobalFabTap() {
+    if (_currentIndex == 0 || _currentIndex == 2) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AddRequestScreen()),
+      );
+      return;
+    }
+
+    if (_currentIndex == 1) {
+      _openWorkerRegistration();
+      return;
+    }
+
+    if (_currentIndex == 3) {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const AddMateScreen()),
+      );
+    }
   }
 
   @override
@@ -334,53 +360,6 @@ class _MainShellState extends State<MainShell> {
                 onLocationTap: _showChangeLocationSheet,
               ),
             ),
-            // FAB on Home and Search screens
-            if (_currentIndex == 0 || _currentIndex == 1)
-              Positioned(
-                right: 20,
-                bottom: MediaQuery.of(context).padding.bottom + 90,
-                child: Builder(
-                  builder: (_) {
-                    const fabSize = 56.0;
-                    return GestureDetector(
-                      onTap: _currentIndex == 0
-                          ? () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const AddRequestScreen(),
-                                ),
-                              );
-                            }
-                          : _openWorkerRegistration,
-                      child: Container(
-                        width: fabSize,
-                        height: fabSize,
-                    decoration: BoxDecoration(
-                      gradient: const LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [AppColors.primaryContainer, AppColors.primary],
-                      ),
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: AppColors.primary.withValues(alpha: 0.3),
-                          blurRadius: 16,
-                          offset: const Offset(0, 6),
-                        ),
-                      ],
-                    ),
-                        child: Icon(
-                          Icons.add_rounded,
-                          color: Colors.white,
-                          size: 28,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
             // Bottom Nav Bar
             Positioned(
               bottom: 0,
@@ -391,6 +370,47 @@ class _MainShellState extends State<MainShell> {
                 onTap: (index) => setState(() => _currentIndex = index),
               ),
             ),
+            // Shared FAB for Home, Search, Requests and Mates (kept above nav)
+            if (_currentIndex >= 0 && _currentIndex <= 3)
+              Positioned(
+                right: 20,
+                bottom: MediaQuery.of(context).padding.bottom + 74,
+                child: Builder(
+                  builder: (_) {
+                    const fabSize = 56.0;
+                    return GestureDetector(
+                      onTap: _onGlobalFabTap,
+                      child: Container(
+                        width: fabSize,
+                        height: fabSize,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            begin: Alignment.topLeft,
+                            end: Alignment.bottomRight,
+                            colors: [
+                              AppColors.primaryContainer,
+                              AppColors.primary,
+                            ],
+                          ),
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.3),
+                              blurRadius: 16,
+                              offset: const Offset(0, 6),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.add_rounded,
+                          color: Colors.white,
+                          size: 28,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
           ],
         ),
       ),
