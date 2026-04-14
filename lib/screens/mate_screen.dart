@@ -200,6 +200,12 @@ class _MateScreenState extends State<MateScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openAddMate,
+        backgroundColor: _tabColors[_tabController.index],
+        elevation: 6,
+        child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+      ),
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
