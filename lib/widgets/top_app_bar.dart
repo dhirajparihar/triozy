@@ -52,7 +52,7 @@ class TriozyTopAppBar extends StatelessWidget {
                             behavior: HitTestBehavior.opaque,
                             child: ConstrainedBox(
                               constraints: BoxConstraints(
-                                maxWidth: width * 0.38,
+                                maxWidth: width * 0.32,
                                 minHeight: 36,
                               ),
                               child: Container(
