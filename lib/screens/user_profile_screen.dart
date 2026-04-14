@@ -161,6 +161,7 @@ class UserProfileScreen extends StatelessWidget {
                         builder: (_) => const RequestsScreen(
                           initialTab: 1,
                           standalone: true,
+                          onlyMyPosts: true,
                         ),
                       ),
                     );
@@ -334,8 +335,11 @@ class UserProfileScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(
-                  builder: (_) =>
-                      const RequestsScreen(initialTab: 1, standalone: true),
+                  builder: (_) => const RequestsScreen(
+                    initialTab: 1,
+                    standalone: true,
+                    onlyMyPosts: true,
+                  ),
                 ),
               );
             },

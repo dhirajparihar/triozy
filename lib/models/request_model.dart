@@ -3,6 +3,7 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 class RequestModel {
   final String id;
   final String userId;
+  final String posterName;
   final String category;
   final String description;
   final String location;
@@ -17,6 +18,7 @@ class RequestModel {
   RequestModel({
     required this.id,
     required this.userId,
+    this.posterName = '',
     required this.category,
     required this.description,
     required this.location,
@@ -33,6 +35,7 @@ class RequestModel {
     return RequestModel(
       id: id,
       userId: map['userId'] ?? '',
+      posterName: map['posterName'] ?? '',
       category: map['category'] ?? '',
       description: map['description'] ?? '',
       location: map['location'] ?? '',
@@ -52,6 +55,7 @@ class RequestModel {
   Map<String, dynamic> toMap({bool includeCreatedAt = false}) {
     final map = <String, dynamic>{
       'userId': userId,
+      'posterName': posterName,
       'category': category,
       'description': description,
       'location': location,
@@ -69,6 +73,7 @@ class RequestModel {
   }
 
   RequestModel copyWith({
+    String? posterName,
     String? category,
     String? description,
     String? location,
@@ -82,6 +87,7 @@ class RequestModel {
     return RequestModel(
       id: id,
       userId: userId,
+      posterName: posterName ?? this.posterName,
       category: category ?? this.category,
       description: description ?? this.description,
       location: location ?? this.location,

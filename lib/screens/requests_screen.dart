@@ -22,11 +22,15 @@ class _RequestFilter {
 class RequestsScreen extends StatefulWidget {
   final int initialTab;
   final bool standalone;
+  final bool onlyMyPosts;
+  final bool showMyPostsTab;
 
   const RequestsScreen({
     super.key,
     this.initialTab = 0,
     this.standalone = false,
+    this.onlyMyPosts = false,
+    this.showMyPostsTab = true,
   });
 
   @override
@@ -45,10 +49,14 @@ class _RequestsScreenState extends State<RequestsScreen>
   @override
   void initState() {
     super.initState();
+    final tabCount = (widget.onlyMyPosts || !widget.showMyPostsTab) ? 1 : 2;
+    final initialIndex = (widget.onlyMyPosts || !widget.showMyPostsTab)
+        ? 0
+        : widget.initialTab;
     _tabController = TabController(
-      length: 2,
+      length: tabCount,
       vsync: this,
-      initialIndex: widget.initialTab,
+      initialIndex: initialIndex,
     );
     _db = context.read<DatabaseService>();
     _auth = context.read<AuthService>();
@@ -299,48 +307,71 @@ class _RequestsScreenState extends State<RequestsScreen>
             ],
           ),
         ),
-        const SizedBox(height: 10),
-        // Tab bar
-        _RequestTabBar(controller: _tabController),
-        const SizedBox(height: 2),
-        // Tab content
-        Expanded(
-          child: TabBarView(
-            controller: _tabController,
-            children: [
-              _RequestListView(
-                stream: _db.getAllRequests(),
-                filter: _applyFilters,
-                isMyTab: false,
-                currentUserId: userId,
-                isEffectivelyOpen: _isEffectivelyOpen,
-                onCall: (phone) async {
-                  final uri = Uri.parse('tel:$phone');
-                  if (await canLaunchUrl(uri)) launchUrl(uri);
-                },
-                onEdit: _editRequest,
-                onClose: _closeRequest,
-                onReopen: _reopenRequest,
-                onDelete: _deleteRequest,
-              ),
-              _RequestListView(
-                stream: _db.getUserRequests(userId),
-                filter: _applyFilters,
-                isMyTab: true,
-                currentUserId: userId,
-                isEffectivelyOpen: _isEffectivelyOpen,
-                onCall: (phone) async {
-                  final uri = Uri.parse('tel:$phone');
-                  if (await canLaunchUrl(uri)) launchUrl(uri);
-                },
-                onEdit: _editRequest,
-                onClose: _closeRequest,
-                onReopen: _reopenRequest,
-                onDelete: _deleteRequest,
-              ),
-            ],
+        if (!widget.onlyMyPosts && widget.showMyPostsTab) ...[
+          const SizedBox(height: 10),
+          // Tab bar
+          _RequestTabBar(controller: _tabController),
+          const SizedBox(height: 2),
+          // Tab content
+          Expanded(
+            child: TabBarView(
+              controller: _tabController,
+              children: [
+                _RequestListView(
+                  stream: _db.getAllRequests(),
+                  filter: _applyFilters,
+                  isMyTab: false,
+                  currentUserId: userId,
+                  isEffectivelyOpen: _isEffectivelyOpen,
+                  onCall: (phone) async {
+                    final uri = Uri.parse('tel:$phone');
+                    if (await canLaunchUrl(uri)) launchUrl(uri);
+                  },
+                  onEdit: _editRequest,
+                  onClose: _closeRequest,
+                  onReopen: _reopenRequest,
+                  onDelete: _deleteRequest,
+                ),
+                _RequestListView(
+                  stream: _db.getUserRequests(userId),
+                  filter: _applyFilters,
+                  isMyTab: true,
+                  currentUserId: userId,
+                  isEffectivelyOpen: _isEffectivelyOpen,
+                  onCall: (phone) async {
+                    final uri = Uri.parse('tel:$phone');
+                    if (await canLaunchUrl(uri)) launchUrl(uri);
+                  },
+                  onEdit: _editRequest,
+                  onClose: _closeRequest,
+                  onReopen: _reopenRequest,
+                  onDelete: _deleteRequest,
+                ),
+              ],
+            ),
           ),
-        ),
+        ] else ...[
+          const SizedBox(height: 12),
+          Expanded(
+            child: _RequestListView(
+              stream: widget.onlyMyPosts
+                  ? _db.getUserRequests(userId)
+                  : _db.getAllRequests(),
+              filter: _applyFilters,
+              isMyTab: widget.onlyMyPosts,
+              currentUserId: userId,
+              isEffectivelyOpen: _isEffectivelyOpen,
+              onCall: (phone) async {
+                final uri = Uri.parse('tel:$phone');
+                if (await canLaunchUrl(uri)) launchUrl(uri);
+              },
+              onEdit: _editRequest,
+              onClose: _closeRequest,
+              onReopen: _reopenRequest,
+              onDelete: _deleteRequest,
+            ),
+          ),
+        ],
       ],
     );
   }
