@@ -776,7 +776,9 @@ class _MateCard extends StatelessWidget {
   Future<void> _call(BuildContext context) async {
     if (mate.phone.isEmpty) return;
     final uri = Uri(scheme: 'tel', path: mate.phone);
-    if (await canLaunchUrl(uri)) await launchUrl(uri);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   bool get _isOwn => FirebaseAuth.instance.currentUser?.uid == mate.userId;
