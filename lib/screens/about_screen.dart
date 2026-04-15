@@ -118,14 +118,14 @@ class AboutScreen extends StatelessWidget {
             Row(
               children: [
                 Expanded(
-                  child: _statCard('10K+', 'Users', Icons.people_outline),
+                  child: _statCard('1K+', 'Users', Icons.people_outline),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _statCard('500+', 'Professionals', Icons.verified),
+                  child: _statCard('100+', 'Professionals', Icons.verified),
                 ),
                 const SizedBox(width: 12),
-                Expanded(child: _statCard('16', 'Services', Icons.category)),
+                Expanded(child: _statCard('20', 'Services', Icons.category)),
               ],
             ),
             const SizedBox(height: 32),

@@ -14,98 +14,95 @@ class PolicyScreen extends StatelessWidget {
     final isTerms = type == PolicyType.terms;
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: CustomScrollView(
-        physics: const BouncingScrollPhysics(),
-        slivers: [
-          // ── Premium SliverAppBar ──────────────────────────────────────
-          SliverAppBar(
-            pinned: true,
-            expandedHeight: 140,
-            backgroundColor: AppColors.background,
-            surfaceTintColor: Colors.transparent,
-            elevation: 0,
-            scrolledUnderElevation: 1,
-            shadowColor: Colors.black.withValues(alpha: 0.06),
-            leading: IconButton(
-              icon: Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: AppColors.surfaceContainerLow,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: const Icon(Icons.arrow_back_rounded,
-                    size: 18, color: AppColors.onSurface),
+      body: Column(
+        children: [
+          // ── Fixed App Bar with Gradient Background ──────────────────────
+          Container(
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isTerms
+                    ? [
+                        const Color(0xFF001A41),
+                        AppColors.primary,
+                      ]
+                    : [
+                        const Color(0xFF002110),
+                        AppColors.secondary,
+                      ],
               ),
-              onPressed: () => Navigator.of(context).pop(),
+              borderRadius: const BorderRadius.vertical(bottom: Radius.circular(20)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.15),
+                  blurRadius: 20,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            flexibleSpace: FlexibleSpaceBar(
-              titlePadding:
-                  const EdgeInsets.fromLTRB(24, 0, 24, 16),
-              title: Text(
-                isTerms ? 'Terms of Service' : 'Privacy Policy',
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.onSurface,
-                  letterSpacing: -0.4,
-                ),
-              ),
-              background: Container(
-                padding: const EdgeInsets.fromLTRB(24, 0, 24, 64),
-                alignment: Alignment.bottomLeft,
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: isTerms
-                        ? [
-                            const Color(0xFF001A41),
-                            AppColors.primary,
-                          ]
-                        : [
-                            const Color(0xFF002110),
-                            AppColors.secondary,
-                          ],
-                  ),
-                ),
-                child: Row(
+            child: SafeArea(
+              bottom: false,
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 44,
-                      height: 44,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.15),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: Icon(
-                        isTerms
-                            ? Icons.gavel_rounded
-                            : Icons.shield_rounded,
-                        size: 22,
-                        color: Colors.white,
-                      ),
-                    ),
-                    const SizedBox(width: 14),
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
                       children: [
-                        Text(
-                          isTerms ? 'Terms of Service' : 'Privacy Policy',
-                          style: GoogleFonts.inter(
-                            fontSize: 20,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                            letterSpacing: -0.6,
+                        IconButton(
+                          icon: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.arrow_back_rounded,
+                                size: 18, color: Colors.white),
+                          ),
+                          onPressed: () => Navigator.of(context).pop(),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                isTerms ? 'Terms of Service' : 'Privacy Policy',
+                                style: GoogleFonts.inter(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color: Colors.white,
+                                  letterSpacing: -0.4,
+                                ),
+                              ),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Last updated: April 8, 2026',
+                                style: GoogleFonts.inter(
+                                  fontSize: 11,
+                                  color: Colors.white.withValues(alpha: 0.65),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 3),
-                        Text(
-                          'Last updated: April 8, 2026',
-                          style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: Colors.white.withValues(alpha: 0.65),
+                        const SizedBox(width: 12),
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: Icon(
+                            isTerms
+                                ? Icons.gavel_rounded
+                                : Icons.shield_rounded,
+                            size: 22,
+                            color: Colors.white,
                           ),
                         ),
                       ],
@@ -116,11 +113,12 @@ class PolicyScreen extends StatelessWidget {
             ),
           ),
           // ── Content ────────────────────────────────────────────────────
-          SliverPadding(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 64),
-            sliver: SliverList(
-              delegate: SliverChildListDelegate(
-                isTerms ? _termsContent() : _privacyContent(),
+          Expanded(
+            child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 64),
+              child: Column(
+                children: isTerms ? _termsContent() : _privacyContent(),
               ),
             ),
           ),
@@ -137,8 +135,15 @@ class PolicyScreen extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
             color: AppColors.surfaceContainerLow,
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(16),
             border: Border.all(color: AppColors.outlineVariant, width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 10,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Text(
             text,
@@ -239,7 +244,14 @@ class PolicyScreen extends StatelessWidget {
             color: isWarning
                 ? AppColors.errorContainer.withValues(alpha: 0.4)
                 : AppColors.secondaryContainer.withValues(alpha: 0.25),
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
           ),
           child: Text(
             text,
