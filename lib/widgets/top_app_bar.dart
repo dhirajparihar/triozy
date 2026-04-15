@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
+import 'dart:math' as math;
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 
 class TriozyTopAppBar extends StatelessWidget {
   final String? location;
   final String? avatarUrl;
+  final bool showAvatar;
   final VoidCallback? onAvatarTap;
   final VoidCallback? onLocationTap;
 
@@ -13,6 +15,7 @@ class TriozyTopAppBar extends StatelessWidget {
     super.key,
     this.location,
     this.avatarUrl,
+    this.showAvatar = true,
     this.onAvatarTap,
     this.onLocationTap,
   });
@@ -26,6 +29,10 @@ class TriozyTopAppBar extends StatelessWidget {
           builder: (context, constraints) {
             final width = constraints.maxWidth;
             final wordmarkSize = width < 360 ? 16.0 : 18.0;
+            final brandSlotWidth = width < 360 ? 118.0 : 138.0;
+            const avatarSlotWidth = 36.0;
+            final safeHalfWidth = ((width - brandSlotWidth) / 2) - 8;
+            final locationMaxWidth = math.max(120.0, safeHalfWidth);
             return Container(
               height: MediaQuery.of(context).padding.top + 60,
               padding: EdgeInsets.only(
@@ -130,46 +137,49 @@ class TriozyTopAppBar extends StatelessWidget {
                       ),
                     ],
                   ),
-                  IgnorePointer(
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: BoxDecoration(
-                            borderRadius: BorderRadius.circular(7),
-                            border: Border.all(
-                              color: AppColors.blue700.withValues(alpha: 0.18),
+                  SizedBox(
+                    width: brandSlotWidth,
+                    child: IgnorePointer(
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 24,
+                            height: 24,
+                            decoration: BoxDecoration(
+                              borderRadius: BorderRadius.circular(7),
+                              border: Border.all(
+                                color: AppColors.blue700.withValues(alpha: 0.18),
+                              ),
                             ),
-                          ),
-                          child: ClipRRect(
-                            borderRadius: BorderRadius.circular(6),
-                            child: Image.asset(
-                              'assets/logo.png',
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, _, _) => Container(
-                                color: AppColors.surfaceContainerHigh,
-                                child: const Icon(
-                                  Icons.handyman_rounded,
-                                  color: AppColors.blue700,
-                                  size: 15,
+                            child: ClipRRect(
+                              borderRadius: BorderRadius.circular(6),
+                              child: Image.asset(
+                                'assets/logo.png',
+                                fit: BoxFit.cover,
+                                errorBuilder: (_, _, _) => Container(
+                                  color: AppColors.surfaceContainerHigh,
+                                  child: const Icon(
+                                    Icons.handyman_rounded,
+                                    color: AppColors.blue700,
+                                    size: 15,
+                                  ),
                                 ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Triozy',
-                          style: GoogleFonts.manrope(
-                            fontWeight: FontWeight.w900,
-                            fontSize: wordmarkSize,
-                            color: AppColors.blue700,
-                            letterSpacing: -0.8,
+                          const SizedBox(width: 8),
+                          Text(
+                            'Triozy',
+                            style: GoogleFonts.manrope(
+                              fontWeight: FontWeight.w900,
+                              fontSize: wordmarkSize,
+                              color: AppColors.blue700,
+                              letterSpacing: -0.8,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],

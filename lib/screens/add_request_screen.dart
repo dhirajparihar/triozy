@@ -47,10 +47,18 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
     super.initState();
     _db = context.read<DatabaseService>();
     _auth = context.read<AuthService>();
-    _descriptionController = TextEditingController(text: widget.requestToEdit?.description ?? '');
-    _locationController = TextEditingController(text: widget.requestToEdit?.location ?? '');
-    _phoneController = TextEditingController(text: widget.requestToEdit?.phone ?? '');
-    _categoryController = TextEditingController(text: widget.requestToEdit?.category ?? '');
+    _descriptionController = TextEditingController(
+      text: widget.requestToEdit?.description ?? '',
+    );
+    _locationController = TextEditingController(
+      text: widget.requestToEdit?.location ?? '',
+    );
+    _phoneController = TextEditingController(
+      text: widget.requestToEdit?.phone ?? '',
+    );
+    _categoryController = TextEditingController(
+      text: widget.requestToEdit?.category ?? '',
+    );
   }
 
   @override
@@ -75,7 +83,10 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error picking image: $e'), backgroundColor: AppColors.error),
+          SnackBar(
+            content: Text('Error picking image: $e'),
+            backgroundColor: AppColors.error,
+          ),
         );
       }
     }
@@ -84,21 +95,30 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
   Future<String?> _uploadImage() async {
     if (_requestImage == null) return null;
     try {
-      final uri = Uri.parse('https://api.cloudinary.com/v1_1/dwydpp8ip/image/upload');
+      final uri = Uri.parse(
+        'https://api.cloudinary.com/v1_1/dwydpp8ip/image/upload',
+      );
       final request = http.MultipartRequest('POST', uri)
         ..fields['upload_preset'] = 'Triozy';
 
       if (kIsWeb) {
         final bytes = await _requestImage!.readAsBytes();
-        request.files.add(http.MultipartFile.fromBytes(
-          'file', bytes,
-          filename: 'job_${DateTime.now().millisecondsSinceEpoch}.jpg',
-        ));
+        request.files.add(
+          http.MultipartFile.fromBytes(
+            'file',
+            bytes,
+            filename: 'job_${DateTime.now().millisecondsSinceEpoch}.jpg',
+          ),
+        );
       } else {
-        request.files.add(await http.MultipartFile.fromPath('file', _requestImage!.path));
+        request.files.add(
+          await http.MultipartFile.fromPath('file', _requestImage!.path),
+        );
       }
 
-      final streamedResponse = await request.send().timeout(const Duration(seconds: 30));
+      final streamedResponse = await request.send().timeout(
+        const Duration(seconds: 30),
+      );
       final response = await http.Response.fromStream(streamedResponse);
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
@@ -109,10 +129,14 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Photo upload failed — request will be posted without image.'),
+            content: Text(
+              'Photo upload failed — request will be posted without image.',
+            ),
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -170,9 +194,21 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
         photoUrl = await _uploadImage();
       }
 
+      final userData = await _auth.getUserData(user.uid);
+      final resolvedPosterName =
+          (widget.requestToEdit?.posterName.isNotEmpty == true
+              ? widget.requestToEdit!.posterName
+              : (userData?['name'] as String?)?.trim()) ??
+          user.displayName?.trim() ??
+          (user.email?.split('@').first ?? '').trim();
+      final posterName = resolvedPosterName.isEmpty
+          ? 'User'
+          : resolvedPosterName;
+
       final job = RequestModel(
         id: widget.requestToEdit?.id ?? const Uuid().v4(),
         userId: user.uid,
+        posterName: posterName,
         category: _categoryController.text.trim(),
         description: _descriptionController.text.trim(),
         location: _locationController.text.trim(),
@@ -193,14 +229,20 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
       if (mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(widget.requestToEdit != null ? 'Request updated successfully!' : 'Request posted successfully!')),
+          SnackBar(
+            content: Text(
+              widget.requestToEdit != null
+                  ? 'Request updated successfully!'
+                  : 'Request posted successfully!',
+            ),
+          ),
         );
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error: ${e.toString()}')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Error: ${e.toString()}')));
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -311,7 +353,9 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
                   width: double.infinity,
                   padding: const EdgeInsets.all(24),
                   decoration: BoxDecoration(
-                    color: _requestImage != null ? Colors.white : AppColors.blue50.withValues(alpha: 0.5),
+                    color: _requestImage != null
+                        ? Colors.white
+                        : AppColors.blue50.withValues(alpha: 0.5),
                     borderRadius: BorderRadius.circular(20),
                     border: Border.all(
                       color: _requestImage != null
@@ -353,11 +397,17 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
                               ),
                             ),
                             const SizedBox(height: 12),
-                            Text('Add a Photo', style: AppTheme.headline(fontSize: 16)),
+                            Text(
+                              'Add a Photo',
+                              style: AppTheme.headline(fontSize: 16),
+                            ),
                             const SizedBox(height: 4),
                             Text(
                               'Help professionals understand the issue',
-                              style: AppTheme.body(fontSize: 13, color: AppColors.onSurfaceVariant),
+                              style: AppTheme.body(
+                                fontSize: 13,
+                                color: AppColors.onSurfaceVariant,
+                              ),
                             ),
                           ],
                         ),
@@ -366,77 +416,142 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
               const SizedBox(height: 32),
 
               // Service needed (free-form)
-              Text('WHAT DO YOU NEED?', style: AppTheme.label(color: AppColors.onSurfaceVariant, letterSpacing: 1.5)),
+              Text(
+                'WHAT DO YOU NEED?',
+                style: AppTheme.label(
+                  color: AppColors.onSurfaceVariant,
+                  letterSpacing: 1.5,
+                ),
+              ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _categoryController,
                 textCapitalization: TextCapitalization.words,
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.edit_note_rounded, color: AppColors.primary, size: 22),
-                  hintText: 'e.g. Yoga trainer, Drone photographer, Language tutor...',
+                  prefixIcon: const Icon(
+                    Icons.edit_note_rounded,
+                    color: AppColors.primary,
+                    size: 22,
+                  ),
+                  hintText:
+                      'e.g. Yoga trainer, Drone photographer, Language tutor...',
                   fillColor: Colors.white,
                   filled: true,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
                 ),
-                validator: (v) => v == null || v.trim().isEmpty ? 'Please describe what you need' : null,
+                validator: (v) => v == null || v.trim().isEmpty
+                    ? 'Please describe what you need'
+                    : null,
               ),
               const SizedBox(height: 32),
 
               // Description
               // Phone
-              Text('PHONE NUMBER', style: AppTheme.label(color: AppColors.onSurfaceVariant, letterSpacing: 1.5)),
+              Text(
+                'PHONE NUMBER',
+                style: AppTheme.label(
+                  color: AppColors.onSurfaceVariant,
+                  letterSpacing: 1.5,
+                ),
+              ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _phoneController,
                 keyboardType: TextInputType.phone,
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.phone_rounded, color: AppColors.primary, size: 20),
+                  prefixIcon: const Icon(
+                    Icons.phone_rounded,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
                   hintText: 'Your contact number',
                   fillColor: Colors.white,
                   filled: true,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
                 ),
                 validator: (v) => v!.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 32),
 
-              Text('PROBLEM DESCRIPTION', style: AppTheme.label(color: AppColors.onSurfaceVariant, letterSpacing: 1.5)),
+              Text(
+                'PROBLEM DESCRIPTION',
+                style: AppTheme.label(
+                  color: AppColors.onSurfaceVariant,
+                  letterSpacing: 1.5,
+                ),
+              ),
               const SizedBox(height: 16),
               TextFormField(
                 controller: _descriptionController,
                 maxLines: 5,
                 decoration: InputDecoration(
-                  hintText: 'Briefly describe what needs to be fixed or installed...',
+                  hintText:
+                      'Briefly describe what needs to be fixed or installed...',
                   fillColor: Colors.white,
                   filled: true,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
                   contentPadding: const EdgeInsets.all(20),
                 ),
-                validator: (v) => v!.isEmpty ? 'Please describe the issue' : null,
+                validator: (v) =>
+                    v!.isEmpty ? 'Please describe the issue' : null,
               ),
               const SizedBox(height: 32),
 
               // Location
-              Text('LOCATION', style: AppTheme.label(color: AppColors.onSurfaceVariant, letterSpacing: 1.5)),
+              Text(
+                'LOCATION',
+                style: AppTheme.label(
+                  color: AppColors.onSurfaceVariant,
+                  letterSpacing: 1.5,
+                ),
+              ),
               const SizedBox(height: 12),
               TextFormField(
                 controller: _locationController,
                 decoration: InputDecoration(
-                  prefixIcon: const Icon(Icons.location_on, color: AppColors.primary, size: 20),
+                  prefixIcon: const Icon(
+                    Icons.location_on,
+                    color: AppColors.primary,
+                    size: 20,
+                  ),
                   hintText: 'Enter your address',
                   fillColor: Colors.white,
                   filled: true,
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide.none),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(16),
+                    borderSide: BorderSide.none,
+                  ),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 16,
+                  ),
                   suffixIcon: _isLocating
                       ? const Padding(
                           padding: EdgeInsets.all(12),
                           child: SizedBox(
                             width: 20,
                             height: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              color: AppColors.primary,
+                            ),
                           ),
                         )
                       : null,
@@ -489,18 +604,32 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
                     padding: const EdgeInsets.symmetric(vertical: 20),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(99)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(99),
+                    ),
                     elevation: 8,
                     shadowColor: AppColors.primary.withValues(alpha: 0.3),
                   ),
                   child: _isLoading
-                      ? const SizedBox(height: 24, width: 24, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                      ? const SizedBox(
+                          height: 24,
+                          width: 24,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
                       : Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Text(
-                              widget.requestToEdit != null ? 'Update Request' : 'Post Request',
-                              style: const TextStyle(fontWeight: FontWeight.w900, fontSize: 18),
+                              widget.requestToEdit != null
+                                  ? 'Update Request'
+                                  : 'Post Request',
+                              style: const TextStyle(
+                                fontWeight: FontWeight.w900,
+                                fontSize: 18,
+                              ),
                             ),
                             const SizedBox(width: 12),
                             const Icon(Icons.rocket_launch),
@@ -517,7 +646,10 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
                   children: [
                     TextSpan(
                       text: 'By posting, you agree to our ',
-                      style: AppTheme.body(fontSize: 12, color: AppColors.onSurfaceVariant),
+                      style: AppTheme.body(
+                        fontSize: 12,
+                        color: AppColors.onSurfaceVariant,
+                      ),
                     ),
                     TextSpan(
                       text: 'Terms of Service',
@@ -527,12 +659,20 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
                         color: AppColors.primary,
                       ),
                       recognizer: TapGestureRecognizer()
-                        ..onTap = () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const PolicyScreen(type: PolicyType.terms))),
+                        ..onTap = () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const PolicyScreen(type: PolicyType.terms),
+                          ),
+                        ),
                     ),
                     TextSpan(
                       text: ' and ',
-                      style: AppTheme.body(fontSize: 12, color: AppColors.onSurfaceVariant),
+                      style: AppTheme.body(
+                        fontSize: 12,
+                        color: AppColors.onSurfaceVariant,
+                      ),
                     ),
                     TextSpan(
                       text: 'Privacy Policy',
@@ -542,12 +682,20 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
                         color: AppColors.primary,
                       ),
                       recognizer: TapGestureRecognizer()
-                        ..onTap = () => Navigator.push(context,
-                            MaterialPageRoute(builder: (_) => const PolicyScreen(type: PolicyType.privacy))),
+                        ..onTap = () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                const PolicyScreen(type: PolicyType.privacy),
+                          ),
+                        ),
                     ),
                     TextSpan(
                       text: '.',
-                      style: AppTheme.body(fontSize: 12, color: AppColors.onSurfaceVariant),
+                      style: AppTheme.body(
+                        fontSize: 12,
+                        color: AppColors.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),

@@ -41,7 +41,7 @@ class _MainShellState extends State<MainShell> {
       onMatesTapped: () => setState(() => _currentIndex = 3),
     ),
     const SearchResultsScreen(),
-    const RequestsScreen(),
+    const RequestsScreen(showMyPostsTab: false),
     const MateScreen(),
     widget.isWorker
         ? const WorkerDashboardScreen()
@@ -356,6 +356,7 @@ class _MainShellState extends State<MainShell> {
               child: TriozyTopAppBar(
                 location: locationProvider.address,
                 avatarUrl: FirebaseAuth.instance.currentUser?.photoURL,
+                showAvatar: _currentIndex != 4,
                 onAvatarTap: () => setState(() => _currentIndex = 4),
                 onLocationTap: _showChangeLocationSheet,
               ),
