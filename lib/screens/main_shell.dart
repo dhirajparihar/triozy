@@ -371,8 +371,8 @@ class _MainShellState extends State<MainShell> {
                 onTap: (index) => setState(() => _currentIndex = index),
               ),
             ),
-            // Shared FAB for Home, Search, Requests and Mates (kept above nav)
-            if (_currentIndex >= 0 && _currentIndex <= 3)
+            // Shared FAB for Home, Search, Requests (Mates has its own FAB)
+            if (_currentIndex >= 0 && _currentIndex <= 2)
               Positioned(
                 right: 20,
                 bottom: MediaQuery.of(context).padding.bottom + 74,

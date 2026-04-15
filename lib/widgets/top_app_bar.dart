@@ -51,89 +51,90 @@ class TriozyTopAppBar extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      GestureDetector(
-                        onTap: onLocationTap,
-                        behavior: HitTestBehavior.opaque,
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: locationMaxWidth,
-                            minHeight: 36,
-                          ),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 10,
-                              vertical: 6,
-                            ),
-                            decoration: BoxDecoration(
-                              color: AppColors.blue50,
-                              borderRadius: BorderRadius.circular(20),
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(
-                                  Icons.location_on,
-                                  color: AppColors.slate500,
-                                  size: 15,
+                      Expanded(
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: GestureDetector(
+                            onTap: onLocationTap,
+                            behavior: HitTestBehavior.opaque,
+                            child: ConstrainedBox(
+                              constraints: BoxConstraints(
+                                maxWidth: width * 0.32,
+                                minHeight: 36,
+                              ),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 10,
+                                  vertical: 6,
                                 ),
-                                const SizedBox(width: 4),
-                                Expanded(
-                                  child: Text(
-                                    location ?? 'Locating...',
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: GoogleFonts.inter(
-                                      fontWeight: FontWeight.w500,
-                                      fontSize: 12.5,
+                                decoration: BoxDecoration(
+                                  color: AppColors.blue50,
+                                  borderRadius: BorderRadius.circular(20),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.location_on,
                                       color: AppColors.slate500,
+                                      size: 15,
                                     ),
-                                  ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        location ?? 'Locating...',
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: GoogleFonts.inter(
+                                          fontWeight: FontWeight.w500,
+                                          fontSize: 12.5,
+                                          color: AppColors.slate500,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    const Icon(
+                                      Icons.keyboard_arrow_down_rounded,
+                                      color: AppColors.slate500,
+                                      size: 15,
+                                    ),
+                                  ],
                                 ),
-                                const SizedBox(width: 4),
-                                const Icon(
-                                  Icons.keyboard_arrow_down_rounded,
-                                  color: AppColors.slate500,
-                                  size: 15,
-                                ),
-                              ],
+                              ),
                             ),
                           ),
                         ),
                       ),
-                      const Spacer(),
-                      if (showAvatar)
-                        GestureDetector(
-                          onTap: onAvatarTap,
-                          child: Container(
-                            width: avatarSlotWidth,
-                            height: avatarSlotWidth,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.15),
-                                width: 2,
+                      GestureDetector(
+                        onTap: onAvatarTap,
+                        child: Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: AppColors.primary.withValues(alpha: 0.15),
+                              width: 2,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.06),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
                               ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.06),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: ClipOval(
-                              child: avatarUrl != null
-                                  ? Image.network(
-                                      avatarUrl!,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (_, _, _) =>
-                                          _avatarPlaceholder(),
-                                    )
-                                  : _avatarPlaceholder(),
-                            ),
+                            ],
                           ),
-                        )
-                      else
-                        const SizedBox(width: avatarSlotWidth, height: avatarSlotWidth),
+                          child: ClipOval(
+                            child: avatarUrl != null
+                                ? Image.network(
+                                    avatarUrl!,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (_, _, _) =>
+                                        _avatarPlaceholder(),
+                                  )
+                                : _avatarPlaceholder(),
+                          ),
+                        ),
+                      ),
                     ],
                   ),
                   SizedBox(
