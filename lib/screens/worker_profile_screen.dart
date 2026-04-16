@@ -741,7 +741,7 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
                                 if (w.phone.isNotEmpty) {
                                   final uri = Uri(scheme: 'tel', path: w.phone);
                                   if (await canLaunchUrl(uri)) {
-                                    final launched = await launchUrl(uri);
+                                    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
                                     if (!launched) return;
                                     // Record the call in Firestore
                                     db.incrementWorkerCalls(w.uid);

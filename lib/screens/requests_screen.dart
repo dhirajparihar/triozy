@@ -325,7 +325,9 @@ class _RequestsScreenState extends State<RequestsScreen>
                   isEffectivelyOpen: _isEffectivelyOpen,
                   onCall: (phone) async {
                     final uri = Uri.parse('tel:$phone');
-                    if (await canLaunchUrl(uri)) launchUrl(uri);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
                   },
                   onEdit: _editRequest,
                   onClose: _closeRequest,
@@ -340,7 +342,9 @@ class _RequestsScreenState extends State<RequestsScreen>
                   isEffectivelyOpen: _isEffectivelyOpen,
                   onCall: (phone) async {
                     final uri = Uri.parse('tel:$phone');
-                    if (await canLaunchUrl(uri)) launchUrl(uri);
+                    if (await canLaunchUrl(uri)) {
+                      await launchUrl(uri, mode: LaunchMode.externalApplication);
+                    }
                   },
                   onEdit: _editRequest,
                   onClose: _closeRequest,
