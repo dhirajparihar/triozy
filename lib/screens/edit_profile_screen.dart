@@ -75,14 +75,23 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
     try {
       // Load from users collection
-      final userSnap = await FirebaseFirestore.instance
+      var userDoc = await FirebaseFirestore.instance
           .collection('users')
-          .where('uid', isEqualTo: user.uid)
-          .limit(1)
+          .doc(user.uid)
           .get();
+      if (!userDoc.exists) {
+        final fallback = await FirebaseFirestore.instance
+            .collection('users')
+            .where('uid', isEqualTo: user.uid)
+            .limit(1)
+            .get();
+        if (fallback.docs.isNotEmpty) {
+          userDoc = fallback.docs.first;
+        }
+      }
 
-      if (userSnap.docs.isNotEmpty) {
-        final data = userSnap.docs.first.data();
+      if (userDoc.exists) {
+        final data = userDoc.data()!;
         _role = data['role'] as String?;
         _phoneController.text = data['phone'] ?? '';
         _addressController.text = data['address'] ?? '';
@@ -93,14 +102,22 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
       // If worker, also load from workers collection
       if (_role == 'worker') {
-        final workerQuery = await FirebaseFirestore.instance
+        var workerDoc = await FirebaseFirestore.instance
             .collection('workers')
-            .where('uid', isEqualTo: user.uid)
-            .limit(1)
+            .doc(user.uid)
             .get();
-        final workerSnap = workerQuery.docs.isNotEmpty ? workerQuery.docs.first : null;
-        if (workerSnap != null) {
-          final wd = workerSnap.data();
+        if (!workerDoc.exists) {
+          final fallback = await FirebaseFirestore.instance
+              .collection('workers')
+              .where('uid', isEqualTo: user.uid)
+              .limit(1)
+              .get();
+          if (fallback.docs.isNotEmpty) {
+            workerDoc = fallback.docs.first;
+          }
+        }
+        if (workerDoc.exists) {
+          final wd = workerDoc.data()!;
           _phoneController.text = wd['phone'] ?? _phoneController.text;
           _locationController.text = wd['location'] ?? '';
           _descriptionController.text = wd['description'] ?? '';
@@ -154,27 +171,17 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       await user.updatePhotoURL(downloadUrl);
 
       // Update users collection
-      final photoSnap = await FirebaseFirestore.instance
-          .collection('users')
-          .where('uid', isEqualTo: user.uid)
-          .limit(1)
-          .get();
-      if (photoSnap.docs.isNotEmpty) {
-        await photoSnap.docs.first.reference
-            .set({'photoUrl': downloadUrl}, SetOptions(merge: true));
-      }
+      await FirebaseFirestore.instance.collection('users').doc(user.uid).set({
+        'uid': user.uid,
+        'photoUrl': downloadUrl,
+      }, SetOptions(merge: true));
 
       // Also update workers collection if worker
       if (_role == 'worker') {
-        final workerPhotoSnap = await FirebaseFirestore.instance
-            .collection('workers')
-            .where('uid', isEqualTo: user.uid)
-            .limit(1)
-            .get();
-        if (workerPhotoSnap.docs.isNotEmpty) {
-          await workerPhotoSnap.docs.first.reference
-              .set({'photoUrl': downloadUrl}, SetOptions(merge: true));
-        }
+        await FirebaseFirestore.instance.collection('workers').doc(user.uid).set({
+          'uid': user.uid,
+          'photoUrl': downloadUrl,
+        }, SetOptions(merge: true));
       }
 
       if (mounted) {
@@ -214,42 +221,32 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       await user.updateDisplayName(_nameController.text.trim());
 
       // Save to users collection
-      final userSnap = await FirebaseFirestore.instance
-          .collection('users')
-          .where('uid', isEqualTo: user.uid)
-          .limit(1)
-          .get();
-
-      if (userSnap.docs.isNotEmpty) {
-        final Map<String, dynamic> userUpdate = {
-          'name': _nameController.text.trim(),
-          'phone': _phoneController.text.trim(),
-        };
-        if (_role == 'customer') {
-          userUpdate['address'] = _addressController.text.trim();
-        }
-        await userSnap.docs.first.reference.set(userUpdate, SetOptions(merge: true));
+      final Map<String, dynamic> userUpdate = {
+        'uid': user.uid,
+        'name': _nameController.text.trim(),
+        'phone': _phoneController.text.trim(),
+      };
+      if (_role == 'customer') {
+        userUpdate['address'] = _addressController.text.trim();
       }
+      await FirebaseFirestore.instance
+          .collection('users')
+          .doc(user.uid)
+          .set(userUpdate, SetOptions(merge: true));
 
       // Save to workers collection if worker
       if (_role == 'worker') {
         final exp = int.tryParse(_experienceController.text.trim()) ?? 0;
-        final workerSaveSnap = await FirebaseFirestore.instance
-            .collection('workers')
-            .where('uid', isEqualTo: user.uid)
-            .limit(1)
-            .get();
-        if (workerSaveSnap.docs.isNotEmpty) {
-          await workerSaveSnap.docs.first.reference.set({
-            'name': _nameController.text.trim(),
-            'phone': _phoneController.text.trim(),
-            'location': _locationController.text.trim(),
-            'description': _descriptionController.text.trim(),
-            'experience': exp,
-            'skills': _selectedServices,
-            'serviceType': _selectedServices.isNotEmpty ? _selectedServices.first : '',
-          }, SetOptions(merge: true));
-        }
+        await FirebaseFirestore.instance.collection('workers').doc(user.uid).set({
+          'uid': user.uid,
+          'name': _nameController.text.trim(),
+          'phone': _phoneController.text.trim(),
+          'location': _locationController.text.trim(),
+          'description': _descriptionController.text.trim(),
+          'experience': exp,
+          'skills': _selectedServices,
+          'serviceType': _selectedServices.isNotEmpty ? _selectedServices.first : '',
+        }, SetOptions(merge: true));
       }
 
       if (mounted) {

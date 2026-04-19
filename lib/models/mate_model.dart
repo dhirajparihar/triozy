@@ -85,11 +85,21 @@ class MateModel {
     this.vehicleType,
   });
 
+  static String _normalizeUid(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty || !value.contains('_')) {
+      return value;
+    }
+    final tail = value.split('_').last.trim();
+    final looksLikeUid = RegExp(r'^[A-Za-z0-9]{20,}$').hasMatch(tail);
+    return looksLikeUid ? tail : value;
+  }
+
   factory MateModel.fromMap(Map<String, dynamic> map, String docId) {
     return MateModel(
       id: docId,
       type: MateTypeX.fromString(map['type'] ?? 'roommate'),
-      userId: map['userId'] ?? '',
+      userId: _normalizeUid((map['userId'] ?? '').toString()),
       userName: map['userName'] ?? '',
       userPhoto: map['userPhoto'] ?? '',
       phone: map['phone'] ?? '',

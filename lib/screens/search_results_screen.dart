@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../models/worker_model.dart';
+import '../models/chat_model.dart';
+import '../providers/chat_provider.dart';
 import '../services/database_service.dart';
 import '../screens/worker_profile_screen.dart';
+import '../screens/chat_detail_screen.dart';
 import '../constants/app_categories.dart';
 
 class SearchResultsScreen extends StatefulWidget {
@@ -1007,32 +1011,106 @@ class _SearchResultCardState extends State<_SearchResultCard> {
                     const SizedBox(height: 10),
                     Align(
                       alignment: Alignment.centerRight,
-                      child: SizedBox(
-                        height: 34,
-                        child: ElevatedButton(
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) =>
-                                  WorkerProfileScreen(workerId: worker.uid),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          if ((FirebaseAuth.instance.currentUser?.uid ?? '') !=
+                                  worker.uid &&
+                              (FirebaseAuth.instance.currentUser?.uid ?? '')
+                                  .isNotEmpty)
+                            SizedBox(
+                              height: 34,
+                              width: 40,
+                              child: ElevatedButton(
+                                onPressed: () async {
+                                  try {
+                                    final conversationId = await context
+                                        .read<ChatProvider>()
+                                        .createOrGetChat(
+                                          otherUserId: worker.uid,
+                                          chatType: ChatType.service.value,
+                                          referenceId: worker.uid,
+                                          otherUserName: worker.name,
+                                          otherUserPhotoUrl: worker.imageUrl,
+                                          currentUserName: FirebaseAuth
+                                              .instance
+                                              .currentUser
+                                              ?.displayName,
+                                          currentUserPhotoUrl: FirebaseAuth
+                                              .instance
+                                              .currentUser
+                                              ?.photoURL,
+                                        );
+                                    if (!context.mounted) return;
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => ChatDetailScreen(
+                                          conversationId: conversationId,
+                                        ),
+                                      ),
+                                    );
+                                  } catch (e) {
+                                    if (!context.mounted) return;
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(
+                                        content: Text(
+                                          'Unable to open chat: $e',
+                                        ),
+                                      ),
+                                    );
+                                  }
+                                },
+                                style: ElevatedButton.styleFrom(
+                                  elevation: 0,
+                                  backgroundColor: AppColors.secondary,
+                                  foregroundColor: Colors.white,
+                                  padding: EdgeInsets.zero,
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.chat_rounded,
+                                  size: 16,
+                                ),
+                              ),
+                            ),
+                          if ((FirebaseAuth.instance.currentUser?.uid ?? '') !=
+                                  worker.uid &&
+                              (FirebaseAuth.instance.currentUser?.uid ?? '')
+                                  .isNotEmpty)
+                            const SizedBox(width: 8),
+                          SizedBox(
+                            height: 34,
+                            child: ElevatedButton(
+                              onPressed: () => Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      WorkerProfileScreen(workerId: worker.uid),
+                                ),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                elevation: 0,
+                                backgroundColor: widget.accentColor,
+                                foregroundColor: Colors.white,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                                textStyle: AppTheme.label(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              child: const Text('Book Now'),
                             ),
                           ),
-                          style: ElevatedButton.styleFrom(
-                            elevation: 0,
-                            backgroundColor: widget.accentColor,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(horizontal: 14),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                            ),
-                            textStyle: AppTheme.label(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                          child: const Text('Book Now'),
-                        ),
+                        ],
                       ),
                     ),
                   ],

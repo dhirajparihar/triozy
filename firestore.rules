@@ -1,0 +1,170 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function currentUserId() {
+      return request.auth.uid;
+    }
+
+    function isSelfDoc(docId) {
+      return isAuthenticated() && docId == currentUserId();
+    }
+
+    function isParticipant(chatId) {
+      return isAuthenticated() &&
+          (currentUserId() in get(/databases/$(database)/documents/chats/$(chatId)).data.participants ||
+           normalizedUserId() in get(/databases/$(database)/documents/chats/$(chatId)).data.participants);
+    }
+
+    function isParticipantData(data) {
+      return isAuthenticated() &&
+          (currentUserId() in data.participants ||
+           normalizedUserId() in data.participants);
+    }
+
+    function normalizedUserId() {
+      let parts = currentUserId().split('_');
+      return parts.size() > 1 ? parts[parts.size() - 1] : currentUserId();
+    }
+
+    function isOwnerByUidField() {
+      return isAuthenticated() && resource.data.uid == currentUserId();
+    }
+
+    function isOwnerByUserIdField() {
+      return isAuthenticated() && resource.data.userId == currentUserId();
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isSelfDoc(userId) &&
+          request.resource.data.get('uid', currentUserId()) == currentUserId();
+
+      allow update: if isSelfDoc(userId) &&
+          request.resource.data.get('uid', currentUserId()) == currentUserId();
+
+      allow delete: if false;
+    }
+
+    match /jobs/{jobId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated() &&
+          request.resource.data.userId == currentUserId();
+
+      allow update: if isOwnerByUserIdField() &&
+          request.resource.data.userId == resource.data.userId &&
+          request.resource.data.get('createdAt', resource.data.createdAt) == resource.data.createdAt;
+
+      allow delete: if isOwnerByUserIdField();
+    }
+
+    match /mates/{mateId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isAuthenticated() &&
+          request.resource.data.userId == currentUserId();
+
+      allow update: if isOwnerByUserIdField() &&
+          request.resource.data.userId == resource.data.userId &&
+          request.resource.data.get('createdAt', resource.data.createdAt) == resource.data.createdAt;
+
+      allow delete: if isOwnerByUserIdField();
+    }
+
+    match /workers/{workerId} {
+      allow read: if isAuthenticated();
+
+      allow create: if isSelfDoc(workerId) &&
+          request.resource.data.get('uid', currentUserId()) == currentUserId();
+
+      allow update: if
+          (
+            (
+              isSelfDoc(workerId) ||
+              isOwnerByUidField()
+            ) &&
+            request.resource.data.get('uid', currentUserId()) == currentUserId()
+          ) ||
+          (
+            isAuthenticated() &&
+            request.resource.data.uid == resource.data.uid &&
+            request.resource.data.diff(resource.data).affectedKeys().hasOnly(['rating', 'totalRatings']) &&
+            request.resource.data.rating is number &&
+            request.resource.data.rating >= 0 &&
+            request.resource.data.rating <= 5 &&
+            request.resource.data.totalRatings is int &&
+            request.resource.data.totalRatings >= 0
+          );
+
+      allow delete: if isSelfDoc(workerId) || isOwnerByUidField();
+
+      match /ratings/{raterId} {
+        allow read: if isAuthenticated();
+
+        allow create, update: if isAuthenticated() &&
+            raterId == currentUserId() &&
+            request.resource.data.keys().hasOnly(['stars', 'updatedAt']) &&
+            request.resource.data.stars is number &&
+            request.resource.data.stars >= 1 &&
+            request.resource.data.stars <= 5;
+
+        allow delete: if false;
+      }
+    }
+
+    match /chats/{chatId} {
+      allow read: if isParticipantData(resource.data);
+
+      allow create: if isAuthenticated() &&
+          (currentUserId() in request.resource.data.participants || normalizedUserId() in request.resource.data.participants) &&
+          request.resource.data.participants.size() == 2 &&
+          request.resource.data.participants[0] != request.resource.data.participants[1] &&
+          request.resource.data.chatType in ['mate', 'service', 'request'] &&
+          request.resource.data.lastMessageTime is timestamp &&
+          request.resource.data.createdAt is timestamp;
+
+      allow update: if isParticipantData(resource.data) &&
+          request.resource.data.participants == resource.data.participants &&
+          request.resource.data.chatType == resource.data.chatType &&
+          request.resource.data.referenceId == resource.data.referenceId &&
+          request.resource.data.createdAt == resource.data.createdAt;
+
+      allow delete: if false;
+
+      match /messages/{messageId} {
+        allow read: if isParticipant(chatId);
+
+        allow create: if isAuthenticated() &&
+            (request.auth.uid == request.resource.data.senderId || normalizedUserId() == request.resource.data.senderId) &&
+            isParticipant(chatId) &&
+            request.resource.data.receiverId in
+                get(/databases/$(database)/documents/chats/$(chatId)).data.participants &&
+            request.resource.data.receiverId != request.auth.uid &&
+            request.resource.data.receiverId != normalizedUserId() &&
+            request.resource.data.text is string &&
+            request.resource.data.timestamp is timestamp &&
+            request.resource.data.status in ['sent', 'read'];
+
+        allow update: if isAuthenticated() &&
+            (request.auth.uid == resource.data.receiverId || normalizedUserId() == resource.data.receiverId) &&
+            isParticipant(chatId) &&
+            request.resource.data.status == 'read' &&
+            request.resource.data.senderId == resource.data.senderId &&
+            request.resource.data.receiverId == resource.data.receiverId &&
+            request.resource.data.text == resource.data.text &&
+            request.resource.data.timestamp == resource.data.timestamp;
+
+        allow delete: if false;
+      }
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

@@ -4,12 +4,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../models/chat_model.dart';
 import '../models/mate_model.dart';
+import '../providers/chat_provider.dart';
 import '../providers/location_provider.dart';
 import '../services/database_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'add_mate_screen.dart';
+import 'chat_detail_screen.dart';
 
 // ── Per-tab filter state ───────────────────────────────────────────────────────
 
@@ -442,6 +445,16 @@ class _MateListView extends StatelessWidget {
     required this.onAddTap,
   });
 
+  String _normalizeUid(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty || !value.contains('_')) {
+      return value;
+    }
+    final tail = value.split('_').last.trim();
+    final looksLikeUid = RegExp(r'^[A-Za-z0-9]{20,}$').hasMatch(tail);
+    return looksLikeUid ? tail : value;
+  }
+
   List<MateModel> _apply(List<MateModel> all) {
     var result = all;
 
@@ -693,8 +706,52 @@ class _MateListView extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(20, 0, 20, 96),
           itemCount: sorted.length,
           separatorBuilder: (context, i) => const SizedBox(height: 12),
-          itemBuilder: (context, i) =>
-              _MateCard(mate: sorted[i], accentColor: accentColor),
+          itemBuilder: (context, i) {
+            final mate = sorted[i];
+            final currentUid = FirebaseAuth.instance.currentUser?.uid;
+            return _MateCard(
+              mate: mate,
+              accentColor: accentColor,
+              onChat: currentUid == null ||
+                      _normalizeUid(currentUid) == _normalizeUid(mate.userId)
+                  ? null
+                  : () async {
+                      try {
+                        final conversationId = await context
+                            .read<ChatProvider>()
+                            .createOrGetChat(
+                              otherUserId: mate.userId,
+                              chatType: ChatType.mate.value,
+                              referenceId: mate.id,
+                              otherUserName: mate.userName,
+                              otherUserPhotoUrl: mate.userPhoto,
+                              otherUserLocation: mate.location,
+                              currentUserName:
+                                  FirebaseAuth.instance.currentUser?.displayName,
+                              currentUserPhotoUrl:
+                                  FirebaseAuth.instance.currentUser?.photoURL,
+                            );
+                        if (!context.mounted) {
+                          return;
+                        }
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                ChatDetailScreen(conversationId: conversationId),
+                          ),
+                        );
+                      } catch (e) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Unable to open chat: $e')),
+                        );
+                      }
+                    },
+            );
+          },
         );
       },
     );
@@ -770,8 +827,13 @@ class _EmptyState extends StatelessWidget {
 class _MateCard extends StatelessWidget {
   final MateModel mate;
   final Color accentColor;
+  final VoidCallback? onChat;
 
-  const _MateCard({required this.mate, required this.accentColor});
+  const _MateCard({
+    required this.mate,
+    required this.accentColor,
+    this.onChat,
+  });
 
   Future<void> _call(BuildContext context) async {
     if (mate.phone.isEmpty) return;
@@ -781,7 +843,19 @@ class _MateCard extends StatelessWidget {
     }
   }
 
-  bool get _isOwn => FirebaseAuth.instance.currentUser?.uid == mate.userId;
+  String _normalizeUid(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty || !value.contains('_')) {
+      return value;
+    }
+    final tail = value.split('_').last.trim();
+    final looksLikeUid = RegExp(r'^[A-Za-z0-9]{20,}$').hasMatch(tail);
+    return looksLikeUid ? tail : value;
+  }
+
+  bool get _isOwn =>
+      _normalizeUid(FirebaseAuth.instance.currentUser?.uid ?? '') ==
+      _normalizeUid(mate.userId);
 
   @override
   Widget build(BuildContext context) {
@@ -902,47 +976,137 @@ class _MateCard extends StatelessWidget {
               ),
             ],
             // ── Action ────────────────────────────────
-            if (!_isOwn && mate.phone.isNotEmpty) ...[
+            if (!_isOwn) ...[
               const SizedBox(height: 20),
               Builder(
                 builder: (context) {
                   final isUnavailable =
                       mate.type == MateType.helpmate && !mate.available;
-                  return SizedBox(
-                    width: double.infinity,
-                    child: TextButton.icon(
-                      onPressed: isUnavailable ? null : () => _call(context),
-                      icon: Icon(
-                        isUnavailable
-                            ? Icons.do_not_disturb_rounded
-                            : Icons.phone_rounded,
-                        size: 16,
-                      ),
-                      label: Text(
-                        isUnavailable
-                            ? 'Not Available'
-                            : 'Call ${mate.userName.split(' ').first}',
-                      ),
-                      style: TextButton.styleFrom(
-                        foregroundColor: isUnavailable
-                            ? AppColors.slate400
-                            : accentColor,
-                        backgroundColor: isUnavailable
-                            ? AppColors.surfaceContainerLow
-                            : accentColor.withValues(alpha: 0.08),
-                        disabledForegroundColor: AppColors.slate400,
-                        disabledBackgroundColor: AppColors.surfaceContainerLow,
-                        padding: const EdgeInsets.symmetric(vertical: 10),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
+                  final canCall = mate.phone.isNotEmpty;
+
+                  if (canCall && onChat != null) {
+                    return Row(
+                      children: [
+                        Expanded(
+                          child: TextButton.icon(
+                            onPressed: isUnavailable ? null : () => _call(context),
+                            icon: Icon(
+                              isUnavailable
+                                  ? Icons.do_not_disturb_rounded
+                                  : Icons.phone_rounded,
+                              size: 16,
+                            ),
+                            label: Text(
+                              isUnavailable
+                                  ? 'Not Available'
+                                  : 'Call ${mate.userName.split(' ').first}',
+                            ),
+                            style: TextButton.styleFrom(
+                              foregroundColor: isUnavailable
+                                  ? AppColors.slate400
+                                  : accentColor,
+                              backgroundColor: isUnavailable
+                                  ? AppColors.surfaceContainerLow
+                                  : accentColor.withValues(alpha: 0.08),
+                              disabledForegroundColor: AppColors.slate400,
+                              disabledBackgroundColor:
+                                  AppColors.surfaceContainerLow,
+                              padding: const EdgeInsets.symmetric(vertical: 10),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              textStyle: GoogleFonts.inter(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
                         ),
-                        textStyle: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
+                        const SizedBox(width: 8),
+                        SizedBox(
+                          height: 40,
+                          width: 44,
+                          child: TextButton(
+                            onPressed: onChat,
+                            style: TextButton.styleFrom(
+                              foregroundColor: Colors.white,
+                              backgroundColor: AppColors.secondary,
+                              padding: EdgeInsets.zero,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            child: const Icon(Icons.chat_rounded, size: 18),
+                          ),
+                        ),
+                      ],
+                    );
+                  }
+
+                  if (canCall) {
+                    return SizedBox(
+                      width: double.infinity,
+                      child: TextButton.icon(
+                        onPressed: isUnavailable ? null : () => _call(context),
+                        icon: Icon(
+                          isUnavailable
+                              ? Icons.do_not_disturb_rounded
+                              : Icons.phone_rounded,
+                          size: 16,
+                        ),
+                        label: Text(
+                          isUnavailable
+                              ? 'Not Available'
+                              : 'Call ${mate.userName.split(' ').first}',
+                        ),
+                        style: TextButton.styleFrom(
+                          foregroundColor: isUnavailable
+                              ? AppColors.slate400
+                              : accentColor,
+                          backgroundColor: isUnavailable
+                              ? AppColors.surfaceContainerLow
+                              : accentColor.withValues(alpha: 0.08),
+                          disabledForegroundColor: AppColors.slate400,
+                          disabledBackgroundColor: AppColors.surfaceContainerLow,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          textStyle: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                       ),
-                    ),
-                  );
+                    );
+                  }
+
+                  if (onChat != null) {
+                    return SizedBox(
+                      width: double.infinity,
+                      child: TextButton.icon(
+                        onPressed: onChat,
+                        icon: const Icon(Icons.chat_rounded, size: 16),
+                        label: Text('Message ${mate.userName.split(' ').first}'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: AppColors.secondary,
+                          backgroundColor: AppColors.secondary.withValues(
+                            alpha: 0.08,
+                          ),
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          textStyle: GoogleFonts.inter(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    );
+                  }
+
+                  return const SizedBox.shrink();
                 },
               ),
             ],

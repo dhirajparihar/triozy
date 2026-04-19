@@ -9,6 +9,9 @@ import '../theme/app_theme.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/worker_model.dart';
 import '../services/database_service.dart';
+import '../models/chat_model.dart';
+import '../providers/chat_provider.dart';
+import 'chat_detail_screen.dart';
 
 class WorkerProfileScreen extends StatefulWidget {
   final String workerId;
@@ -558,6 +561,47 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
     }
   }
 
+  Future<void> _openChat() async {
+    if (_worker == null) return;
+
+    final currentUser = FirebaseAuth.instance.currentUser;
+    final currentUserId = currentUser?.uid;
+    if (currentUserId == null || currentUserId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please sign in to start chatting')),
+      );
+      return;
+    }
+    if (_worker!.uid == currentUserId) {
+      return; // Prevent self-chat
+    }
+
+    try {
+      final conversationId = await context.read<ChatProvider>().createOrGetChat(
+        otherUserId: _worker!.uid,
+        chatType: ChatType.service.value,
+        referenceId: _worker!.uid,
+        otherUserName: _worker!.name,
+        otherUserPhotoUrl: _worker!.photoUrl,
+        otherUserLocation: _worker!.location,
+        currentUserName: currentUser?.displayName,
+        currentUserPhotoUrl: currentUser?.photoURL,
+      );
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatDetailScreen(conversationId: conversationId),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Unable to open chat: $e')));
+    }
+  }
+
   Widget _buildRatingLockedCard({
     required String title,
     required String subtitle,
@@ -684,6 +728,14 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
   }
 
   Widget _buildFixedCallBar(BuildContext context, WorkerModel w) {
+    final currentUid = FirebaseAuth.instance.currentUser?.uid;
+    final isOwnProfile = currentUid != null && currentUid == w.uid;
+
+    // Don't show call/chat bar for own profile
+    if (isOwnProfile) {
+      return const SizedBox.shrink();
+    }
+
     return Positioned(
       bottom: 0,
       left: 0,
@@ -741,7 +793,10 @@ class _WorkerProfileScreenState extends State<WorkerProfileScreen> {
                                 if (w.phone.isNotEmpty) {
                                   final uri = Uri(scheme: 'tel', path: w.phone);
                                   if (await canLaunchUrl(uri)) {
-                                    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                                    final launched = await launchUrl(
+                                      uri,
+                                      mode: LaunchMode.externalApplication,
+                                    );
                                     if (!launched) return;
                                     // Record the call in Firestore
                                     db.incrementWorkerCalls(w.uid);

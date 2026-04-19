@@ -83,13 +83,22 @@ class _WorkerDashboardScreenState extends State<WorkerDashboardScreen> {
         position.longitude,
       );
       // Also update the location string
-      final workerSnap = await FirebaseFirestore.instance
-          .collection('workers')
-          .where('uid', isEqualTo: uid)
-          .limit(1)
-          .get();
-      if (workerSnap.docs.isNotEmpty) {
-        await workerSnap.docs.first.reference.update({'location': address});
+      final byIdRef = FirebaseFirestore.instance.collection('workers').doc(uid);
+      final byId = await byIdRef.get();
+      if (byId.exists) {
+        await byIdRef.set({
+          'uid': uid,
+          'location': address,
+        }, SetOptions(merge: true));
+      } else {
+        final workerSnap = await FirebaseFirestore.instance
+            .collection('workers')
+            .where('uid', isEqualTo: uid)
+            .limit(1)
+            .get();
+        if (workerSnap.docs.isNotEmpty) {
+          await workerSnap.docs.first.reference.update({'location': address});
+        }
       }
       if (mounted) {
         setState(() {

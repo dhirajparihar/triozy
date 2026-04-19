@@ -31,10 +31,20 @@ class RequestModel {
     this.createdAt,
   });
 
+  static String _normalizeUid(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty || !value.contains('_')) {
+      return value;
+    }
+    final tail = value.split('_').last.trim();
+    final looksLikeUid = RegExp(r'^[A-Za-z0-9]{20,}$').hasMatch(tail);
+    return looksLikeUid ? tail : value;
+  }
+
   factory RequestModel.fromMap(Map<String, dynamic> map, String id) {
     return RequestModel(
       id: id,
-      userId: map['userId'] ?? '',
+      userId: _normalizeUid((map['userId'] ?? '').toString()),
       posterName: map['posterName'] ?? '',
       category: map['category'] ?? '',
       description: map['description'] ?? '',

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
@@ -10,7 +11,9 @@ import 'services/auth_service.dart';
 import 'services/database_service.dart';
 import 'services/location_service.dart';
 import 'services/session_service.dart';
+import 'services/chat_service.dart';
 import 'providers/location_provider.dart';
+import 'providers/chat_provider.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/worker_setup_screen.dart';
@@ -34,6 +37,9 @@ void main() async {
       }
     }
   }
+  FirebaseFirestore.instance.settings = const Settings(
+    persistenceEnabled: true,
+  );
   runApp(const TriozyApp());
 }
 
@@ -48,8 +54,12 @@ class TriozyApp extends StatelessWidget {
         Provider<AuthService>(create: (_) => AuthService()),
         Provider<DatabaseService>(create: (_) => DatabaseService()),
         Provider<LocationService>(create: (_) => LocationService()),
+        Provider<ChatService>(create: (_) => ChatService()),
         ChangeNotifierProvider<SessionService>(
           create: (_) => SessionService(),
+        ),
+        ChangeNotifierProvider<ChatProvider>(
+          create: (ctx) => ChatProvider(ctx.read<ChatService>()),
         ),
 
         // Shared location state — depends on LocationService

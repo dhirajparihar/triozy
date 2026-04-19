@@ -47,6 +47,20 @@ class WorkerModel {
     this.distanceKm,
   });
 
+  static String _normalizeUid(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty || !value.contains('_')) {
+      return value;
+    }
+    final tail = value.split('_').last.trim();
+    final looksLikeUid = RegExp(r'^[A-Za-z0-9]{20,}$').hasMatch(tail);
+    return looksLikeUid ? tail : value;
+  }
+
+  static double _clampRating(double raw) {
+    return raw.clamp(0.0, 5.0).toDouble();
+  }
+
   factory WorkerModel.fromMap(Map<String, dynamic> map) {
     double? lat;
     double? lng;
@@ -66,7 +80,7 @@ class WorkerModel {
     lng ??= (map['longitude'] as num?)?.toDouble();
 
     return WorkerModel(
-      uid: map['uid'] ?? '',
+      uid: _normalizeUid((map['uid'] ?? '').toString()),
       name: map['name'] ?? '',
       email: map['email'] ?? '',
       photoUrl: map['photoUrl'] ?? '',
@@ -78,7 +92,7 @@ class WorkerModel {
       latitude: lat,
       longitude: lng,
       geohash: hash,
-      rating: (map['rating'] ?? 0).toDouble(),
+      rating: _clampRating((map['rating'] ?? 0).toDouble()),
       totalJobs: (map['totalJobs'] ?? 0).toInt(),
       isAvailable: map['isAvailable'] ?? true,
       description: map['description'] ?? '',
@@ -101,7 +115,7 @@ class WorkerModel {
       'location': location,
       'latitude': latitude,
       'longitude': longitude,
-      'rating': rating,
+      'rating': _clampRating(rating),
       'totalJobs': totalJobs,
       'isAvailable': isAvailable,
       'description': description,
@@ -112,7 +126,7 @@ class WorkerModel {
   }
 
   String get experienceDisplay => '$experience Years';
-  String get ratingDisplay => rating.toStringAsFixed(1);
+  String get ratingDisplay => _clampRating(rating).toStringAsFixed(1);
   String get distanceDisplay {
     if (distanceKm == null) return location;
     if (distanceKm! < 1) {

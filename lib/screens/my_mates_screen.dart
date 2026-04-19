@@ -35,7 +35,10 @@ class MyMatesScreen extends StatelessWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.onSurface),
+          icon: const Icon(
+            Icons.arrow_back_rounded,
+            color: AppColors.onSurface,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
@@ -63,9 +66,7 @@ class MyMatesScreen extends StatelessWidget {
                   return _EmptyState(
                     onTap: () => Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const AddMateScreen(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const AddMateScreen()),
                     ),
                   );
                 }
@@ -121,20 +122,24 @@ class MyMatesScreen extends StatelessWidget {
       context: context,
       builder: (ctx) => AlertDialog(
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Text(
-          'Delete Listing?',
-          style: AppTheme.headline(fontSize: 18),
-        ),
+        title: Text('Delete Listing?', style: AppTheme.headline(fontSize: 18)),
         content: Text(
           'This will permanently remove your ${mate.type.label} post. This cannot be undone.',
-          style: AppTheme.body(fontSize: 14, color: AppColors.slate500, height: 1.5),
+          style: AppTheme.body(
+            fontSize: 14,
+            color: AppColors.slate500,
+            height: 1.5,
+          ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
             child: Text(
               'Cancel',
-              style: AppTheme.body(fontWeight: FontWeight.w600, color: AppColors.slate500),
+              style: AppTheme.body(
+                fontWeight: FontWeight.w600,
+                color: AppColors.slate500,
+              ),
             ),
           ),
           ElevatedButton(
@@ -143,7 +148,9 @@ class MyMatesScreen extends StatelessWidget {
               backgroundColor: AppColors.error,
               foregroundColor: Colors.white,
               elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
             child: const Text('Delete'),
           ),
@@ -160,7 +167,9 @@ class MyMatesScreen extends StatelessWidget {
               content: Text('${mate.type.label} post deleted'),
               backgroundColor: AppColors.secondary,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           );
         }
@@ -171,7 +180,9 @@ class MyMatesScreen extends StatelessWidget {
               content: Text('Failed to delete: $e'),
               backgroundColor: AppColors.error,
               behavior: SnackBarBehavior.floating,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           );
         }
@@ -210,7 +221,11 @@ class _SectionHeader extends StatelessWidget {
         const SizedBox(width: 10),
         Text(
           type.label,
-          style: AppTheme.body(fontSize: 15, fontWeight: FontWeight.w700, color: color),
+          style: AppTheme.body(
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: color,
+          ),
         ),
         const SizedBox(width: 8),
         Container(
@@ -267,7 +282,10 @@ class _MyMateCard extends StatelessWidget {
             Row(
               children: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: accentColor.withValues(alpha: 0.1),
                     borderRadius: BorderRadius.circular(8),
@@ -330,7 +348,11 @@ class _MyMateCard extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 children: [
-                  Icon(Icons.location_on_rounded, size: 13, color: AppColors.slate400),
+                  Icon(
+                    Icons.location_on_rounded,
+                    size: 13,
+                    color: AppColors.slate400,
+                  ),
                   const SizedBox(width: 4),
                   Flexible(
                     child: Text(
@@ -348,7 +370,11 @@ class _MyMateCard extends StatelessWidget {
               const SizedBox(height: 6),
               Text(
                 mate.description,
-                style: AppTheme.body(fontSize: 13, color: AppColors.slate500, height: 1.4),
+                style: AppTheme.body(
+                  fontSize: 13,
+                  color: AppColors.slate500,
+                  height: 1.4,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
@@ -379,7 +405,9 @@ class _MyMateCard extends StatelessWidget {
           runSpacing: 6,
           children: [
             _Chip(
-              mate.available ? Icons.check_circle_rounded : Icons.cancel_rounded,
+              mate.available
+                  ? Icons.check_circle_rounded
+                  : Icons.cancel_rounded,
               mate.available ? 'Available' : 'Unavailable',
               mate.available ? AppColors.secondary : AppColors.slate400,
             ),
@@ -393,12 +421,19 @@ class _MyMateCard extends StatelessWidget {
             if (mate.fromLocation != null && mate.toLocation != null)
               Row(
                 children: [
-                  Icon(Icons.trip_origin_rounded, size: 13, color: AppColors.secondary),
+                  Icon(
+                    Icons.trip_origin_rounded,
+                    size: 13,
+                    color: AppColors.secondary,
+                  ),
                   const SizedBox(width: 4),
                   Flexible(
                     child: Text(
                       '${mate.fromLocation} → ${mate.toLocation}',
-                      style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w600),
+                      style: AppTheme.body(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -411,11 +446,19 @@ class _MyMateCard extends StatelessWidget {
               runSpacing: 6,
               children: [
                 if (mate.departureTime != null)
-                  _Chip(Icons.schedule_rounded, mate.departureTime!, accentColor),
+                  _Chip(
+                    Icons.schedule_rounded,
+                    mate.departureTime!,
+                    accentColor,
+                  ),
                 if (mate.frequency != null)
                   _Chip(Icons.repeat_rounded, mate.frequency!, accentColor),
                 if (mate.vehicleType != null)
-                  _Chip(Icons.two_wheeler_rounded, mate.vehicleType!, accentColor),
+                  _Chip(
+                    Icons.two_wheeler_rounded,
+                    mate.vehicleType!,
+                    accentColor,
+                  ),
               ],
             ),
           ],
@@ -425,9 +468,12 @@ class _MyMateCard extends StatelessWidget {
 
   IconData _typeIcon(MateType type) {
     switch (type) {
-      case MateType.roommate: return Icons.people_alt_rounded;
-      case MateType.helpmate: return Icons.handshake_rounded;
-      case MateType.ridemate: return Icons.directions_bike_rounded;
+      case MateType.roommate:
+        return Icons.people_alt_rounded;
+      case MateType.helpmate:
+        return Icons.handshake_rounded;
+      case MateType.ridemate:
+        return Icons.directions_bike_rounded;
     }
   }
 }
@@ -513,7 +559,11 @@ class _EmptyState extends StatelessWidget {
             Text(
               "You haven't posted any mates yet.",
               textAlign: TextAlign.center,
-              style: AppTheme.body(fontSize: 15, color: AppColors.slate500, height: 1.6),
+              style: AppTheme.body(
+                fontSize: 15,
+                color: AppColors.slate500,
+                height: 1.6,
+              ),
             ),
             const SizedBox(height: 24),
             ElevatedButton.icon(
@@ -521,14 +571,22 @@ class _EmptyState extends StatelessWidget {
               icon: const Icon(Icons.add_rounded, size: 18),
               label: Text(
                 'Post Your First Mate',
-                style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700),
+                style: GoogleFonts.inter(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w700,
+                ),
               ),
               style: ElevatedButton.styleFrom(
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
                 elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 24,
+                  vertical: 14,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
               ),
             ),
           ],

@@ -14,7 +14,11 @@ import '../theme/app_theme.dart';
 class AddMateScreen extends StatefulWidget {
   final MateType initialType;
   final MateModel? mateToEdit;
-  const AddMateScreen({super.key, this.initialType = MateType.roommate, this.mateToEdit});
+  const AddMateScreen({
+    super.key,
+    this.initialType = MateType.roommate,
+    this.mateToEdit,
+  });
 
   @override
   State<AddMateScreen> createState() => _AddMateScreenState();
@@ -53,12 +57,23 @@ class _AddMateScreenState extends State<AddMateScreen> {
 
   static const _genderOptions = ['Any', 'Male', 'Female'];
   static const _lifestyleOptions = [
-    'Non-smoker', 'Vegetarian', 'Early riser', 'Night owl',
-    'Pet-friendly', 'Students only', 'Working professional',
+    'Non-smoker',
+    'Vegetarian',
+    'Early riser',
+    'Night owl',
+    'Pet-friendly',
+    'Students only',
+    'Working professional',
   ];
   static const _helpTypeOptions = [
-    'Errands', 'Emergency', 'Medical', 'Moving help',
-    'Companionship', 'Tech help', 'Grocery', 'Other',
+    'Errands',
+    'Emergency',
+    'Medical',
+    'Moving help',
+    'Companionship',
+    'Tech help',
+    'Grocery',
+    'Other',
   ];
   static const _frequencyOptions = ['Daily', 'Weekdays', 'Weekends', 'Once'];
   static const _vehicleOptions = ['Bike', 'Scooty', 'Car'];
@@ -135,7 +150,10 @@ class _AddMateScreenState extends State<AddMateScreen> {
     try {
       final svc = LocationService();
       final pos = await svc.getCurrentPosition();
-      final addr = await svc.getAddressFromCoordinates(pos.latitude, pos.longitude);
+      final addr = await svc.getAddressFromCoordinates(
+        pos.latitude,
+        pos.longitude,
+      );
       setState(() {
         _locationCtrl.text = addr;
         _latitude = pos.latitude;
@@ -178,16 +196,30 @@ class _AddMateScreenState extends State<AddMateScreen> {
         description: _descCtrl.text.trim(),
         createdAt: widget.mateToEdit?.createdAt,
         // Roommate
-        budget: _selectedType == MateType.roommate ? _budgetCtrl.text.trim() : null,
-        preferredGender: _selectedType == MateType.roommate ? _preferredGender : null,
-        lifestyle: _selectedType == MateType.roommate ? List.from(_lifestyle) : [],
+        budget: _selectedType == MateType.roommate
+            ? _budgetCtrl.text.trim()
+            : null,
+        preferredGender: _selectedType == MateType.roommate
+            ? _preferredGender
+            : null,
+        lifestyle: _selectedType == MateType.roommate
+            ? List.from(_lifestyle)
+            : [],
         // Helpmate
-        helpTypes: _selectedType == MateType.helpmate ? List.from(_helpTypes) : [],
+        helpTypes: _selectedType == MateType.helpmate
+            ? List.from(_helpTypes)
+            : [],
         available: _selectedType == MateType.helpmate ? _available : true,
         // Ridemate
-        fromLocation: _selectedType == MateType.ridemate ? _fromCtrl.text.trim() : null,
-        toLocation: _selectedType == MateType.ridemate ? _toCtrl.text.trim() : null,
-        departureTime: _selectedType == MateType.ridemate ? _timeCtrl.text.trim() : null,
+        fromLocation: _selectedType == MateType.ridemate
+            ? _fromCtrl.text.trim()
+            : null,
+        toLocation: _selectedType == MateType.ridemate
+            ? _toCtrl.text.trim()
+            : null,
+        departureTime: _selectedType == MateType.ridemate
+            ? _timeCtrl.text.trim()
+            : null,
         frequency: _selectedType == MateType.ridemate ? _frequency : null,
         vehicleType: _selectedType == MateType.ridemate ? _vehicleType : null,
       );
@@ -202,10 +234,16 @@ class _AddMateScreenState extends State<AddMateScreen> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(isEdit ? '${_selectedType.label} post updated' : '${_selectedType.label} post published'),
+            content: Text(
+              isEdit
+                  ? '${_selectedType.label} post updated'
+                  : '${_selectedType.label} post published',
+            ),
             backgroundColor: _accentColor,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -213,7 +251,9 @@ class _AddMateScreenState extends State<AddMateScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Failed to ${widget.mateToEdit != null ? 'update' : 'post'}: $e'),
+            content: Text(
+              'Failed to ${widget.mateToEdit != null ? 'update' : 'post'}: $e',
+            ),
             backgroundColor: AppColors.error,
           ),
         );
@@ -235,7 +275,10 @@ class _AddMateScreenState extends State<AddMateScreen> {
           elevation: 0,
           scrolledUnderElevation: 0,
           leading: IconButton(
-            icon: const Icon(Icons.arrow_back_rounded, color: AppColors.onSurface),
+            icon: const Icon(
+              Icons.arrow_back_rounded,
+              color: AppColors.onSurface,
+            ),
             onPressed: () => Navigator.pop(context),
           ),
           title: Text(
@@ -311,11 +354,16 @@ class _AddMateScreenState extends State<AddMateScreen> {
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.onSurface),
+          icon: const Icon(
+            Icons.arrow_back_rounded,
+            color: AppColors.onSurface,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          widget.mateToEdit != null ? 'Edit ${widget.mateToEdit!.type.label}' : 'Post a Mate',
+          widget.mateToEdit != null
+              ? 'Edit ${widget.mateToEdit!.type.label}'
+              : 'Post a Mate',
           style: AppTheme.headline(fontSize: 20, fontWeight: FontWeight.w800),
         ),
       ),
@@ -345,7 +393,8 @@ class _AddMateScreenState extends State<AddMateScreen> {
               icon: Icons.phone_rounded,
               keyboardType: TextInputType.phone,
               accentColor: _accentColor,
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Phone is required' : null,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Phone is required' : null,
             ),
             const SizedBox(height: 12),
             _Field(
@@ -356,16 +405,26 @@ class _AddMateScreenState extends State<AddMateScreen> {
               accentColor: _accentColor,
               suffix: _isLocating
                   ? const SizedBox(
-                      width: 18, height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: AppColors.primary,
+                      ),
                     )
                   : IconButton(
-                      icon: Icon(Icons.my_location_rounded, color: _accentColor, size: 20),
+                      icon: Icon(
+                        Icons.my_location_rounded,
+                        color: _accentColor,
+                        size: 20,
+                      ),
                       onPressed: _detectLocation,
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Location is required' : null,
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? 'Location is required'
+                  : null,
             ),
             const SizedBox(height: 24),
 
@@ -378,7 +437,8 @@ class _AddMateScreenState extends State<AddMateScreen> {
             _Field(
               controller: _descCtrl,
               label: 'Description',
-              hint: 'A short note about yourself or what you\'re looking for...',
+              hint:
+                  'A short note about yourself or what you\'re looking for...',
               icon: Icons.notes_rounded,
               maxLines: 3,
               accentColor: _accentColor,
@@ -402,9 +462,11 @@ class _AddMateScreenState extends State<AddMateScreen> {
                 ),
                 child: _isLoading
                     ? const SizedBox(
-                        width: 22, height: 22,
+                        width: 22,
+                        height: 22,
                         child: CircularProgressIndicator(
-                          strokeWidth: 2.5, color: Colors.white,
+                          strokeWidth: 2.5,
+                          color: Colors.white,
                         ),
                       )
                     : Text(
@@ -486,8 +548,18 @@ class _AddMateScreenState extends State<AddMateScreen> {
       label: 'Available Right Now',
       value: _available,
       accentColor: _accentColor,
-      onChanged: (v) => setState(() => _available = v),
+      onChanged: widget.mateToEdit == null
+          ? (v) => setState(() => _available = v)
+          : null,
     ),
+    if (widget.mateToEdit != null)
+      Padding(
+        padding: const EdgeInsets.only(top: 8.0, left: 16.0),
+        child: Text(
+          'Availability cannot be changed while editing.',
+          style: AppTheme.body(fontSize: 12, color: AppColors.slate500),
+        ),
+      ),
     const SizedBox(height: 24),
   ];
 
@@ -500,7 +572,8 @@ class _AddMateScreenState extends State<AddMateScreen> {
       hint: 'Starting point',
       icon: Icons.trip_origin_rounded,
       accentColor: _accentColor,
-      validator: (v) => (v == null || v.trim().isEmpty) ? 'Starting point is required' : null,
+      validator: (v) =>
+          (v == null || v.trim().isEmpty) ? 'Starting point is required' : null,
     ),
     const SizedBox(height: 12),
     _Field(
@@ -509,7 +582,8 @@ class _AddMateScreenState extends State<AddMateScreen> {
       hint: 'Destination',
       icon: Icons.location_on_rounded,
       accentColor: _accentColor,
-      validator: (v) => (v == null || v.trim().isEmpty) ? 'Destination is required' : null,
+      validator: (v) =>
+          (v == null || v.trim().isEmpty) ? 'Destination is required' : null,
     ),
     const SizedBox(height: 16),
     _SectionLabel(label: 'Departure Time'),
@@ -609,7 +683,10 @@ class _Field extends StatelessWidget {
         suffixIcon: suffix != null
             ? Padding(padding: const EdgeInsets.only(right: 12), child: suffix)
             : null,
-        suffixIconConstraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+        suffixIconConstraints: const BoxConstraints(
+          minWidth: 36,
+          minHeight: 36,
+        ),
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
@@ -632,7 +709,10 @@ class _Field extends StatelessWidget {
           borderRadius: BorderRadius.circular(14),
           borderSide: const BorderSide(color: AppColors.error, width: 1.5),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     );
   }
@@ -662,9 +742,7 @@ class _TypeSelector extends StatelessWidget {
             onTap: () => onChanged(type),
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 200),
-              margin: EdgeInsets.only(
-                right: type != MateType.ridemate ? 8 : 0,
-              ),
+              margin: EdgeInsets.only(right: type != MateType.ridemate ? 8 : 0),
               padding: const EdgeInsets.symmetric(vertical: 14),
               decoration: BoxDecoration(
                 color: isSelected ? color : Colors.white,
@@ -759,17 +837,18 @@ class _ToggleRow extends StatelessWidget {
   final String label;
   final bool value;
   final Color accentColor;
-  final ValueChanged<bool> onChanged;
+  final ValueChanged<bool>? onChanged;
 
   const _ToggleRow({
     required this.label,
     required this.value,
     required this.accentColor,
-    required this.onChanged,
+    this.onChanged,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDisabled = onChanged == null;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       decoration: BoxDecoration(
@@ -783,21 +862,31 @@ class _ToggleRow extends StatelessWidget {
             height: 8,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: value ? accentColor : AppColors.slate400,
+              color: value
+                  ? (isDisabled
+                        ? accentColor.withValues(alpha: 0.5)
+                        : accentColor)
+                  : AppColors.slate400,
             ),
           ),
           const SizedBox(width: 12),
           Expanded(
             child: Text(
               label,
-              style: AppTheme.body(fontSize: 15, fontWeight: FontWeight.w600),
+              style: AppTheme.body(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: isDisabled ? AppColors.slate500 : AppColors.onSurface,
+              ),
             ),
           ),
           Switch.adaptive(
             value: value,
             onChanged: onChanged,
             activeThumbColor: Colors.white,
-            activeTrackColor: accentColor,
+            activeTrackColor: isDisabled
+                ? accentColor.withValues(alpha: 0.5)
+                : accentColor,
           ),
         ],
       ),

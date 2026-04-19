@@ -183,6 +183,18 @@ class LocationService {
   /// Save a GeoFirePoint to the worker's Firestore document.
   Future<void> saveWorkerLocation(String uid, double lat, double lng) async {
     final geoFirePoint = GeoFirePoint(GeoPoint(lat, lng));
+    final byIdRef = _firestore.collection('workers').doc(uid);
+    final byId = await byIdRef.get();
+    if (byId.exists) {
+      await byIdRef.set({
+        'uid': uid,
+        'position': geoFirePoint.data,
+        'latitude': lat,
+        'longitude': lng,
+      }, SetOptions(merge: true));
+      return;
+    }
+
     final snap = await _firestore
         .collection('workers')
         .where('uid', isEqualTo: uid)
@@ -245,7 +257,12 @@ class LocationService {
     for (final doc in snapshots) {
       final data = doc.data();
       if (data == null) continue;
-      final worker = WorkerModel.fromMap(data);
+      final normalized = Map<String, dynamic>.from(data);
+      normalized['uid'] =
+          (normalized['uid'] == null || '${normalized['uid']}'.trim().isEmpty)
+          ? doc.id
+          : normalized['uid'];
+      final worker = WorkerModel.fromMap(normalized);
 
       // Apply service type and subscription filters client-side
       if (normalizedService != null) {
@@ -318,7 +335,13 @@ class LocationService {
         .get();
 
     final allWorkers = allSnap.docs
-        .map((doc) => WorkerModel.fromMap(doc.data()))
+        .map((doc) {
+          final data = Map<String, dynamic>.from(doc.data());
+          data['uid'] = (data['uid'] == null || '${data['uid']}'.trim().isEmpty)
+              ? doc.id
+              : data['uid'];
+          return WorkerModel.fromMap(data);
+        })
         .where((w) => w.location.trim().isNotEmpty)
         .toList();
 

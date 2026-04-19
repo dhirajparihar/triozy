@@ -4,8 +4,10 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:provider/provider.dart';
 import '../theme/app_colors.dart';
 import '../services/auth_service.dart';
+import '../services/fcm_service.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/top_app_bar.dart';
+import '../providers/chat_provider.dart';
 import '../providers/location_provider.dart';
 import 'home_screen.dart';
 import 'search_results_screen.dart';
@@ -13,6 +15,7 @@ import 'requests_screen.dart';
 import 'mate_screen.dart';
 import 'user_profile_screen.dart';
 import 'worker_dashboard_screen.dart';
+import 'chat_list_screen.dart';
 import 'add_request_screen.dart';
 import 'add_mate_screen.dart';
 import 'worker_setup_screen.dart';
@@ -51,7 +54,7 @@ class _MainShellState extends State<MainShell> {
   @override
   void initState() {
     super.initState();
-    // Trigger shared location fetch (no-op if already loaded)
+    // Trigger shared location fetch and chat stream setup (no-op if already loaded)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final locProvider = context.read<LocationProvider>();
       locProvider.fetchLocation().then((_) {
@@ -59,6 +62,13 @@ class _MainShellState extends State<MainShell> {
           _showLocationDialog();
         }
       });
+
+      final uid = FirebaseAuth.instance.currentUser?.uid;
+      if (uid != null && uid.isNotEmpty) {
+        context.read<ChatProvider>().initialize(uid);
+      }
+
+      FCMService().initialize();
     });
   }
 
@@ -328,6 +338,7 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final locationProvider = context.watch<LocationProvider>();
+    final unreadCount = context.watch<ChatProvider>().totalUnreadCount;
 
     return PopScope(
       canPop: false,
@@ -359,6 +370,11 @@ class _MainShellState extends State<MainShell> {
                 showAvatar: _currentIndex != 4,
                 onAvatarTap: () => setState(() => _currentIndex = 4),
                 onLocationTap: _showChangeLocationSheet,
+                unreadCount: unreadCount,
+                onChatTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const ChatListScreen()),
+                ),
               ),
             ),
             // Bottom Nav Bar

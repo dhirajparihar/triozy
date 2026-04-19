@@ -59,37 +59,12 @@ class AuthService {
     }
   }
 
-  /// Generates the user document ID as "Name_uid" for readability in Firestore console
-  String _userDocId(String name, String uid) {
-    final sanitized = name.trim()
-        .replaceAll(RegExp(r'[^a-zA-Z0-9 ]'), '')
-        .replaceAll(' ', '-');
-    return '${sanitized}_$uid';
-  }
+  /// Finds worker document by canonical doc id (uid) first, then legacy uid-field query.
+  Future<DocumentReference<Map<String, dynamic>>?> _workerDocRef(String uid) async {
+    final byId = _firestore.collection('workers').doc(uid);
+    final byIdSnap = await byId.get();
+    if (byIdSnap.exists) return byId;
 
-  /// Finds the user document reference by querying on the uid field.
-  /// Works for both old (uid-only) and new (Name_uid) document IDs.
-  Future<DocumentReference?> _userDocRef(String uid) async {
-    final snap = await _firestore
-        .collection('users')
-        .where('uid', isEqualTo: uid)
-        .limit(1)
-        .get();
-    if (snap.docs.isNotEmpty) return snap.docs.first.reference;
-    return null;
-  }
-
-  /// Generates the worker document ID as "Name_uid" format
-  String _workerDocId(String name, String uid) {
-    final sanitized = name.trim()
-        .replaceAll(RegExp(r'[^a-zA-Z0-9 ]'), '')
-        .replaceAll(' ', '-');
-    return '${sanitized}_$uid';
-  }
-
-  /// Finds the worker document reference by querying on the uid field.
-  /// Works for both old (uid-only) and new (Name_uid) document IDs.
-  Future<DocumentReference?> _workerDocRef(String uid) async {
     final snap = await _firestore
         .collection('workers')
         .where('uid', isEqualTo: uid)
@@ -101,12 +76,14 @@ class AuthService {
 
   /// Check if user document exists in Firestore
   Future<Map<String, dynamic>?> getUserData(String uid) async {
-    final snap = await _firestore
+    final byId = await _firestore.collection('users').doc(uid).get();
+    if (byId.exists) return byId.data();
+    final fallback = await _firestore
         .collection('users')
         .where('uid', isEqualTo: uid)
         .limit(1)
         .get();
-    if (snap.docs.isNotEmpty) return snap.docs.first.data();
+    if (fallback.docs.isNotEmpty) return fallback.docs.first.data();
     return null;
   }
 
@@ -128,7 +105,7 @@ class AuthService {
     required String role,
     String? photoUrl,
   }) async {
-    final existingRef = await _userDocRef(uid);
+    final userRef = _firestore.collection('users').doc(uid);
     final data = <String, dynamic>{
       'uid': uid,
       'name': name,
@@ -137,16 +114,8 @@ class AuthService {
       'photoUrl': photoUrl ?? '',
       'isProfileComplete': role == 'customer' ? true : false,
     };
-    if (existingRef != null) {
-      await existingRef.set(data, SetOptions(merge: true));
-    } else {
-      // New user: create doc with Name_uid format
-      data['createdAt'] = FieldValue.serverTimestamp();
-      await _firestore
-          .collection('users')
-          .doc(_userDocId(name, uid))
-          .set(data, SetOptions(merge: true));
-    }
+    data['createdAt'] = FieldValue.serverTimestamp();
+    await userRef.set(data, SetOptions(merge: true));
   }
 
   /// Save worker profile data (now with optional geo location)
@@ -191,34 +160,33 @@ class AuthService {
       workerData['longitude'] = longitude;
     }
 
-    // Save to workers collection using Name_uid format for new docs
-    final existingRef = await _workerDocRef(uid);
-    if (existingRef != null) {
-      await existingRef.set(workerData, SetOptions(merge: true));
-    } else {
-      final workerName = (name ?? user?.displayName ?? '').trim();
-      await _firestore
-          .collection('workers')
-          .doc(_workerDocId(workerName, uid))
-          .set(workerData, SetOptions(merge: true));
-    }
+    // Save to canonical workers/{uid}
+    await _firestore
+        .collection('workers')
+        .doc(uid)
+        .set(workerData, SetOptions(merge: true));
 
     // Mark profile as not yet complete in users collection
-    final userRef1 = await _userDocRef(uid);
-    if (userRef1 != null) await userRef1.update({'isProfileComplete': false});
+    await _firestore.collection('users').doc(uid).set({
+      'uid': uid,
+      'isProfileComplete': false,
+    }, SetOptions(merge: true));
   }
 
   /// Activate worker profile after completing registration
   Future<void> activateWorkerProfile({required String uid}) async {
     // Update workers collection
-    final workerRef = await _workerDocRef(uid);
-    if (workerRef != null) {
-      await workerRef.update({'isSubscribed': true, 'status': 'active'});
-    }
+    await _firestore.collection('workers').doc(uid).set({
+      'uid': uid,
+      'isSubscribed': true,
+      'status': 'active',
+    }, SetOptions(merge: true));
 
     // Update users collection
-    final userRef2 = await _userDocRef(uid);
-    if (userRef2 != null) await userRef2.update({'isProfileComplete': true});
+    await _firestore.collection('users').doc(uid).set({
+      'uid': uid,
+      'isProfileComplete': true,
+    }, SetOptions(merge: true));
   }
 
   /// Get worker profile data
@@ -226,7 +194,7 @@ class AuthService {
     final workerRef = await _workerDocRef(uid);
     if (workerRef == null) return null;
     final doc = await workerRef.get();
-    return doc.exists ? (doc.data() as Map<String, dynamic>?) : null;
+    return doc.exists ? doc.data() : null;
   }
 
   /// Sign out

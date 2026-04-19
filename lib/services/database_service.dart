@@ -73,9 +73,12 @@ class DatabaseService {
 
   // ─── Workers ───
 
-  /// Finds a worker document reference by querying on the uid field.
-  /// Works for both old (uid-only) and new (Name_uid) document IDs.
-  Future<DocumentReference?> _workerDocRef(String uid) async {
+  /// Finds worker document by canonical doc id (uid) first, then legacy uid-field query.
+  Future<DocumentReference<Map<String, dynamic>>?> _workerDocRef(String uid) async {
+    final byId = _firestore.collection('workers').doc(uid);
+    final byIdSnap = await byId.get();
+    if (byIdSnap.exists) return byId;
+
     final snap = await _firestore
         .collection('workers')
         .where('uid', isEqualTo: uid)
@@ -91,7 +94,15 @@ class DatabaseService {
         .collection('workers')
         .orderBy('rating', descending: true)
         .get();
-    return snapshot.docs.map((doc) => WorkerModel.fromMap(doc.data())).toList();
+    return snapshot.docs
+        .map((doc) {
+          final data = Map<String, dynamic>.from(doc.data());
+          data['uid'] = (data['uid'] == null || '${data['uid']}'.trim().isEmpty)
+              ? doc.id
+              : data['uid'];
+          return WorkerModel.fromMap(data);
+        })
+        .toList();
   }
 
   /// Get workers by service type / category
@@ -109,7 +120,15 @@ class DatabaseService {
         .collection('workers')
         .where('skills', arrayContains: normalized)
         .get();
-    return snapshot.docs.map((doc) => WorkerModel.fromMap(doc.data())).toList();
+    return snapshot.docs
+        .map((doc) {
+          final data = Map<String, dynamic>.from(doc.data());
+          data['uid'] = (data['uid'] == null || '${data['uid']}'.trim().isEmpty)
+              ? doc.id
+              : data['uid'];
+          return WorkerModel.fromMap(data);
+        })
+        .toList();
   }
 
   /// Get top rated workers (limit)
@@ -120,17 +139,41 @@ class DatabaseService {
         .orderBy('rating', descending: true)
         .limit(limit)
         .get();
-    return snapshot.docs.map((doc) => WorkerModel.fromMap(doc.data())).toList();
+    return snapshot.docs
+        .map((doc) {
+          final data = Map<String, dynamic>.from(doc.data());
+          data['uid'] = (data['uid'] == null || '${data['uid']}'.trim().isEmpty)
+              ? doc.id
+              : data['uid'];
+          return WorkerModel.fromMap(data);
+        })
+        .toList();
   }
 
   /// Get single worker by uid
   Future<WorkerModel?> getWorker(String uid) async {
+    final byId = await _firestore.collection('workers').doc(uid).get();
+    if (byId.exists) {
+      final data = Map<String, dynamic>.from(byId.data()!);
+      data['uid'] = (data['uid'] == null || '${data['uid']}'.trim().isEmpty)
+          ? byId.id
+          : data['uid'];
+      return WorkerModel.fromMap(data);
+    }
+
     final snap = await _firestore
         .collection('workers')
         .where('uid', isEqualTo: uid)
         .limit(1)
         .get();
-    if (snap.docs.isNotEmpty) return WorkerModel.fromMap(snap.docs.first.data());
+    if (snap.docs.isNotEmpty) {
+      final doc = snap.docs.first;
+      final data = Map<String, dynamic>.from(doc.data());
+      data['uid'] = (data['uid'] == null || '${data['uid']}'.trim().isEmpty)
+          ? doc.id
+          : data['uid'];
+      return WorkerModel.fromMap(data);
+    }
     return null;
   }
 
@@ -141,9 +184,17 @@ class DatabaseService {
         .where('uid', isEqualTo: uid)
         .limit(1)
         .snapshots()
-        .map((snap) => snap.docs.isNotEmpty
-            ? WorkerModel.fromMap(snap.docs.first.data())
-            : null);
+        .map((snap) {
+          if (snap.docs.isEmpty) {
+            return null;
+          }
+          final doc = snap.docs.first;
+          final data = Map<String, dynamic>.from(doc.data());
+          data['uid'] = (data['uid'] == null || '${data['uid']}'.trim().isEmpty)
+              ? doc.id
+              : data['uid'];
+          return WorkerModel.fromMap(data);
+        });
   }
 
   /// Search workers by name or skill
@@ -191,6 +242,7 @@ class DatabaseService {
   /// Submit or update a star rating for a worker.
   /// Each user can only rate once; re-rating replaces the previous value.
   Future<void> submitWorkerRating(String workerId, String userId, double stars) async {
+    final safeStars = stars.clamp(1.0, 5.0).toDouble();
     final workerRef = await _workerDocRef(workerId);
     if (workerRef == null) return;
     final ratingRef = workerRef.collection('ratings').doc(userId);
@@ -198,7 +250,7 @@ class DatabaseService {
     final workerDoc = await workerRef.get();
     if (!workerDoc.exists) return;
 
-    final data = workerDoc.data()! as Map<String, dynamic>;
+    final data = workerDoc.data()!;
     double currentRating = (data['rating'] ?? 0).toDouble();
     int totalRatings = (data['totalRatings'] ?? 0).toInt();
 
@@ -212,19 +264,23 @@ class DatabaseService {
       // totalRatings stays the same
       newTotal = totalRatings;
       newAverage = totalRatings == 0
-          ? stars
-          : ((currentRating * totalRatings) - oldStars + stars) / totalRatings;
+          ? safeStars
+          : ((currentRating * totalRatings) - oldStars + safeStars) / totalRatings;
     } else {
       newTotal = totalRatings + 1;
-      newAverage = ((currentRating * totalRatings) + stars) / newTotal;
+      newAverage = ((currentRating * totalRatings) + safeStars) / newTotal;
     }
+    final clampedAverage = newAverage.clamp(0.0, 5.0).toDouble();
 
     await Future.wait([
       workerRef.update({
-        'rating': double.parse(newAverage.toStringAsFixed(1)),
+        'rating': double.parse(clampedAverage.toStringAsFixed(1)),
         'totalRatings': newTotal,
       }),
-      ratingRef.set({'stars': stars, 'updatedAt': FieldValue.serverTimestamp()}),
+      ratingRef.set({
+        'stars': safeStars,
+        'updatedAt': FieldValue.serverTimestamp(),
+      }),
     ]);
   }
 
@@ -369,12 +425,24 @@ class DatabaseService {
 
   /// Get user data
   Future<Map<String, dynamic>?> getUserData(String uid) async {
-    final snap = await _firestore
-        .collection('users')
-        .where('uid', isEqualTo: uid)
-        .limit(1)
-        .get();
-    if (snap.docs.isNotEmpty) return snap.docs.first.data();
+    try {
+      final byId = await _firestore.collection('users').doc(uid).get();
+      if (byId.exists) return byId.data();
+    } on FirebaseException catch (e) {
+      if (e.code != 'permission-denied') rethrow;
+      return null;
+    }
+    try {
+      final fallback = await _firestore
+          .collection('users')
+          .where('uid', isEqualTo: uid)
+          .limit(1)
+          .get();
+      if (fallback.docs.isNotEmpty) return fallback.docs.first.data();
+    } on FirebaseException catch (e) {
+      if (e.code != 'permission-denied') rethrow;
+      return null;
+    }
     return null;
   }
 

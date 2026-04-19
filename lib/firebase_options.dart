@@ -36,8 +36,8 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBCFlSP0nOIiMlyvwFhBoxgGLuBc5z6AAk',
-    appId: '1:552703049298:web:87f68019148402a052698b',
+    apiKey: 'AIzaSyBNQkp9PIZrLPN36NgGIh_oK-XgdR5Tej4',
+    appId: '1:552703049298:android:957656fc1388180b52698b',
     messagingSenderId: '552703049298',
     projectId: 'triozy-app',
     storageBucket: 'triozy-app.firebasestorage.app',

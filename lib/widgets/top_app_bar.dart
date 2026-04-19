@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'dart:ui';
-import 'dart:math' as math;
 import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 
@@ -10,6 +9,8 @@ class TriozyTopAppBar extends StatelessWidget {
   final bool showAvatar;
   final VoidCallback? onAvatarTap;
   final VoidCallback? onLocationTap;
+  final VoidCallback? onChatTap;
+  final int unreadCount;
 
   const TriozyTopAppBar({
     super.key,
@@ -18,6 +19,8 @@ class TriozyTopAppBar extends StatelessWidget {
     this.showAvatar = true,
     this.onAvatarTap,
     this.onLocationTap,
+    this.onChatTap,
+    this.unreadCount = 0,
   });
 
   @override
@@ -30,9 +33,6 @@ class TriozyTopAppBar extends StatelessWidget {
             final width = constraints.maxWidth;
             final wordmarkSize = width < 360 ? 16.0 : 18.0;
             final brandSlotWidth = width < 360 ? 118.0 : 138.0;
-            const avatarSlotWidth = 36.0;
-            final safeHalfWidth = ((width - brandSlotWidth) / 2) - 8;
-            final locationMaxWidth = math.max(120.0, safeHalfWidth);
             return Container(
               height: MediaQuery.of(context).padding.top + 60,
               padding: EdgeInsets.only(
@@ -104,6 +104,74 @@ class TriozyTopAppBar extends StatelessWidget {
                           ),
                         ),
                       ),
+                      if (onChatTap != null) ...[
+                        const SizedBox(width: 8),
+                        Stack(
+                          clipBehavior: Clip.none,
+                          children: [
+                            GestureDetector(
+                              onTap: onChatTap,
+                              child: Container(
+                                width: 36,
+                                height: 36,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.secondary.withValues(
+                                      alpha: 0.15,
+                                    ),
+                                    width: 2,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(
+                                        alpha: 0.06,
+                                      ),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: const Icon(
+                                  Icons.chat_rounded,
+                                  color: AppColors.secondary,
+                                  size: 18,
+                                ),
+                              ),
+                            ),
+                            if (unreadCount > 0)
+                              Positioned(
+                                right: -2,
+                                top: -4,
+                                child: Container(
+                                  constraints: const BoxConstraints(
+                                    minWidth: 16,
+                                    minHeight: 16,
+                                  ),
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 4,
+                                  ),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.red,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  alignment: Alignment.center,
+                                  child: Text(
+                                    unreadCount > 99
+                                        ? '99+'
+                                        : unreadCount.toString(),
+                                    style: GoogleFonts.inter(
+                                      fontSize: unreadCount > 99 ? 7 : 9,
+                                      color: Colors.white,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                          ],
+                        ),
+                      ],
+                      const SizedBox(width: 8),
                       GestureDetector(
                         onTap: onAvatarTap,
                         child: Container(
@@ -149,7 +217,9 @@ class TriozyTopAppBar extends StatelessWidget {
                             decoration: BoxDecoration(
                               borderRadius: BorderRadius.circular(7),
                               border: Border.all(
-                                color: AppColors.blue700.withValues(alpha: 0.18),
+                                color: AppColors.blue700.withValues(
+                                  alpha: 0.18,
+                                ),
                               ),
                             ),
                             child: ClipRRect(

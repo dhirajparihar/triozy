@@ -1,10 +1,14 @@
 import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../models/chat_model.dart';
 import '../models/request_model.dart';
+import '../providers/chat_provider.dart';
 import '../services/database_service.dart';
 import '../services/auth_service.dart';
+import '../screens/chat_detail_screen.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'add_request_screen.dart';
@@ -563,6 +567,16 @@ class _RequestListView extends StatelessWidget {
     required this.onDelete,
   });
 
+  String _normalizeUid(String raw) {
+    final value = raw.trim();
+    if (value.isEmpty || !value.contains('_')) {
+      return value;
+    }
+    final tail = value.split('_').last.trim();
+    final looksLikeUid = RegExp(r'^[A-Za-z0-9]{20,}$').hasMatch(tail);
+    return looksLikeUid ? tail : value;
+  }
+
   @override
   Widget build(BuildContext context) {
     return StreamBuilder<List<RequestModel>>(
@@ -583,7 +597,8 @@ class _RequestListView extends StatelessWidget {
           itemCount: filtered.length,
           itemBuilder: (_, i) {
             final r = filtered[i];
-            final isOwner = r.userId == currentUserId;
+            final isOwner =
+                _normalizeUid(r.userId) == _normalizeUid(currentUserId);
             return _RequestCard(
               request: r,
               isOpen: isEffectivelyOpen(r),
@@ -594,6 +609,53 @@ class _RequestListView extends StatelessWidget {
               onClose: () => onClose(r),
               onReopen: () => onReopen(r),
               onDelete: () => onDelete(r),
+              onChat: !isMyTab && !isOwner
+                  ? () async {
+                      final currentUid = FirebaseAuth.instance.currentUser?.uid;
+                      if (currentUid == null || currentUid.isEmpty) {
+                        return;
+                      }
+                      if (currentUid == r.userId) {
+                        return; // Prevent self-chat
+                      }
+                      try {
+                        final conversationId = await context
+                            .read<ChatProvider>()
+                            .createOrGetChat(
+                              otherUserId: r.userId,
+                              chatType: ChatType.request.value,
+                              referenceId: r.id,
+                              otherUserName: r.posterName,
+                              otherUserPhotoUrl: r.photoUrl ?? '',
+                              otherUserLocation: r.location,
+                              currentUserName: FirebaseAuth
+                                  .instance
+                                  .currentUser
+                                  ?.displayName,
+                              currentUserPhotoUrl:
+                                  FirebaseAuth.instance.currentUser?.photoURL,
+                            );
+                        if (!context.mounted) {
+                          return;
+                        }
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => ChatDetailScreen(
+                              conversationId: conversationId,
+                            ),
+                          ),
+                        );
+                      } catch (e) {
+                        if (!context.mounted) {
+                          return;
+                        }
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Unable to open chat: $e')),
+                        );
+                      }
+                    }
+                  : null,
             );
           },
         );
@@ -614,6 +676,7 @@ class _RequestCard extends StatelessWidget {
   final VoidCallback onClose;
   final VoidCallback onReopen;
   final VoidCallback onDelete;
+  final VoidCallback? onChat;
 
   const _RequestCard({
     required this.request,
@@ -625,6 +688,7 @@ class _RequestCard extends StatelessWidget {
     required this.onClose,
     required this.onReopen,
     required this.onDelete,
+    this.onChat,
   });
 
   static const _palette = [
@@ -853,50 +917,168 @@ class _RequestCard extends StatelessWidget {
                       ],
                       // ── Footer ──
                       const SizedBox(height: 12),
-                      if (showCallButton && !showMyActions)
-                        SizedBox(
-                          width: double.infinity,
-                          child: GestureDetector(
-                            onTap: onCall,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 18,
-                                vertical: 11,
-                              ),
-                              decoration: BoxDecoration(
-                                color: AppColors.primary,
-                                borderRadius: BorderRadius.circular(12),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: AppColors.primary.withValues(
-                                      alpha: 0.22,
-                                    ),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                      if (!showMyActions && (showCallButton || onChat != null))
+                        Builder(
+                          builder: (context) {
+                            if (showCallButton && onChat != null) {
+                              return Row(
                                 children: [
-                                  const Icon(
-                                    Icons.call_rounded,
-                                    size: 15,
-                                    color: Colors.white,
+                                  Expanded(
+                                    child: GestureDetector(
+                                      onTap: onCall,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 18,
+                                          vertical: 11,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.primary,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppColors.primary
+                                                  .withValues(alpha: 0.22),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 3),
+                                            ),
+                                          ],
+                                        ),
+                                        child: Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment.center,
+                                          children: [
+                                            const Icon(
+                                              Icons.call_rounded,
+                                              size: 15,
+                                              color: Colors.white,
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Text(
+                                              'Call',
+                                              style: AppTheme.body(
+                                                fontSize: 13,
+                                                fontWeight: FontWeight.w700,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                                   ),
-                                  const SizedBox(width: 6),
-                                  Text(
-                                    'Call',
-                                    style: AppTheme.body(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
+                                  const SizedBox(width: 8),
+                                  SizedBox(
+                                    width: 44,
+                                    child: GestureDetector(
+                                      onTap: onChat,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(
+                                          horizontal: 12,
+                                          vertical: 11,
+                                        ),
+                                        decoration: BoxDecoration(
+                                          color: AppColors.secondary,
+                                          borderRadius: BorderRadius.circular(
+                                            12,
+                                          ),
+                                          boxShadow: [
+                                            BoxShadow(
+                                              color: AppColors.secondary
+                                                  .withValues(alpha: 0.22),
+                                              blurRadius: 8,
+                                              offset: const Offset(0, 3),
+                                            ),
+                                          ],
+                                        ),
+                                        child: const Icon(
+                                          Icons.chat_rounded,
+                                          size: 16,
+                                          color: Colors.white,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ],
+                              );
+                            }
+
+                            if (showCallButton) {
+                              return SizedBox(
+                                width: double.infinity,
+                                child: GestureDetector(
+                                  onTap: onCall,
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 18,
+                                      vertical: 11,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: AppColors.primary,
+                                      borderRadius: BorderRadius.circular(12),
+                                    ),
+                                    child: Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(
+                                          Icons.call_rounded,
+                                          size: 15,
+                                          color: Colors.white,
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'Call',
+                                          style: AppTheme.body(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }
+
+                            return SizedBox(
+                              width: double.infinity,
+                              child: GestureDetector(
+                                onTap: onChat,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 18,
+                                    vertical: 11,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.secondary,
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(
+                                        Icons.chat_rounded,
+                                        size: 15,
+                                        color: Colors.white,
+                                      ),
+                                      const SizedBox(width: 6),
+                                      Text(
+                                        'Chat',
+                                        style: AppTheme.body(
+                                          fontSize: 13,
+                                          fontWeight: FontWeight.w700,
+                                          color: Colors.white,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
+                            );
+                          },
                         ),
                       if (showMyActions)
                         Row(

@@ -194,7 +194,13 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
         photoUrl = await _uploadImage();
       }
 
-      final userData = await _auth.getUserData(user.uid);
+      Map<String, dynamic>? userData;
+      try {
+        userData = await _auth.getUserData(user.uid);
+      } catch (_) {
+        // Continue with auth profile fallback if user profile read is blocked.
+        userData = null;
+      }
       final resolvedPosterName =
           (widget.requestToEdit?.posterName.isNotEmpty == true
               ? widget.requestToEdit!.posterName
