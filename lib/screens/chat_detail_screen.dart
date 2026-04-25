@@ -35,11 +35,15 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     // Open conversation in provider
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<ChatProvider>().openConversation(
-        widget.conversationId,
-        _currentUserId,
-      );
+      _openConversation();
     });
+  }
+
+  Future<void> _openConversation() async {
+    final provider = context.read<ChatProvider>();
+    await provider.openConversation(widget.conversationId, _currentUserId);
+    if (!mounted) return;
+    await provider.markConversationAsReadIfNeeded(widget.conversationId);
   }
 
   @override

@@ -197,6 +197,9 @@ class ChatService {
         .map((snapshot) {
           final allConvs = snapshot.docs
               .map((doc) => ConversationModel.fromMap(doc.data(), doc.id))
+              // Conversation docs are created when user opens chat.
+              // Keep message list clean: only show after first actual message.
+              .where((conv) => conv.lastMessage.trim().isNotEmpty)
               .toList();
 
           // Force explicit local sort just in case Firestore's local cache

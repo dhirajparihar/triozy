@@ -25,6 +25,33 @@ service cloud.firestore {
            normalizedUserId() in data.participants);
     }
 
+    function hasValidChatParticipants(data) {
+      return data.participants is list &&
+          data.participants.size() == 2 &&
+          data.participants[0] is string &&
+          data.participants[1] is string &&
+          data.participants[0] != data.participants[1];
+    }
+
+    function isChatPayloadShapeValid(data) {
+      return data.keys().hasOnly([
+        'participants',
+        'chatType',
+        'referenceId',
+        'lastMessage',
+        'lastMessageTime',
+        'lastSenderId',
+        'lastReadAt',
+        'createdAt',
+      ]) &&
+          hasValidChatParticipants(data) &&
+          data.chatType in ['mate', 'service', 'request'] &&
+          data.referenceId is string &&
+          data.lastMessage is string &&
+          data.lastSenderId is string &&
+          data.lastReadAt is map;
+    }
+
     function normalizedUserId() {
       let parts = currentUserId().split('_');
       return parts.size() > 1 ? parts[parts.size() - 1] : currentUserId();
@@ -121,14 +148,12 @@ service cloud.firestore {
       allow read: if isParticipantData(resource.data);
 
       allow create: if isAuthenticated() &&
-          (currentUserId() in request.resource.data.participants || normalizedUserId() in request.resource.data.participants) &&
-          request.resource.data.participants.size() == 2 &&
-          request.resource.data.participants[0] != request.resource.data.participants[1] &&
-          request.resource.data.chatType in ['mate', 'service', 'request'] &&
-          request.resource.data.lastMessageTime is timestamp &&
-          request.resource.data.createdAt is timestamp;
+          isChatPayloadShapeValid(request.resource.data) &&
+          (currentUserId() in request.resource.data.participants ||
+           normalizedUserId() in request.resource.data.participants);
 
       allow update: if isParticipantData(resource.data) &&
+          isChatPayloadShapeValid(request.resource.data) &&
           request.resource.data.participants == resource.data.participants &&
           request.resource.data.chatType == resource.data.chatType &&
           request.resource.data.referenceId == resource.data.referenceId &&

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:math' as math;
 import 'dart:ui';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../theme/app_colors.dart';
@@ -532,27 +533,6 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
                 fontWeight: FontWeight.w700,
               ),
             ),
-            actions: [
-              IconButton(
-                onPressed: () => _searchController.selection = TextSelection(
-                  baseOffset: 0,
-                  extentOffset: _searchController.text.length,
-                ),
-                icon: const Icon(Icons.search_rounded),
-              ),
-              IconButton(
-                onPressed: () => setState(() => _popularOnly = !_popularOnly),
-                icon: Icon(
-                  _popularOnly
-                      ? Icons.local_fire_department_rounded
-                      : Icons.tune_rounded,
-                  color: _popularOnly
-                      ? AppColors.tertiary
-                      : AppColors.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(width: 4),
-            ],
             flexibleSpace: ClipRect(
               child: BackdropFilter(
                 filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
@@ -735,16 +715,30 @@ class _AllCategoriesScreenState extends State<AllCategoriesScreen> {
       ),
       SliverPadding(
         padding: const EdgeInsets.symmetric(horizontal: 16),
-        sliver: SliverGrid.builder(
-          itemCount: section.items.length,
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 2,
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 16,
-            childAspectRatio: 0.82,
-          ),
-          itemBuilder: (context, index) =>
-              _buildCard(context, section.items[index]),
+        sliver: SliverLayoutBuilder(
+          builder: (context, constraints) {
+            const crossAxisSpacing = 12.0;
+            const mainAxisSpacing = 16.0;
+            const targetCardWidth = 190.0;
+            const cardHeight = 220.0;
+
+            final crossAxisCount = math.max(
+              2,
+              (constraints.crossAxisExtent / targetCardWidth).floor(),
+            );
+
+            return SliverGrid.builder(
+              itemCount: section.items.length,
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: crossAxisCount,
+                crossAxisSpacing: crossAxisSpacing,
+                mainAxisSpacing: mainAxisSpacing,
+                mainAxisExtent: cardHeight,
+              ),
+              itemBuilder: (context, index) =>
+                  _buildCard(context, section.items[index]),
+            );
+          },
         ),
       ),
     ];

@@ -22,7 +22,6 @@ class ChatProvider extends ChangeNotifier {
   StreamSubscription<List<ConversationModel>>? _conversationsSubscription;
   StreamSubscription<List<ConversationModel>>? _pendingRequestsSubscription;
   StreamSubscription<List<MessageModel>>? _messagesSubscription;
-  bool _isMarkingConversationRead = false;
 
   // Getters
   List<ConversationModel> get conversations => _conversations;
@@ -118,17 +117,6 @@ class ChatProvider extends ChangeNotifier {
           .listen(
             (messages) {
               _currentMessages = messages;
-
-              // Mark as read if there are unread incoming messages or just to update conversation lastReadAt
-              // so that the unread count dot drops even if there are no new 'sent' messages to update
-              if (!_isMarkingConversationRead) {
-                _isMarkingConversationRead = true;
-                _chatService
-                    .markConversationAsRead(conversationId)
-                    .whenComplete(() {
-                      _isMarkingConversationRead = false;
-                    });
-              }
               notifyListeners();
             },
             onError: (e) {
@@ -143,6 +131,30 @@ class ChatProvider extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Mark a conversation as read only when it actually has incoming unread items.
+  Future<void> markConversationAsReadIfNeeded(String conversationId) async {
+    final userId = _currentUserId;
+    if (userId == null || userId.isEmpty) return;
+
+    ConversationModel? conv;
+    for (final c in _conversations) {
+      if (c.id == conversationId) {
+        conv = c;
+        break;
+      }
+    }
+    if (conv == null) return;
+
+    final lastReadAt = conv.lastReadAt[userId];
+    final hasUnreadIncoming =
+        conv.lastSenderId.isNotEmpty &&
+        conv.lastSenderId != userId &&
+        (lastReadAt == null || conv.lastMessageTime.isAfter(lastReadAt));
+    if (!hasUnreadIncoming) return;
+
+    await _chatService.markConversationAsRead(conversationId);
   }
 
   /// Close current conversation

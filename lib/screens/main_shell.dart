@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../theme/app_colors.dart';
 import '../services/auth_service.dart';
 import '../services/fcm_service.dart';
+import '../services/permission_center.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/top_app_bar.dart';
 import '../providers/chat_provider.dart';
@@ -20,6 +21,8 @@ import 'add_request_screen.dart';
 import 'add_mate_screen.dart';
 import 'worker_setup_screen.dart';
 
+enum _LocationDialogAction { skip, openSettings }
+
 class MainShell extends StatefulWidget {
   final bool isWorker;
   final bool isGuest;
@@ -33,6 +36,7 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
   DateTime? _lastBackPressedAt;
+  bool _isLocationDialogOpen = false;
   final GlobalKey<HomeScreenState> _homeScreenKey =
       GlobalKey<HomeScreenState>();
 
@@ -73,7 +77,10 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _showLocationDialog() {
-    showDialog(
+    if (_isLocationDialogOpen || !mounted) return;
+    _isLocationDialogOpen = true;
+
+    showDialog<_LocationDialogAction>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
@@ -91,26 +98,44 @@ class _MainShellState extends State<MainShell> {
         ),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(ctx),
+            onPressed: () => Navigator.pop(ctx, _LocationDialogAction.skip),
             child: Text('Skip', style: TextStyle(color: AppColors.outline)),
           ),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              context.read<LocationProvider>().refreshLocation();
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primary,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text('Retry'),
+          TextButton(
+            onPressed: () =>
+                Navigator.pop(ctx, _LocationDialogAction.openSettings),
+            child: const Text('Open Settings'),
           ),
         ],
       ),
-    );
+    ).then((action) async {
+      _isLocationDialogOpen = false;
+      if (!mounted) return;
+      switch (action) {
+        case _LocationDialogAction.openSettings:
+          await PermissionCenter.openSettings();
+          return;
+        case _LocationDialogAction.skip:
+        case null:
+          return;
+      }
+    });
+  }
+
+  Future<bool> _refreshLocationAndPromptIfFailed({
+    bool repromptOnError = true,
+  }) async {
+    final locationProvider = context.read<LocationProvider>();
+    await locationProvider.refreshLocation();
+    if (!mounted) return true;
+    if (locationProvider.hasError) {
+      if (repromptOnError) {
+        _showLocationDialog();
+      }
+      return true;
+    }
+    _homeScreenKey.currentState?.refreshFromShell();
+    return false;
   }
 
   void _showChangeLocationSheet() {
@@ -226,25 +251,33 @@ class _MainShellState extends State<MainShell> {
 
   Future<void> _useCurrentLocation() async {
     try {
-      await context.read<LocationProvider>().refreshLocation();
-      _homeScreenKey.currentState?.refreshFromShell();
-    } catch (e) {
+      final hasError = await _refreshLocationAndPromptIfFailed();
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Could not update location: $e')));
+      if (hasError) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Location permission is still off. Enable it from Settings.',
+            ),
+          ),
+        );
+      }
+    } catch (_) {
+      if (!mounted) return;
+      _showLocationDialog();
     }
   }
 
   Future<void> _applyManualLocation(String value) async {
     try {
-      await context.read<LocationProvider>().setLocationFromAddress(value);
+      final locationProvider = context.read<LocationProvider>();
+      await locationProvider.setLocationFromAddress(value);
       _homeScreenKey.currentState?.refreshFromShell();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Location updated to ${context.read<LocationProvider>().address}',
+            'Location updated to ${locationProvider.address}',
           ),
         ),
       );
