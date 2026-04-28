@@ -171,38 +171,40 @@ class TriozyTopAppBar extends StatelessWidget {
                           ],
                         ),
                       ],
-                      const SizedBox(width: 8),
-                      GestureDetector(
-                        onTap: onAvatarTap,
-                        child: Container(
-                          width: 36,
-                          height: 36,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            border: Border.all(
-                              color: AppColors.primary.withValues(alpha: 0.15),
-                              width: 2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.06),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
+                      if (showAvatar) ...[
+                        const SizedBox(width: 8),
+                        GestureDetector(
+                          onTap: onAvatarTap,
+                          child: Container(
+                            width: 36,
+                            height: 36,
+                            decoration: BoxDecoration(
+                              shape: BoxShape.circle,
+                              border: Border.all(
+                                color: AppColors.primary.withValues(alpha: 0.15),
+                                width: 2,
                               ),
-                            ],
-                          ),
-                          child: ClipOval(
-                            child: avatarUrl != null
-                                ? Image.network(
-                                    avatarUrl!,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) =>
-                                        _avatarPlaceholder(),
-                                  )
-                                : _avatarPlaceholder(),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.06),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: ClipOval(
+                              child: avatarUrl != null
+                                  ? Image.network(
+                                      avatarUrl!,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (_, _, _) =>
+                                          _avatarPlaceholder(),
+                                    )
+                                  : _avatarPlaceholder(),
+                            ),
                           ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                   SizedBox(
