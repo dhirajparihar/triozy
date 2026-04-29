@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'theme/app_theme.dart';
 import 'services/auth_service.dart';
@@ -14,6 +15,7 @@ import 'services/chat_service.dart';
 import 'providers/location_provider.dart';
 import 'providers/chat_provider.dart';
 import 'screens/splash_screen.dart';
+import 'screens/onboarding_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/worker_setup_screen.dart';
@@ -110,6 +112,7 @@ class _DeepLinkGate extends StatefulWidget {
 class _DeepLinkGateState extends State<_DeepLinkGate> {
   Widget? _entryScreen;
   bool _animationCompleted = false;
+  bool _isFirstTime = true;
 
   @override
   void initState() {
@@ -117,6 +120,7 @@ class _DeepLinkGateState extends State<_DeepLinkGate> {
     if (kIsWeb) {
       _entryScreen = _resolveWebEntryScreen();
     }
+    _checkFirstTime();
     // Enforce a minimum display duration for the splash screen so the neat animation plays fully
     // without flickering or jumping when loading data super fast.
     Future.delayed(const Duration(milliseconds: 2600), () {
@@ -126,6 +130,15 @@ class _DeepLinkGateState extends State<_DeepLinkGate> {
         });
       }
     });
+  }
+
+  Future<void> _checkFirstTime() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _isFirstTime = prefs.getBool('isFirstTime') ?? true;
+      });
+    }
   }
 
   Widget? _resolveWebEntryScreen() {
@@ -154,7 +167,15 @@ class _DeepLinkGateState extends State<_DeepLinkGate> {
       );
     }
 
-    return _entryScreen ?? const AuthGate();
+    if (_entryScreen != null) {
+      return _entryScreen!;
+    }
+
+    if (_isFirstTime) {
+      return const OnboardingScreen();
+    }
+
+    return const AuthGate();
   }
 }
 
