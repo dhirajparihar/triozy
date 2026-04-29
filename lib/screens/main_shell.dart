@@ -276,9 +276,7 @@ class _MainShellState extends State<MainShell> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(
-            'Location updated to ${locationProvider.address}',
-          ),
+          content: Text('Location updated to ${locationProvider.address}'),
         ),
       );
     } catch (e) {
@@ -387,7 +385,7 @@ class _MainShellState extends State<MainShell> {
           children: [
             Padding(
               padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 60,
+                top: MediaQuery.of(context).padding.top + 76,
                 bottom: MediaQuery.of(context).padding.bottom + 72,
               ),
               child: IndexedStack(index: _currentIndex, children: _screens),
@@ -423,8 +421,10 @@ class _MainShellState extends State<MainShell> {
             // Shared FAB for Home, Search, Requests (Mates has its own FAB)
             if (_currentIndex >= 0 && _currentIndex <= 2)
               Positioned(
-                right: 20,
-                bottom: MediaQuery.of(context).padding.bottom + 74,
+                right: 24, // Aligned to the 24px global edge logic
+                bottom:
+                    MediaQuery.of(context).padding.bottom +
+                    104, // Snapped high enough above bottom nav
                 child: Builder(
                   builder: (_) {
                     const fabSize = 56.0;

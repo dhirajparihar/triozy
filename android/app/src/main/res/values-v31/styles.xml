@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="LaunchTheme" parent="@android:style/Theme.Light.NoTitleBar">
+        <item name="android:windowBackground">@drawable/launch_background</item>
+        <!-- Android 12+ (API 31+) splash screen settings -->
+        <item name="android:windowSplashScreenBackground">@color/launch_background_color</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/transparent</item>
+        <!-- Optional: Ensure no weird branding at the bottom on Android 12+ -->
+        <item name="android:windowSplashScreenBrandingImage">@drawable/transparent</item>
+    </style>
+</resources>

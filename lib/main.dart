@@ -6,7 +6,6 @@ import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:provider/provider.dart';
 import 'firebase_options.dart';
 import 'theme/app_theme.dart';
-import 'theme/app_colors.dart';
 import 'services/auth_service.dart';
 import 'services/database_service.dart';
 import 'services/location_service.dart';
@@ -14,6 +13,7 @@ import 'services/session_service.dart';
 import 'services/chat_service.dart';
 import 'providers/location_provider.dart';
 import 'providers/chat_provider.dart';
+import 'screens/splash_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/worker_setup_screen.dart';
@@ -55,9 +55,7 @@ class TriozyApp extends StatelessWidget {
         Provider<DatabaseService>(create: (_) => DatabaseService()),
         Provider<LocationService>(create: (_) => LocationService()),
         Provider<ChatService>(create: (_) => ChatService()),
-        ChangeNotifierProvider<SessionService>(
-          create: (_) => SessionService(),
-        ),
+        ChangeNotifierProvider<SessionService>(create: (_) => SessionService()),
         ChangeNotifierProvider<ChatProvider>(
           create: (ctx) => ChatProvider(ctx.read<ChatService>()),
         ),
@@ -83,7 +81,9 @@ class TriozyApp extends StatelessWidget {
               settings: settings,
             );
           }
-          if (uri != null && uri.pathSegments.length == 2 && uri.pathSegments[0] == 'worker') {
+          if (uri != null &&
+              uri.pathSegments.length == 2 &&
+              uri.pathSegments[0] == 'worker') {
             final workerId = uri.pathSegments[1];
             return MaterialPageRoute(
               builder: (_) => WorkerProfileScreen(workerId: workerId),
@@ -109,6 +109,7 @@ class _DeepLinkGate extends StatefulWidget {
 
 class _DeepLinkGateState extends State<_DeepLinkGate> {
   Widget? _entryScreen;
+  bool _animationCompleted = false;
 
   @override
   void initState() {
@@ -116,6 +117,15 @@ class _DeepLinkGateState extends State<_DeepLinkGate> {
     if (kIsWeb) {
       _entryScreen = _resolveWebEntryScreen();
     }
+    // Enforce a minimum display duration for the splash screen so the neat animation plays fully
+    // without flickering or jumping when loading data super fast.
+    Future.delayed(const Duration(milliseconds: 2600), () {
+      if (mounted) {
+        setState(() {
+          _animationCompleted = true;
+        });
+      }
+    });
   }
 
   Widget? _resolveWebEntryScreen() {
@@ -126,7 +136,9 @@ class _DeepLinkGateState extends State<_DeepLinkGate> {
     }
 
     final uri = Uri.tryParse(fragment);
-    if (uri != null && uri.pathSegments.length == 2 && uri.pathSegments[0] == 'worker') {
+    if (uri != null &&
+        uri.pathSegments.length == 2 &&
+        uri.pathSegments[0] == 'worker') {
       final workerId = uri.pathSegments[1];
       return WorkerProfileScreen(workerId: workerId);
     }
@@ -134,7 +146,16 @@ class _DeepLinkGateState extends State<_DeepLinkGate> {
   }
 
   @override
-  Widget build(BuildContext context) => _entryScreen ?? const AuthGate();
+  Widget build(BuildContext context) {
+    if (!_animationCompleted) {
+      return const SplashScreen(
+        statusText: 'Warming up your local network...',
+        showLoader: true,
+      );
+    }
+
+    return _entryScreen ?? const AuthGate();
+  }
 }
 
 /// AuthGate listens to Firebase auth state and routes accordingly
@@ -150,26 +171,8 @@ class AuthGate extends StatelessWidget {
       builder: (context, snapshot) {
         // Loading state
         if (snapshot.connectionState == ConnectionState.waiting) {
-          return Scaffold(
-            backgroundColor: AppColors.background,
-            body: Center(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Triozy',
-                    style: AppTheme.headline(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w900,
-                      color: AppColors.blue700,
-                      letterSpacing: -1.5,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  const CircularProgressIndicator(color: AppColors.primary),
-                ],
-              ),
-            ),
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 
@@ -255,11 +258,8 @@ class _RoleRouterState extends State<_RoleRouter> {
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting &&
             _currentScreen == null) {
-          return Scaffold(
-            backgroundColor: AppColors.background,
-            body: const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            ),
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 
@@ -268,11 +268,8 @@ class _RoleRouterState extends State<_RoleRouter> {
         // New user: auto-create Firestore doc as customer, show spinner
         if (userData == null) {
           _autoCreateUser();
-          return Scaffold(
-            backgroundColor: AppColors.background,
-            body: const Center(
-              child: CircularProgressIndicator(color: AppColors.primary),
-            ),
+          return const Scaffold(
+            body: Center(child: CircularProgressIndicator()),
           );
         }
 

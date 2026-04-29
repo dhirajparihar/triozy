@@ -246,15 +246,16 @@ class HomeScreenState extends State<HomeScreen> {
   Widget _buildHeroSection(BuildContext context) {
     return Container(
       width: double.infinity,
-      decoration: const BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFF0D2B6E), Color(0xFF1A56C8), Color(0xFF1E3A8A)],
+      decoration: BoxDecoration(
+        color: const Color(0xFFF8FAFC),
+        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.outlineVariant.withValues(alpha: 0.3),
+          ),
         ),
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(36)),
       ),
-      padding: const EdgeInsets.fromLTRB(24, 52, 24, 40),
+      padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -264,17 +265,18 @@ class HomeScreenState extends State<HomeScreen> {
                 TextSpan(
                   text: 'Your local network,\n',
                   style: AppTheme.headline(
-                    fontSize: 30,
-                    color: Colors.white.withValues(alpha: 0.9),
-                    letterSpacing: -1.0,
+                    fontSize: 28,
+                    color: AppColors.onSurface,
+                    letterSpacing: -0.5,
                   ),
                 ),
                 TextSpan(
                   text: 'for everything.',
                   style: AppTheme.headline(
-                    fontSize: 30,
-                    color: Colors.white,
-                    letterSpacing: -1.0,
+                    fontSize: 28,
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.5,
                   ),
                 ),
               ],
@@ -284,66 +286,63 @@ class HomeScreenState extends State<HomeScreen> {
           Text(
             'Find services, post requests, or connect with a mate — all near you.',
             style: AppTheme.body(
-              fontSize: 14,
-              color: Colors.white.withValues(alpha: 0.7),
+              fontSize: 15,
+              color: AppColors.onSurfaceVariant,
               height: 1.5,
             ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 16),
           // Search bar
           GestureDetector(
             onTap: widget.onSearchTapped,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: BackdropFilter(
-                filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
-                child: Container(
-                  height: 54,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.18),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: Colors.white.withValues(alpha: 0.35),
-                      width: 1.2,
+            child: Container(
+              height: 56,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 20,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.search_rounded,
+                    color: AppColors.primary,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Text(
+                          'Search for ',
+                          style: AppTheme.body(
+                            fontSize: 15,
+                            color: AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                        Flexible(
+                          child: Text(
+                            _searchHints[_hintIndex],
+                            style: AppTheme.body(
+                              fontSize: 15,
+                              color: AppColors.onSurface,
+                              fontWeight: FontWeight.w600,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
                     ),
                   ),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 16),
-                      Icon(
-                        Icons.search_rounded,
-                        color: Colors.white.withValues(alpha: 0.85),
-                        size: 22,
-                      ),
-                      const SizedBox(width: 10),
-                      Expanded(
-                        child: Row(
-                          children: [
-                            Text(
-                              'Search for ',
-                              style: AppTheme.body(
-                                fontSize: 15,
-                                color: Colors.white.withValues(alpha: 0.7),
-                              ),
-                            ),
-                            Flexible(
-                              child: Text(
-                                _searchHints[_hintIndex],
-                                style: AppTheme.body(
-                                  fontSize: 15,
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 20),
-                    ],
-                  ),
-                ),
+                ],
               ),
             ),
           ),
@@ -356,47 +355,58 @@ class HomeScreenState extends State<HomeScreen> {
 
   Widget _buildPillarStrip(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 24, 24, 0),
-      child: Row(
-        children: [
-          Expanded(
-            child: _PillarCard(
-              icon: Icons.handyman_rounded,
-              label: 'Services',
-              sub: 'Find local pros',
-              startColor: const Color(0xFF1A56C8),
-              endColor: const Color(0xFF0D2B6E),
-              onTap: widget.onSearchTapped,
+      padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
+      child: IntrinsicHeight(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Expanded(
+              flex: 5,
+              child: _BentoCard(
+                icon: Icons.handyman_rounded,
+                label: 'Services',
+                sub: 'Find local pros',
+                baseColor: AppColors.primary,
+                onTap: widget.onSearchTapped,
+                isLarge: true,
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _PillarCard(
-              icon: Icons.post_add_rounded,
-              label: 'Requests',
-              sub: 'Post a job',
-              startColor: AppColors.tertiary,
-              endColor: const Color(0xFF6B2D00),
-              onTap:
-                  widget.onRequestsTapped ??
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AddRequestScreen()),
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 4,
+              child: Column(
+                children: [
+                  Expanded(
+                    child: _BentoCard(
+                      icon: Icons.assignment_rounded,
+                      label: 'Requests',
+                      sub: 'Post a job',
+                      baseColor: const Color(0xFFFF7043), // Vibrant Peach
+                      onTap:
+                          widget.onRequestsTapped ??
+                          () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => const AddRequestScreen(),
+                            ),
+                          ),
+                    ),
                   ),
+                  const SizedBox(height: 12),
+                  Expanded(
+                    child: _BentoCard(
+                      icon: Icons.people_rounded,
+                      label: 'Mates',
+                      sub: 'Connect locally',
+                      baseColor: const Color(0xFF43A047), // Vibrant Green
+                      onTap: widget.onMatesTapped,
+                    ),
+                  ),
+                ],
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: _PillarCard(
-              icon: Icons.people_alt_rounded,
-              label: 'Mates',
-              sub: 'Connect locally',
-              startColor: AppColors.secondary,
-              endColor: const Color(0xFF003D18),
-              onTap: widget.onMatesTapped,
-            ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -434,58 +444,63 @@ class HomeScreenState extends State<HomeScreen> {
           ],
         ),
         const SizedBox(height: 20),
-        GridView.count(
-          crossAxisCount: 2,
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 16,
-          mainAxisSpacing: 16,
-          childAspectRatio: 0.9,
-          children: [
-            _CategoryCard(
-              label: 'Electrician',
-              imageUrl:
-                  'https://lh3.googleusercontent.com/aida-public/AB6AXuC-eL5ZvDeISt0w2u0DR1osoZqXxH0DKO9YCBmoJAhw0zw5M0nULj0QcNh14z7RzMwC2sPi6Aw5aiepDhxhuKKZnQC-Y51TcineiQIlnhcD_oBbLntDbegJBXAYCB1K0jStkwbU_R9ek97RPWgz0d-2thTAO3CrR2h5Rq08mAZHz0GrsJqJs9CK5ta9Fe2kcH40uAUui3R5q258lfv3hmyDiVPgSiEJn-ebgr4tzXr1qkxamyYlrAqc-VFvw1k5pj7CZX54MfVIXGQ',
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) =>
-                      const WorkerListScreen(category: 'Electrician'),
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          physics: const BouncingScrollPhysics(),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _CategoryCircle(
+                label: 'Electrician',
+                imageUrl:
+                    'https://lh3.googleusercontent.com/aida-public/AB6AXuC-eL5ZvDeISt0w2u0DR1osoZqXxH0DKO9YCBmoJAhw0zw5M0nULj0QcNh14z7RzMwC2sPi6Aw5aiepDhxhuKKZnQC-Y51TcineiQIlnhcD_oBbLntDbegJBXAYCB1K0jStkwbU_R9ek97RPWgz0d-2thTAO3CrR2h5Rq08mAZHz0GrsJqJs9CK5ta9Fe2kcH40uAUui3R5q258lfv3hmyDiVPgSiEJn-ebgr4tzXr1qkxamyYlrAqc-VFvw1k5pj7CZX54MfVIXGQ',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        const WorkerListScreen(category: 'Electrician'),
+                  ),
                 ),
               ),
-            ),
-            _CategoryCard(
-              label: 'Plumber',
-              imageUrl:
-                  'https://lh3.googleusercontent.com/aida-public/AB6AXuCHB8HEtlkIngffZC4YxjMghwS577KPR9kJt0uUc07S5Mlm1qkPq2vSuAEn6cJgSZYYjeUbJI_Cvdx1qb8OjdWB86JZmvnlQ1301eq6gBoaDY8XQiGZk5dZjUfZg_X3UOHOgKkSspxgjxZ4bo2c0J-J7B6z5Ud7AS13btPeFC3wsglYjjxjQvw1kw2L0f34nm_nGTFDyvM-KkzyMCufsdX0sOJGBYpuikYwIpW6W_ztX6gRGhTf60sId5Fp74D0JEuqvh_TatgV8os',
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const WorkerListScreen(category: 'Plumber'),
+              const SizedBox(width: 24),
+              _CategoryCircle(
+                label: 'Plumber',
+                imageUrl:
+                    'https://lh3.googleusercontent.com/aida-public/AB6AXuCHB8HEtlkIngffZC4YxjMghwS577KPR9kJt0uUc07S5Mlm1qkPq2vSuAEn6cJgSZYYjeUbJI_Cvdx1qb8OjdWB86JZmvnlQ1301eq6gBoaDY8XQiGZk5dZjUfZg_X3UOHOgKkSspxgjxZ4bo2c0J-J7B6z5Ud7AS13btPeFC3wsglYjjxjQvw1kw2L0f34nm_nGTFDyvM-KkzyMCufsdX0sOJGBYpuikYwIpW6W_ztX6gRGhTf60sId5Fp74D0JEuqvh_TatgV8os',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const WorkerListScreen(category: 'Plumber'),
+                  ),
                 ),
               ),
-            ),
-            _CategoryCard(
-              label: 'AC Repair',
-              imageUrl:
-                  'https://lh3.googleusercontent.com/aida-public/AB6AXuCwJdWFNgZs5x6jOIZ_TD3QLZlaYKCr0IFVtFr-Y6js2VvkJvyM2Y4vCVnHNcl2X9uI9DXL0NpyIWgXl2bb0Rv05Yykpxk6ooavynLjBDx-dIahugWk8hDsFiqDkf8ocIn6Pv-AUPAzBAYehZCUa-Q73mbN9x_ZpMIpOxI-aRso0RGCdvpQZCqYaP40WrVLmn2Pbq7zdZXTDgIHaQcZfxBCSl0tk-AYg7n_q9PkfvOhRERWWfby5v6QHS_FLc_g81ixfPBcIiaTPQI',
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => const WorkerListScreen(category: 'AC Repair'),
+              const SizedBox(width: 24),
+              _CategoryCircle(
+                label: 'AC Repair',
+                imageUrl:
+                    'https://lh3.googleusercontent.com/aida-public/AB6AXuCwJdWFNgZs5x6jOIZ_TD3QLZlaYKCr0IFVtFr-Y6js2VvkJvyM2Y4vCVnHNcl2X9uI9DXL0NpyIWgXl2bb0Rv05Yykpxk6ooavynLjBDx-dIahugWk8hDsFiqDkf8ocIn6Pv-AUPAzBAYehZCUa-Q73mbN9x_ZpMIpOxI-aRso0RGCdvpQZCqYaP40WrVLmn2Pbq7zdZXTDgIHaQcZfxBCSl0tk-AYg7n_q9PkfvOhRERWWfby5v6QHS_FLc_g81ixfPBcIiaTPQI',
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        const WorkerListScreen(category: 'AC Repair'),
+                  ),
                 ),
               ),
-            ),
-            _CategoryCard(
-              label: 'All Services',
-              imageUrl: '',
-              isAllServices: true,
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AllCategoriesScreen()),
+              const SizedBox(width: 24),
+              _CategoryCircle(
+                label: 'All Services',
+                imageUrl: '',
+                isAllServices: true,
+                onTap: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const AllCategoriesScreen(),
+                  ),
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );
@@ -731,23 +746,23 @@ class HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ── Pillar Card ────────────────────────────────────────────────────────────────
+// ── Bento Card ────────────────────────────────────────────────────────────────
 
-class _PillarCard extends StatelessWidget {
+class _BentoCard extends StatelessWidget {
   final IconData icon;
   final String label;
   final String sub;
-  final Color startColor;
-  final Color endColor;
+  final Color baseColor;
   final VoidCallback? onTap;
+  final bool isLarge;
 
-  const _PillarCard({
+  const _BentoCard({
     required this.icon,
     required this.label,
     required this.sub,
-    required this.startColor,
-    required this.endColor,
+    required this.baseColor,
     this.onTap,
+    this.isLarge = false,
   });
 
   @override
@@ -755,49 +770,58 @@ class _PillarCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 12),
+        width: double.infinity,
+        alignment: Alignment.centerLeft,
+        padding: EdgeInsets.symmetric(
+          horizontal: isLarge ? 20 : 16,
+          vertical: 16,
+        ),
         decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [startColor, endColor],
+          color: baseColor.withValues(alpha: 0.08),
+          borderRadius: BorderRadius.circular(24), // Squircular feel
+          border: Border.all(
+            color: baseColor.withValues(alpha: 0.15),
+            width: 1,
           ),
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: startColor.withValues(alpha: 0.3),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(8),
+              padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.2),
-                borderRadius: BorderRadius.circular(10),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [
+                  BoxShadow(
+                    color: baseColor.withValues(alpha: 0.1),
+                    blurRadius: 8,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
               ),
-              child: Icon(icon, size: 20, color: Colors.white),
+              child: Icon(icon, size: isLarge ? 28 : 22, color: baseColor),
             ),
-            const SizedBox(height: 10),
+            SizedBox(height: isLarge ? 20 : 12),
             Text(
               label,
               style: GoogleFonts.manrope(
-                fontSize: 13,
+                fontSize: isLarge ? 18 : 14,
                 fontWeight: FontWeight.w800,
-                color: Colors.white,
+                color: AppColors.onSurface,
               ),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             Text(
               sub,
               style: GoogleFonts.inter(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: Colors.white.withValues(alpha: 0.75),
+                fontSize: isLarge ? 14 : 13,
+                fontWeight: FontWeight.w600,
+                color: AppColors.onSurface.withValues(
+                  alpha: 0.65,
+                ), // Darker and more legible
               ),
             ),
           ],
@@ -1089,15 +1113,15 @@ Widget _buildSkeletonCard() {
   );
 }
 
-// ── Category Card ──────────────────────────────────────────────────────────────
+// ── Category Circle ──────────────────────────────────────────────────────────────
 
-class _CategoryCard extends StatelessWidget {
+class _CategoryCircle extends StatelessWidget {
   final String label;
   final String imageUrl;
   final VoidCallback onTap;
   final bool isAllServices;
 
-  const _CategoryCard({
+  const _CategoryCircle({
     required this.label,
     required this.imageUrl,
     required this.onTap,
@@ -1108,77 +1132,56 @@ class _CategoryCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
-          boxShadow: [
-            BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.08),
-              blurRadius: 20,
-              offset: const Offset(0, 6),
-            ),
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.03),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          children: [
-            Expanded(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Container(
-                  width: double.infinity,
-                  color: AppColors.surfaceContainerHigh,
-                  child: isAllServices
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(
-                                Icons.grid_view_rounded,
-                                size: 40,
-                                color: AppColors.primary,
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                'Browse All',
-                                style: AppTheme.body(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w600,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                            ],
-                          ),
-                        )
-                      : Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (ctx, err, stack) => const Center(
-                            child: Icon(
-                              Icons.image_not_supported,
-                              color: AppColors.outlineVariant,
-                            ),
-                          ),
-                        ),
+      child: Column(
+        children: [
+          Container(
+            width: 72,
+            height: 72,
+            decoration: BoxDecoration(
+              color: isAllServices
+                  ? AppColors.surfaceContainerHigh
+                  : Colors.white,
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
                 ),
-              ),
+              ],
             ),
-            const SizedBox(height: 10),
-            Text(
-              label,
-              style: AppTheme.body(fontSize: 14, fontWeight: FontWeight.w700),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            clipBehavior: Clip.antiAlias,
+            child: isAllServices
+                ? const Center(
+                    child: Icon(
+                      Icons.grid_view_rounded,
+                      size: 32,
+                      color: AppColors.primary,
+                    ),
+                  )
+                : Image.network(
+                    imageUrl,
+                    fit: BoxFit.cover,
+                    errorBuilder: (ctx, err, stack) => const Center(
+                      child: Icon(
+                        Icons.image_not_supported,
+                        color: AppColors.outlineVariant,
+                      ),
+                    ),
+                  ),
+          ),
+          const SizedBox(height: 10),
+          Text(
+            label,
+            style: AppTheme.body(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: AppColors.onSurface,
             ),
-            const SizedBox(height: 4),
-          ],
-        ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+        ],
       ),
     );
   }

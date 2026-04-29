@@ -34,11 +34,11 @@ class TriozyTopAppBar extends StatelessWidget {
             final wordmarkSize = width < 360 ? 16.0 : 18.0;
             final brandSlotWidth = width < 360 ? 118.0 : 138.0;
             return Container(
-              height: MediaQuery.of(context).padding.top + 60,
+              height: MediaQuery.of(context).padding.top + 76,
               padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top,
-                left: 20,
-                right: 20,
+                top: MediaQuery.of(context).padding.top + 16,
+                left: 24,
+                right: 24,
               ),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.85),
@@ -181,7 +181,9 @@ class TriozyTopAppBar extends StatelessWidget {
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               border: Border.all(
-                                color: AppColors.primary.withValues(alpha: 0.15),
+                                color: AppColors.primary.withValues(
+                                  alpha: 0.15,
+                                ),
                                 width: 2,
                               ),
                               boxShadow: [
