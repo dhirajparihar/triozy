@@ -17,6 +17,7 @@ import '../services/session_service.dart';
 import '../providers/location_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../utils/validators.dart';
 
 class AddRequestScreen extends StatefulWidget {
   final RequestModel? requestToEdit;
@@ -489,7 +490,7 @@ class _AddRequestScreenState extends State<AddRequestScreen> {
                     vertical: 16,
                   ),
                 ),
-                validator: (v) => v!.isEmpty ? 'Required' : null,
+                validator: Validators.validatePhoneNumber,
               ),
               const SizedBox(height: 32),
 

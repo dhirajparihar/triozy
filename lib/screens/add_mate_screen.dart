@@ -10,6 +10,7 @@ import '../services/session_service.dart';
 import '../providers/location_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../utils/validators.dart';
 
 class AddMateScreen extends StatefulWidget {
   final MateType initialType;
@@ -393,8 +394,7 @@ class _AddMateScreenState extends State<AddMateScreen> {
               icon: Icons.phone_rounded,
               keyboardType: TextInputType.phone,
               accentColor: _accentColor,
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Phone is required' : null,
+              validator: Validators.validatePhoneNumber,
             ),
             const SizedBox(height: 12),
             _Field(
