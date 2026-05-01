@@ -8,6 +8,7 @@ import 'package:image_picker/image_picker.dart';
 import '../constants/app_categories.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../utils/validators.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
@@ -391,6 +392,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       label: 'Phone Number',
                       icon: Icons.phone_outlined,
                       keyboardType: TextInputType.phone,
+                      validator: Validators.validatePhoneNumber,
                     ),
                     const SizedBox(height: 16),
 

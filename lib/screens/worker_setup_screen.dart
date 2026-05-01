@@ -15,6 +15,7 @@ import '../services/location_service.dart';
 import '../services/permission_center.dart';
 import 'main_shell.dart';
 import '../constants/app_categories.dart';
+import '../utils/validators.dart';
 
 class WorkerSetupScreen extends StatefulWidget {
   const WorkerSetupScreen({super.key});
@@ -616,8 +617,7 @@ class _WorkerSetupScreenState extends State<WorkerSetupScreen> {
                             fontWeight: FontWeight.w500,
                           ),
                           decoration: _inputDecoration('+1 (555) 000-0000'),
-                          validator: (v) =>
-                              v == null || v.trim().isEmpty ? 'Required' : null,
+                          validator: Validators.validatePhoneNumber,
                         ),
                       ),
                       const SizedBox(height: 20),

@@ -147,42 +147,7 @@ class UserProfileScreen extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 14),
-          Row(
-            children: [
-              Expanded(
-                child: _ProfileStatChip(
-                  icon: Icons.assignment_outlined,
-                  label: 'Requests',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const RequestsScreen(
-                          initialTab: 1,
-                          standalone: true,
-                          onlyMyPosts: true,
-                        ),
-                      ),
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(width: 10),
-              Expanded(
-                child: _ProfileStatChip(
-                  icon: Icons.people_alt_outlined,
-                  label: 'Mates',
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const MyMatesScreen()),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
+          const SizedBox(height: 6),
         ],
       ),
     );
@@ -263,12 +228,12 @@ class UserProfileScreen extends StatelessWidget {
                     final user = FirebaseAuth.instance.currentUser;
                     if (user != null) {
                       await context.read<AuthService>().saveUser(
-                        uid: user.uid,
-                        name: user.displayName ?? '',
-                        email: user.email ?? '',
-                        role: 'worker',
-                        photoUrl: user.photoURL,
-                      );
+                            uid: user.uid,
+                            name: user.displayName ?? '',
+                            email: user.email ?? '',
+                            role: 'worker',
+                            photoUrl: user.photoURL,
+                          );
                     }
                     if (context.mounted) {
                       Navigator.pushAndRemoveUntil(
@@ -353,18 +318,6 @@ class UserProfileScreen extends StatelessWidget {
               Navigator.push(
                 context,
                 MaterialPageRoute(builder: (_) => const MyMatesScreen()),
-              );
-            },
-          ),
-          _divider(),
-          _settingsTile(
-            icon: Icons.edit_outlined,
-            label: 'Edit Profile',
-            subtitle: 'Update your photo and account details',
-            onTap: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const EditProfileScreen()),
               );
             },
           ),
@@ -555,54 +508,6 @@ class UserProfileScreen extends StatelessWidget {
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _ProfileStatChip extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final VoidCallback onTap;
-
-  const _ProfileStatChip({
-    required this.icon,
-    required this.label,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.9),
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(
-            color: AppColors.outlineVariant.withValues(alpha: 0.18),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, size: 16, color: AppColors.primary),
-            const SizedBox(width: 7),
-            Expanded(
-              child: Text(
-                label,
-                style: AppTheme.label(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.onSurface,
-                ),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-          ],
         ),
       ),
     );
