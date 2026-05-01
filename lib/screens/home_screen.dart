@@ -1,24 +1,25 @@
 import 'dart:async';
-import 'dart:ui';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
+
+import '../constants/app_categories.dart';
 import '../models/chat_model.dart';
-import '../theme/app_colors.dart';
-import '../theme/app_theme.dart';
-import '../models/worker_model.dart';
 import '../models/mate_model.dart';
+import '../models/worker_model.dart';
 import '../providers/chat_provider.dart';
-import '../services/database_service.dart';
-import '../services/location_service.dart';
 import '../providers/location_provider.dart';
+import '../screens/add_request_screen.dart';
+import '../screens/all_categories_screen.dart';
+import '../screens/chat_detail_screen.dart';
 import '../screens/worker_list_screen.dart';
 import '../screens/worker_profile_screen.dart';
-import '../screens/chat_detail_screen.dart';
-import '../screens/all_categories_screen.dart';
-import '../screens/add_request_screen.dart';
-import '../constants/app_categories.dart';
+import '../services/database_service.dart';
+import '../services/location_service.dart';
+import '../theme/app_colors.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onSearchTapped;
@@ -47,6 +48,33 @@ class HomeScreenState extends State<HomeScreen> {
   static const _searchHints = AppCategories.searchHints;
   int _hintIndex = 0;
   late final Timer _hintTimer;
+
+  static const List<_HomeCategoryItem> _categories = [
+    _HomeCategoryItem(
+      label: 'Electrician',
+      category: 'Electrician',
+      imageUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuC-eL5ZvDeISt0w2u0DR1osoZqXxH0DKO9YCBmoJAhw0zw5M0nULj0QcNh14z7RzMwC2sPi6Aw5aiepDhxhuKKZnQC-Y51TcineiQIlnhcD_oBbLntDbegJBXAYCB1K0jStkwbU_R9ek97RPWgz0d-2thTAO3CrR2h5Rq08mAZHz0GrsJqJs9CK5ta9Fe2kcH40uAUui3R5q258lfv3hmyDiVPgSiEJn-ebgr4tzXr1qkxamyYlrAqc-VFvw1k5pj7CZX54MfVIXGQ',
+    ),
+    _HomeCategoryItem(
+      label: 'Plumber',
+      category: 'Plumber',
+      imageUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuCHB8HEtlkIngffZC4YxjMghwS577KPR9kJt0uUc07S5Mlm1qkPq2vSuAEn6cJgSZYYjeUbJI_Cvdx1qb8OjdWB86JZmvnlQ1301eq6gBoaDY8XQiGZk5dZjUfZg_X3UOHOgKkSspxgjxZ4bo2c0J-J7B6z5Ud7AS13btPeFC3wsglYjjxjQvw1kw2L0f34nm_nGTFDyvM-KkzyMCufsdX0sOJGBYpuikYwIpW6W_ztX6gRGhTf60sId5Fp74D0JEuqvh_TatgV8os',
+    ),
+    _HomeCategoryItem(
+      label: 'AC Repair',
+      category: 'AC Repair',
+      imageUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuCwJdWFNgZs5x6jOIZ_TD3QLZlaYKCr0IFVtFr-Y6js2VvkJvyM2Y4vCVnHNcl2X9uI9DXL0NpyIWgXl2bb0Rv05Yykpxk6ooavynLjBDx-dIahugWk8hDsFiqDkf8ocIn6Pv-AUPAzBAYehZCUa-Q73mbN9x_ZpMIpOxI-aRso0RGCdvpQZCqYaP40WrVLmn2Pbq7zdZXTDgIHaQcZfxBCSl0tk-AYg7n_q9PkfvOhRERWWfby5v6QHS_FLc_g81ixfPBcIiaTPQI',
+    ),
+    _HomeCategoryItem(
+      label: 'Home Cleaning',
+      category: 'Cleaning',
+      imageUrl:
+          'https://lh3.googleusercontent.com/aida-public/AB6AXuDPwfwKoxuNUrUCIA5XaU6YkT1mDUGRkcKWD3ZthjMw8S7TCAeOYmCc7vzIfvCu0rTOokppQ_iqrL3SaHZlcosZGQnzmxdtSLQYtC9IdFsia3ag5zbh4mcRmTrxFOxbaf4p2HhoZADeMClp1aKzPM9mG29Uw205KnC76EhPzP9_PAWC5Ja1PPwG44gWFyiRUJvSZ0WE7J7G6udOV6jkVaCU7YPag_gMf8Ay5Y5Y42HDS8oOKs4iO3VKIBNe-H3VwA46BnLoKurHUy4',
+    ),
+  ];
 
   @override
   void initState() {
@@ -120,18 +148,22 @@ class HomeScreenState extends State<HomeScreen> {
           _loading = false;
         });
       }
-    } catch (e) {
-      if (mounted) setState(() => _loading = false);
+    } catch (_) {
+      if (mounted) {
+        setState(() => _loading = false);
+      }
     }
   }
 
   (String?, String?) _extractCityState(String address) {
     final parts = address
         .split(',')
-        .map((p) => p.trim())
-        .where((p) => p.isNotEmpty)
+        .map((part) => part.trim())
+        .where((part) => part.isNotEmpty)
         .toList();
-    if (parts.isEmpty) return (null, null);
+    if (parts.isEmpty) {
+      return (null, null);
+    }
 
     final city = parts.length >= 2 ? parts[parts.length - 2] : parts.first;
     final state = parts.length >= 2 ? parts.last : null;
@@ -202,6 +234,49 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
+  Future<void> _launchPhone(String phone) async {
+    final cleaned = phone.trim();
+    if (cleaned.isEmpty) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Phone number is not available')),
+      );
+      return;
+    }
+
+    final uri = Uri.parse('tel:$cleaned');
+    final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!launched && mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not open the dialer')),
+      );
+    }
+  }
+
+  void _showComingSoon(String feature) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$feature is coming soon')));
+  }
+
+  void _openWorkerProfile(WorkerModel worker) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => WorkerProfileScreen(workerId: worker.uid),
+      ),
+    );
+  }
+
+  void _openCategory(String category) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => WorkerListScreen(category: category)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final locProvider = context.watch<LocationProvider>();
@@ -214,136 +289,336 @@ class HomeScreenState extends State<HomeScreen> {
       onRefresh: _onRefresh,
       color: AppColors.primary,
       child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
+        physics: const AlwaysScrollableScrollPhysics(
+          parent: BouncingScrollPhysics(),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             _buildHeroSection(context),
-            _buildPillarStrip(context),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 32, 24, 32),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  _buildCategoriesSection(context),
-                  const SizedBox(height: 36),
-                  if (_recentMates.isNotEmpty || _loading) ...[
-                    _buildMatesSection(context),
-                    const SizedBox(height: 36),
-                  ],
-                  _buildTopWorkersSection(context),
-                ],
-              ),
-            ),
+            const SizedBox(height: 54),
+            _buildQuickActions(context),
+            const SizedBox(height: 28),
+            _buildCategoriesSection(context),
+            if (_recentMates.isNotEmpty || _loading) ...[
+              const SizedBox(height: 30),
+              _buildMatesSection(context),
+            ],
+            const SizedBox(height: 30),
+            _buildTopWorkersSection(context),
           ],
         ),
       ),
     );
   }
 
-  // ── Hero ──────────────────────────────────────────────────────────────────────
-
   Widget _buildHeroSection(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: const Color(0xFFF8FAFC),
-        borderRadius: const BorderRadius.vertical(bottom: Radius.circular(32)),
-        border: Border(
-          bottom: BorderSide(
-            color: AppColors.outlineVariant.withValues(alpha: 0.3),
-          ),
-        ),
-      ),
-      padding: const EdgeInsets.fromLTRB(24, 60, 24, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          RichText(
-            text: TextSpan(
-              children: [
-                TextSpan(
-                  text: 'Your local network,\n',
-                  style: AppTheme.headline(
-                    fontSize: 28,
-                    color: AppColors.onSurface,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-                TextSpan(
-                  text: 'for everything.',
-                  style: AppTheme.headline(
-                    fontSize: 28,
-                    color: AppColors.primary,
-                    fontWeight: FontWeight.w900,
-                    letterSpacing: -0.5,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Find services, post requests, or connect with a mate — all near you.',
-            style: AppTheme.body(
-              fontSize: 15,
-              color: AppColors.onSurfaceVariant,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 16),
-          // Search bar
-          GestureDetector(
-            onTap: widget.onSearchTapped,
-            child: Container(
-              height: 56,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 340;
+        final outerPadding = isCompact ? 18.0 : 24.0;
+        final heroHeight = isCompact ? 222.0 : 244.0;
+        final titleSize = isCompact ? 21.5 : 29.0;
+        final bodySize = isCompact ? 11.8 : 13.4;
+        final illustrationWidth = isCompact ? 130.0 : 182.0;
+        final searchInset = isCompact ? 6.0 : 10.0;
+
+        return Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: double.infinity,
+              padding: EdgeInsets.fromLTRB(
+                outerPadding,
+                isCompact ? 20 : 24,
+                outerPadding,
+                isCompact ? 24 : 28,
+              ),
               decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(36),
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFF80A7FB), Color(0xFFC8B4FF)],
+                ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 20,
-                    offset: const Offset(0, 4),
+                    color: const Color(0xFF7DA5FF).withValues(alpha: 0.18),
+                    blurRadius: 30,
+                    offset: const Offset(0, 12),
                   ),
                 ],
               ),
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.search_rounded,
-                    color: AppColors.primary,
-                    size: 24,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Row(
+              child: SizedBox(
+                height: heroHeight,
+                child: Stack(
+                  children: [
+                    Positioned(
+                      top: -36,
+                      left: -18,
+                      child: _GlowOrb(
+                        size: 130,
+                        color: Colors.white.withValues(alpha: 0.18),
+                      ),
+                    ),
+                    Positioned(
+                      top: 68,
+                      right: -18,
+                      child: _GlowOrb(
+                        size: 118,
+                        color: Colors.white.withValues(alpha: 0.14),
+                      ),
+                    ),
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Text(
-                          'Search for ',
-                          style: AppTheme.body(
-                            fontSize: 15,
-                            color: AppColors.onSurfaceVariant,
+                        Expanded(
+                          child: Padding(
+                            padding: EdgeInsets.only(
+                              top: isCompact ? 14 : 18,
+                              bottom: 20,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                RichText(
+                                  text: TextSpan(
+                                    children: [
+                                      TextSpan(
+                                        text: 'Your local network,\n',
+                                        style: GoogleFonts.manrope(
+                                          fontSize: titleSize,
+                                          height: 1.05,
+                                          fontWeight: FontWeight.w800,
+                                          color: Colors.white,
+                                          letterSpacing: -1.2,
+                                        ),
+                                      ),
+                                      TextSpan(
+                                        text: 'for everything.',
+                                        style: GoogleFonts.manrope(
+                                          fontSize: titleSize,
+                                          height: 1.05,
+                                          fontWeight: FontWeight.w900,
+                                          color: const Color(0xFF243C98),
+                                          letterSpacing: -1.2,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Find services, post requests,\nor connect with a mate -\nall near you.',
+                                  maxLines: 3,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: GoogleFonts.inter(
+                                    fontSize: bodySize,
+                                    height: 1.6,
+                                    fontWeight: FontWeight.w500,
+                                    color: const Color(0xFF2E385A),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
-                        Flexible(
-                          child: Text(
-                            _searchHints[_hintIndex],
-                            style: AppTheme.body(
-                              fontSize: 15,
-                              color: AppColors.onSurface,
-                              fontWeight: FontWeight.w600,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                        SizedBox(
+                          width: illustrationWidth,
+                          child: Stack(
+                            clipBehavior: Clip.none,
+                            children: [
+                              Positioned.fill(
+                                child: IgnorePointer(
+                                  child: CustomPaint(
+                                    painter: _HeroTrailPainter(),
+                                  ),
+                                ),
+                              ),
+                              Positioned(
+                                right: isCompact ? -8 : -2,
+                                bottom: -4,
+                                child: Transform.scale(
+                                  scale: isCompact ? 0.72 : 0.84,
+                                  alignment: Alignment.bottomRight,
+                                  child: const _HeroIllustration(),
+                                ),
+                              ),
+                              Positioned(
+                                top: isCompact ? 44 : 38,
+                                left: isCompact ? 14 : 14,
+                                child: _HeroBadge(
+                                  icon: Icons.electric_scooter_rounded,
+                                  background: Colors.white.withValues(alpha: 0.88),
+                                  iconColor: const Color(0xFF6376E8),
+                                ),
+                              ),
+                              Positioned(
+                                top: isCompact ? 18 : 12,
+                                left: isCompact ? 58 : 80,
+                                child: _HeroPinBadge(isCompact: isCompact),
+                              ),
+                              Positioned(
+                                top: isCompact ? 44 : 40,
+                                right: isCompact ? 0 : 4,
+                                child: _HeroBadge(
+                                  icon: Icons.handyman_rounded,
+                                  background: Colors.white.withValues(alpha: 0.88),
+                                  iconColor: const Color(0xFF6376E8),
+                                ),
+                              ),
+                              Positioned(
+                                left: isCompact ? 8 : 12,
+                                bottom: isCompact ? 66 : 72,
+                                child: _HeroBadge(
+                                  icon: Icons.groups_rounded,
+                                  background: Colors.white.withValues(alpha: 0.88),
+                                  iconColor: const Color(0xFFF08A53),
+                                ),
+                              ),
+                              Positioned(
+                                right: isCompact ? 0 : 2,
+                                bottom: isCompact ? 44 : 48,
+                                child: _HeroBadge(
+                                  icon: Icons.home_rounded,
+                                  background: Colors.white.withValues(alpha: 0.88),
+                                  iconColor: const Color(0xFF8A67E5),
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
+            ),
+            Positioned(
+              left: outerPadding + searchInset,
+              right: outerPadding + searchInset,
+              bottom: -28,
+              child: GestureDetector(
+                onTap: widget.onSearchTapped,
+                child: Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: isCompact ? 16 : 20,
+                    vertical: isCompact ? 15 : 17,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF263E98).withValues(alpha: 0.10),
+                        blurRadius: 26,
+                        offset: const Offset(0, 10),
+                      ),
+                    ],
+                    border: Border.all(
+                      color: Colors.white.withValues(alpha: 0.92),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.search_rounded,
+                        color: AppColors.primary,
+                        size: isCompact ? 25 : 29,
+                      ),
+                      const SizedBox(width: 14),
+                      Expanded(
+                        child: RichText(
+                          text: TextSpan(
+                            style: GoogleFonts.inter(
+                              fontSize: isCompact ? 14.5 : 16,
+                              color: const Color(0xFF6B7280),
+                            ),
+                            children: [
+                              const TextSpan(text: 'Search for '),
+                              TextSpan(
+                                text: _searchHints[_hintIndex],
+                                style: GoogleFonts.inter(
+                                  fontSize: isCompact ? 14.5 : 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF1F2937),
+                                ),
+                              ),
+                            ],
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Widget _buildQuickActions(BuildContext context) {
+    return SizedBox(
+      height: 164,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        children: [
+          SizedBox(
+            width: 122,
+            child: _QuickActionCard(
+              title: 'Services',
+              subtitle: 'Find pros',
+              icon: Icons.handyman_rounded,
+              tint: const Color(0xFFEFF5FF),
+              accent: AppColors.primary,
+              onTap: widget.onSearchTapped,
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 122,
+            child: _QuickActionCard(
+              title: 'Requests',
+              subtitle: 'Post a job',
+              icon: Icons.assignment_rounded,
+              tint: const Color(0xFFFFF3EC),
+              accent: const Color(0xFFF97316),
+              onTap:
+                  widget.onRequestsTapped ??
+                  () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const AddRequestScreen()),
+                  ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 122,
+            child: _QuickActionCard(
+              title: 'Mates',
+              subtitle: 'Find roommates',
+              icon: Icons.group_rounded,
+              tint: const Color(0xFFF1FBF3),
+              accent: const Color(0xFF2F9E44),
+              onTap: widget.onMatesTapped,
+            ),
+          ),
+          const SizedBox(width: 12),
+          SizedBox(
+            width: 122,
+            child: _QuickActionCard(
+              title: 'Rides',
+              subtitle: 'Book or share',
+              icon: Icons.directions_car_filled_rounded,
+              tint: const Color(0xFFF7F1FF),
+              accent: const Color(0xFF8B5CF6),
+              onTap: () => _showComingSoon('Rides'),
             ),
           ),
         ],
@@ -351,353 +626,198 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  // ── 3-Pillar Strip ────────────────────────────────────────────────────────────
-
-  Widget _buildPillarStrip(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(24, 32, 24, 0),
-      child: IntrinsicHeight(
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Expanded(
-              flex: 5,
-              child: _BentoCard(
-                icon: Icons.handyman_rounded,
-                label: 'Services',
-                sub: 'Find local pros',
-                baseColor: AppColors.primary,
-                onTap: widget.onSearchTapped,
-                isLarge: true,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              flex: 4,
-              child: Column(
-                children: [
-                  Expanded(
-                    child: _BentoCard(
-                      icon: Icons.assignment_rounded,
-                      label: 'Requests',
-                      sub: 'Post a job',
-                      baseColor: const Color(0xFFFF7043), // Vibrant Peach
-                      onTap:
-                          widget.onRequestsTapped ??
-                          () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const AddRequestScreen(),
-                            ),
-                          ),
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Expanded(
-                    child: _BentoCard(
-                      icon: Icons.people_rounded,
-                      label: 'Mates',
-                      sub: 'Connect locally',
-                      baseColor: const Color(0xFF43A047), // Vibrant Green
-                      onTap: widget.onMatesTapped,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Categories ────────────────────────────────────────────────────────────────
-
   Widget _buildCategoriesSection(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Expanded(
-              child: Text(
-                'Categories',
-                style: AppTheme.headline(fontSize: 22),
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
-            ),
-            GestureDetector(
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => const AllCategoriesScreen()),
-              ),
-              child: Text(
-                'View All',
-                style: AppTheme.body(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.primary,
-                ),
-              ),
-            ),
-          ],
+        _SectionHeader(
+          title: 'Top Categories',
+          actionLabel: 'View All',
+          onActionTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AllCategoriesScreen()),
+          ),
         ),
-        const SizedBox(height: 20),
-        SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          physics: const BouncingScrollPhysics(),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _CategoryCircle(
-                label: 'Electrician',
-                imageUrl:
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuC-eL5ZvDeISt0w2u0DR1osoZqXxH0DKO9YCBmoJAhw0zw5M0nULj0QcNh14z7RzMwC2sPi6Aw5aiepDhxhuKKZnQC-Y51TcineiQIlnhcD_oBbLntDbegJBXAYCB1K0jStkwbU_R9ek97RPWgz0d-2thTAO3CrR2h5Rq08mAZHz0GrsJqJs9CK5ta9Fe2kcH40uAUui3R5q258lfv3hmyDiVPgSiEJn-ebgr4tzXr1qkxamyYlrAqc-VFvw1k5pj7CZX54MfVIXGQ',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        const WorkerListScreen(category: 'Electrician'),
+        const SizedBox(height: 16),
+        SizedBox(
+          height: 126,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            padding: const EdgeInsets.only(right: 24),
+            itemCount: _categories.length + 1,
+            separatorBuilder: (_, _) => const SizedBox(width: 18),
+            itemBuilder: (context, index) {
+              if (index == _categories.length) {
+                return _CategoryCircle(
+                  label: 'All Services',
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => const AllCategoriesScreen(),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(width: 24),
-              _CategoryCircle(
-                label: 'Plumber',
-                imageUrl:
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuCHB8HEtlkIngffZC4YxjMghwS577KPR9kJt0uUc07S5Mlm1qkPq2vSuAEn6cJgSZYYjeUbJI_Cvdx1qb8OjdWB86JZmvnlQ1301eq6gBoaDY8XQiGZk5dZjUfZg_X3UOHOgKkSspxgjxZ4bo2c0J-J7B6z5Ud7AS13btPeFC3wsglYjjxjQvw1kw2L0f34nm_nGTFDyvM-KkzyMCufsdX0sOJGBYpuikYwIpW6W_ztX6gRGhTf60sId5Fp74D0JEuqvh_TatgV8os',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const WorkerListScreen(category: 'Plumber'),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 24),
-              _CategoryCircle(
-                label: 'AC Repair',
-                imageUrl:
-                    'https://lh3.googleusercontent.com/aida-public/AB6AXuCwJdWFNgZs5x6jOIZ_TD3QLZlaYKCr0IFVtFr-Y6js2VvkJvyM2Y4vCVnHNcl2X9uI9DXL0NpyIWgXl2bb0Rv05Yykpxk6ooavynLjBDx-dIahugWk8hDsFiqDkf8ocIn6Pv-AUPAzBAYehZCUa-Q73mbN9x_ZpMIpOxI-aRso0RGCdvpQZCqYaP40WrVLmn2Pbq7zdZXTDgIHaQcZfxBCSl0tk-AYg7n_q9PkfvOhRERWWfby5v6QHS_FLc_g81ixfPBcIiaTPQI',
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        const WorkerListScreen(category: 'AC Repair'),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 24),
-              _CategoryCircle(
-                label: 'All Services',
-                imageUrl: '',
-                isAllServices: true,
-                onTap: () => Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const AllCategoriesScreen(),
-                  ),
-                ),
-              ),
-            ],
+                  isAllServices: true,
+                );
+              }
+
+              final item = _categories[index];
+              return _CategoryCircle(
+                label: item.label,
+                imageUrl: item.imageUrl,
+                onTap: () => _openCategory(item.category),
+              );
+            },
           ),
         ),
       ],
     );
   }
-
-  // ── Mates Section ─────────────────────────────────────────────────────────────
 
   Widget _buildMatesSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Mates Near You', style: AppTheme.headline(fontSize: 22)),
-            GestureDetector(
-              onTap: widget.onMatesTapped,
-              child: Text(
-                'See All',
-                style: AppTheme.body(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                  color: AppColors.secondary,
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Roommates, Helpmates & Ridematch nearby',
-          style: AppTheme.body(fontSize: 13, color: AppColors.slate500),
+        _SectionHeader(
+          title: 'Mates Near You',
+          subtitle: 'Roommates, Helpmates & Ridematch nearby',
+          actionLabel: 'See All',
+          onActionTap: widget.onMatesTapped,
         ),
         const SizedBox(height: 16),
-        if (_loading)
-          SizedBox(
-            height: 178,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: 4,
-              separatorBuilder: (context, i) => const SizedBox(width: 12),
-              itemBuilder: (context, i) => _buildMateSkeleton(),
-            ),
-          )
-        else
-          SizedBox(
-            height: 178,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _recentMates.length,
-              separatorBuilder: (context, i) => const SizedBox(width: 12),
-              itemBuilder: (context, i) => _MatePreviewCard(
-                mate: _recentMates[i],
-                onTap: widget.onMatesTapped,
-                onChatTap: () => _openContextChat(
-                  otherUserId: _recentMates[i].userId,
-                  chatType: ChatType.mate,
-                  referenceId: _recentMates[i].id,
-                  otherUserName: _recentMates[i].userName,
-                  otherUserPhotoUrl: _recentMates[i].userPhoto,
-                  otherUserLocation: _recentMates[i].location,
+        SizedBox(
+          height: 174,
+          child: _loading
+              ? ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.only(right: 80),
+                  itemCount: 3,
+                  separatorBuilder: (_, _) => const SizedBox(width: 14),
+                  itemBuilder: (_, _) => const _MateCardSkeleton(),
+                )
+              : ListView.separated(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  padding: const EdgeInsets.only(right: 80),
+                  itemCount: _recentMates.length,
+                  separatorBuilder: (_, _) => const SizedBox(width: 14),
+                  itemBuilder: (context, index) {
+                    final mate = _recentMates[index];
+                    return _MatePreviewCard(
+                      mate: mate,
+                      onTap: widget.onMatesTapped,
+                      onChatTap: () => _openContextChat(
+                        otherUserId: mate.userId,
+                        chatType: ChatType.mate,
+                        referenceId: mate.id,
+                        otherUserName: mate.userName,
+                        otherUserPhotoUrl: mate.userPhoto,
+                        otherUserLocation: mate.location,
+                      ),
+                    );
+                  },
                 ),
-              ),
-            ),
-          ),
+        ),
       ],
     );
   }
-
-  Widget _buildMateSkeleton() {
-    return Container(
-      width: 190,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            height: 4,
-            decoration: const BoxDecoration(
-              color: AppColors.surfaceContainerHigh,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(18)),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    _SkeletonBox(width: 42, height: 42),
-                    const SizedBox(width: 10),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _SkeletonBox(width: 90, height: 13),
-                        const SizedBox(height: 6),
-                        _SkeletonBox(width: 56, height: 18),
-                      ],
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                _SkeletonBox(width: 110, height: 11),
-                const SizedBox(height: 6),
-                _SkeletonBox(width: 140, height: 11),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ── Top Workers ───────────────────────────────────────────────────────────────
 
   Widget _buildTopWorkersSection(BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              _locationUsed ? 'Pros Near You' : 'Top Pros',
-              style: AppTheme.headline(fontSize: 22),
-            ),
-            if (_locationUsed)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: Row(
-                  children: [
-                    Icon(_proximityIcon, size: 12, color: AppColors.secondary),
-                    const SizedBox(width: 4),
-                    Text(
-                      _proximityLabel,
-                      style: AppTheme.body(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.secondary,
-                      ),
-                    ),
-                  ],
+        _SectionHeader(
+          title: _locationUsed ? 'Pros Near You' : 'Pros For You',
+          actionLabel: 'See All',
+          onActionTap: widget.onSearchTapped,
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFFEFFAF2),
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(_proximityIcon, size: 14, color: AppColors.secondary),
+              const SizedBox(width: 6),
+              Text(
+                _proximityLabel,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.secondary,
                 ),
               ),
-          ],
+            ],
+          ),
         ),
-        const SizedBox(height: 6),
-        Text(
-          'Tap a profile to call directly — no booking needed.',
-          style: AppTheme.body(fontSize: 13, color: AppColors.slate500),
-        ),
-        const SizedBox(height: 20),
+        const SizedBox(height: 16),
         if (_loading)
           SizedBox(
-            height: 320,
+            height: 166,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.only(right: 80),
               itemCount: 3,
-              separatorBuilder: (context, i) => const SizedBox(width: 20),
-              itemBuilder: (context, i) => _buildSkeletonCard(),
+              separatorBuilder: (_, _) => const SizedBox(width: 14),
+              itemBuilder: (_, _) => const _WorkerCardSkeleton(),
             ),
           )
         else if (_topWorkers.isEmpty)
           Container(
-            height: 160,
             width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 26),
             decoration: BoxDecoration(
               color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(26),
+              border: Border.all(
+                color: AppColors.outlineVariant.withValues(alpha: 0.35),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                ),
+              ],
             ),
             child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(
-                  Icons.person_search,
-                  size: 40,
-                  color: AppColors.outlineVariant.withValues(alpha: 0.6),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'No professionals nearby yet',
-                  style: AppTheme.body(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.outline,
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: AppColors.blue50,
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Icon(
+                    Icons.person_search_rounded,
+                    color: AppColors.primary,
+                    size: 28,
                   ),
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 14),
                 Text(
-                  'Try posting a request instead',
-                  style: AppTheme.body(
+                  'No professionals nearby yet',
+                  style: GoogleFonts.manrope(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Try changing your location or post a request instead.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(
                     fontSize: 13,
-                    color: AppColors.outlineVariant,
+                    height: 1.5,
+                    color: AppColors.onSurfaceVariant,
                   ),
                 ),
               ],
@@ -705,37 +825,35 @@ class HomeScreenState extends State<HomeScreen> {
           )
         else
           SizedBox(
-            height: 320,
+            height: 166,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.only(right: 80),
               itemCount: _topWorkers.length,
-              separatorBuilder: (context, i) => const SizedBox(width: 20),
+              separatorBuilder: (_, _) => const SizedBox(width: 14),
               itemBuilder: (context, index) {
-                final w = _topWorkers[index];
+                final worker = _topWorkers[index];
                 return _WorkerCard(
                   data: _WorkerData(
-                    name: w.name,
-                    role: w.serviceType,
-                    rating: w.ratingDisplay,
-                    location: w.distanceKm != null
-                        ? w.distanceDisplay
-                        : '${w.location} • ${w.experience}yr exp',
-                    imageUrl: w.photoUrl,
-                    available: w.isAvailable,
+                    name: worker.name,
+                    role: worker.serviceType.isEmpty
+                        ? 'Service professional'
+                        : worker.serviceType,
+                    rating: worker.ratingDisplay,
+                    location: worker.distanceDisplay,
+                    imageUrl: worker.photoUrl,
+                    available: worker.isAvailable,
                   ),
-                  onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => WorkerProfileScreen(workerId: w.uid),
-                    ),
-                  ),
-                  onChat: () => _openContextChat(
-                    otherUserId: w.uid,
+                  onTap: () => _openWorkerProfile(worker),
+                  onCallTap: () => _launchPhone(worker.phone),
+                  onChatTap: () => _openContextChat(
+                    otherUserId: worker.uid,
                     chatType: ChatType.service,
-                    referenceId: w.uid,
-                    otherUserName: w.name,
-                    otherUserPhotoUrl: w.photoUrl,
-                    otherUserLocation: w.location,
+                    referenceId: worker.uid,
+                    otherUserName: worker.name,
+                    otherUserPhotoUrl: worker.photoUrl,
+                    otherUserLocation: worker.location,
                   ),
                 );
               },
@@ -746,23 +864,92 @@ class HomeScreenState extends State<HomeScreen> {
   }
 }
 
-// ── Bento Card ────────────────────────────────────────────────────────────────
+class _SectionHeader extends StatelessWidget {
+  final String title;
+  final String? subtitle;
+  final String actionLabel;
+  final VoidCallback? onActionTap;
 
-class _BentoCard extends StatelessWidget {
+  const _SectionHeader({
+    required this.title,
+    required this.actionLabel,
+    this.subtitle,
+    this.onActionTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: GoogleFonts.manrope(
+                  fontSize: 17,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.onSurface,
+                  letterSpacing: -0.4,
+                ),
+              ),
+            ),
+            GestureDetector(
+              onTap: onActionTap,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    actionLabel,
+                    style: GoogleFonts.inter(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(
+                    Icons.arrow_forward_ios_rounded,
+                    size: 14,
+                    color: AppColors.primary,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        if (subtitle != null) ...[
+          const SizedBox(height: 4),
+          Text(
+            subtitle!,
+            style: GoogleFonts.inter(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: AppColors.slate500,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _QuickActionCard extends StatelessWidget {
+  final String title;
+  final String subtitle;
   final IconData icon;
-  final String label;
-  final String sub;
-  final Color baseColor;
+  final Color tint;
+  final Color accent;
   final VoidCallback? onTap;
-  final bool isLarge;
 
-  const _BentoCard({
+  const _QuickActionCard({
+    required this.title,
+    required this.subtitle,
     required this.icon,
-    required this.label,
-    required this.sub,
-    required this.baseColor,
+    required this.tint,
+    required this.accent,
     this.onTap,
-    this.isLarge = false,
   });
 
   @override
@@ -770,58 +957,79 @@ class _BentoCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: double.infinity,
-        alignment: Alignment.centerLeft,
-        padding: EdgeInsets.symmetric(
-          horizontal: isLarge ? 20 : 16,
-          vertical: 16,
-        ),
+        height: 164,
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
         decoration: BoxDecoration(
-          color: baseColor.withValues(alpha: 0.08),
-          borderRadius: BorderRadius.circular(24), // Squircular feel
-          border: Border.all(
-            color: baseColor.withValues(alpha: 0.15),
-            width: 1,
-          ),
+          color: tint,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: accent.withValues(alpha: 0.10)),
+          boxShadow: [
+            BoxShadow(
+              color: accent.withValues(alpha: 0.08),
+              blurRadius: 16,
+              offset: const Offset(0, 8),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
                 color: Colors.white,
-                borderRadius: BorderRadius.circular(16),
+                shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: baseColor.withValues(alpha: 0.1),
+                    color: accent.withValues(alpha: 0.10),
                     blurRadius: 8,
                     offset: const Offset(0, 4),
                   ),
                 ],
               ),
-              child: Icon(icon, size: isLarge ? 28 : 22, color: baseColor),
+              child: Icon(icon, color: accent, size: 22),
             ),
-            SizedBox(height: isLarge ? 20 : 12),
+            const Spacer(),
             Text(
-              label,
+              title,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.manrope(
-                fontSize: isLarge ? 18 : 14,
+                fontSize: 13,
+                height: 1.1,
                 fontWeight: FontWeight.w800,
                 color: AppColors.onSurface,
               ),
             ),
             const SizedBox(height: 4),
             Text(
-              sub,
+              subtitle,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.inter(
-                fontSize: isLarge ? 14 : 13,
-                fontWeight: FontWeight.w600,
-                color: AppColors.onSurface.withValues(
-                  alpha: 0.65,
-                ), // Darker and more legible
+                fontSize: 11,
+                height: 1.3,
+                fontWeight: FontWeight.w500,
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Align(
+              alignment: Alignment.bottomRight,
+              child: Container(
+                width: 28,
+                height: 28,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: accent.withValues(alpha: 0.18)),
+                ),
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  color: accent,
+                  size: 17,
+                ),
               ),
             ),
           ],
@@ -831,7 +1039,83 @@ class _BentoCard extends StatelessWidget {
   }
 }
 
-// ── Mate Preview Card ──────────────────────────────────────────────────────────
+class _CategoryCircle extends StatelessWidget {
+  final String label;
+  final String? imageUrl;
+  final VoidCallback onTap;
+  final bool isAllServices;
+
+  const _CategoryCircle({
+    required this.label,
+    required this.onTap,
+    this.imageUrl,
+    this.isAllServices = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: SizedBox(
+        width: 82,
+        child: Column(
+          children: [
+            Container(
+              width: 76,
+              height: 76,
+              decoration: BoxDecoration(
+                color: isAllServices ? const Color(0xFFF8FAFC) : Colors.white,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.outlineVariant.withValues(alpha: 0.26),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.05),
+                    blurRadius: 14,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
+              ),
+              clipBehavior: Clip.antiAlias,
+              child: isAllServices
+                  ? const Center(
+                      child: Icon(
+                        Icons.more_horiz_rounded,
+                        color: AppColors.slate400,
+                        size: 30,
+                      ),
+                    )
+                  : Image.network(
+                      imageUrl!,
+                      fit: BoxFit.cover,
+                      errorBuilder: (_, _, _) => const Center(
+                        child: Icon(
+                          Icons.image_not_supported_outlined,
+                          color: AppColors.outlineVariant,
+                        ),
+                      ),
+                    ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(
+                fontSize: 12,
+                height: 1.2,
+                fontWeight: FontWeight.w600,
+                color: AppColors.onSurface,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _MatePreviewCard extends StatelessWidget {
   final MateModel mate;
@@ -858,33 +1142,29 @@ class _MatePreviewCard extends StatelessWidget {
   String get _detail {
     switch (mate.type) {
       case MateType.roommate:
-        if (mate.description.isNotEmpty) return mate.description;
-        final parts = <String>[];
-        final b = mate.budget;
-        if (b != null && b.trim().isNotEmpty) {
-          final formatted = b.trim().startsWith('₹')
-              ? b.trim()
-              : '₹${b.trim()}';
-          parts.add(formatted);
+        if (mate.budget != null && mate.budget!.trim().isNotEmpty) {
+          final value = mate.budget!.trim();
+          return value.startsWith('Rs')
+              ? '$value / month'
+              : 'Rs $value / month';
         }
-        final g = mate.preferredGender;
-        if (g != null && g.isNotEmpty && g != 'Any') parts.add('$g preferred');
-        if (parts.isNotEmpty) return parts.join(' · ');
-        return mate.location;
+        if (mate.description.isNotEmpty) {
+          return mate.description;
+        }
+        return 'Looking nearby';
       case MateType.helpmate:
         if (mate.helpTypes.isNotEmpty) {
-          final label = mate.helpTypes.take(2).join(', ');
-          return mate.available ? 'Available · $label' : label;
+          return mate.helpTypes.take(2).join(' / ');
         }
-        return mate.available ? 'Available now' : mate.description;
+        return mate.available ? 'Available now' : 'Unavailable';
       case MateType.ridemate:
         if (mate.fromLocation != null && mate.toLocation != null) {
-          return '${mate.fromLocation} → ${mate.toLocation}';
+          return '${mate.fromLocation} -> ${mate.toLocation}';
         }
         if (mate.departureTime != null && mate.departureTime!.isNotEmpty) {
           return 'Departs ${mate.departureTime}';
         }
-        return mate.description.isNotEmpty ? mate.description : mate.location;
+        return mate.description.isNotEmpty ? mate.description : 'Ride details';
     }
   }
 
@@ -893,175 +1173,457 @@ class _MatePreviewCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 190,
+        width: 268,
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
         decoration: BoxDecoration(
           color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: _color.withValues(alpha: 0.16), width: 1.2),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 14,
-              offset: const Offset(0, 4),
+              color: _color.withValues(alpha: 0.08),
+              blurRadius: 18,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(18),
-          child: Stack(
-            children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Colored top accent strip
-                  Container(height: 4, color: _color),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.center,
+        child: Stack(
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 56,
+                      height: 56,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: _color.withValues(alpha: 0.10),
+                      ),
+                      clipBehavior: Clip.antiAlias,
+                      child: mate.userPhoto.isNotEmpty
+                          ? Image.network(
+                              mate.userPhoto,
+                              fit: BoxFit.cover,
+                              errorBuilder: (_, _, _) =>
+                                  Icon(_icon, color: _color, size: 24),
+                            )
+                          : Icon(_icon, color: _color, size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.only(right: 48),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            // Avatar
+                            Text(
+                              mate.userName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.manrope(
+                                fontSize: 17,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.onSurface,
+                              ),
+                            ),
+                            const SizedBox(height: 5),
                             Container(
-                              width: 42,
-                              height: 42,
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 10,
+                                vertical: 5,
+                              ),
                               decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                color: _color.withValues(alpha: 0.08),
-                                border: Border.all(
-                                  color: _color.withValues(alpha: 0.2),
-                                  width: 1.5,
-                                ),
+                                color: _color.withValues(alpha: 0.10),
+                                borderRadius: BorderRadius.circular(999),
                               ),
-                              clipBehavior: Clip.antiAlias,
-                              child: mate.userPhoto.isNotEmpty
-                                  ? Image.network(
-                                      mate.userPhoto,
-                                      fit: BoxFit.cover,
-                                      errorBuilder: (ctx, e, s) =>
-                                          Icon(_icon, size: 20, color: _color),
-                                    )
-                                  : Icon(_icon, size: 20, color: _color),
-                            ),
-                            const SizedBox(width: 10),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    mate.userName,
-                                    style: AppTheme.headline(
-                                      fontSize: 13,
-                                      fontWeight: FontWeight.w700,
-                                    ),
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 7,
-                                      vertical: 3,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: _color.withValues(alpha: 0.1),
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Text(
-                                      mate.type.label,
-                                      style: TextStyle(
-                                        fontSize: 10,
-                                        fontWeight: FontWeight.w700,
-                                        color: _color,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.location_on_outlined,
-                              size: 12,
-                              color: AppColors.outline,
-                            ),
-                            const SizedBox(width: 4),
-                            Expanded(
                               child: Text(
-                                mate.location,
-                                style: AppTheme.body(
+                                mate.type.label,
+                                style: GoogleFonts.inter(
                                   fontSize: 11,
-                                  color: AppColors.outline,
+                                  fontWeight: FontWeight.w700,
+                                  color: _color,
                                 ),
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
                               ),
                             ),
                           ],
                         ),
-                        const SizedBox(height: 5),
-                        Text(
-                          _detail,
-                          style: AppTheme.body(
-                            fontSize: 11,
-                            color: AppColors.onSurfaceVariant,
-                            height: 1.35,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.location_on_outlined,
+                      size: 15,
+                      color: AppColors.slate400,
+                    ),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        mate.location.isEmpty
+                            ? 'Location not available'
+                            : mate.location,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.slate500,
                         ),
-                      ],
+                      ),
                     ),
-                  ),
-                ],
-              ),
-              // Chat button overlay
-              Positioned(
-                bottom: 10,
-                right: 10,
-                child: GestureDetector(
-                  onTap: onChatTap,
-                  child: Container(
-                    width: 36,
-                    height: 36,
-                    decoration: BoxDecoration(
-                      color: _color,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: _color.withValues(alpha: 0.3),
-                          blurRadius: 6,
-                          offset: const Offset(0, 2),
-                        ),
-                      ],
-                    ),
-                    child: const Icon(
-                      Icons.chat_rounded,
-                      size: 18,
-                      color: Colors.white,
-                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  _detail,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 14,
+                    height: 1.4,
+                    fontWeight: FontWeight.w700,
+                    color: mate.type == MateType.roommate
+                        ? AppColors.secondary
+                        : AppColors.onSurfaceVariant,
                   ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
+            Positioned(
+              right: 0,
+              bottom: 0,
+              child: _ChatActionButton(onTap: onChatTap),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-// ── Skeleton ───────────────────────────────────────────────────────────────────
+class _WorkerCard extends StatelessWidget {
+  final _WorkerData data;
+  final VoidCallback onTap;
+  final VoidCallback onCallTap;
+  final VoidCallback? onChatTap;
+
+  const _WorkerCard({
+    required this.data,
+    required this.onTap,
+    required this.onCallTap,
+    this.onChatTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 262,
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFFBFCFE),
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: AppColors.outlineVariant.withValues(alpha: 0.24),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 18,
+              offset: const Offset(0, 8),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    color: AppColors.surfaceContainerHigh,
+                  ),
+                  clipBehavior: Clip.antiAlias,
+                  child: data.imageUrl.isEmpty
+                      ? const Icon(
+                          Icons.person_rounded,
+                          color: AppColors.outline,
+                          size: 28,
+                        )
+                      : Image.network(
+                          data.imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, _, _) => const Icon(
+                            Icons.person_rounded,
+                            color: AppColors.outline,
+                            size: 28,
+                          ),
+                        ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      if (data.available)
+                        Row(
+                          children: [
+                            Container(
+                              width: 8,
+                              height: 8,
+                              decoration: const BoxDecoration(
+                                color: AppColors.secondary,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Available',
+                              style: GoogleFonts.inter(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.secondary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      if (data.available) const SizedBox(height: 5),
+                      Text(
+                        data.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.manrope(
+                          fontSize: 17,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.onSurface,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        data.role,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.onSurfaceVariant,
+                        ),
+                      ),
+                      const SizedBox(height: 5),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.location_on_outlined,
+                            size: 13,
+                            color: AppColors.slate400,
+                          ),
+                          const SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              data.location,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.slate500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(
+                      color: AppColors.outlineVariant.withValues(alpha: 0.24),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.star_rounded,
+                        size: 13,
+                        color: AppColors.amber500,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        data.rating,
+                        style: GoogleFonts.inter(
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.onSurface,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const Spacer(),
+            Row(
+              children: [
+                Expanded(
+                  child: SizedBox(
+                    height: 40,
+                    child: ElevatedButton.icon(
+                      onPressed: onCallTap,
+                      icon: const Icon(Icons.call_rounded, size: 17),
+                      label: const Text('Call'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: AppColors.primary,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        textStyle: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                if (onChatTap != null)
+                  SizedBox(
+                    width: 40,
+                    height: 40,
+                    child: _ChatActionButton(onTap: onChatTap),
+                  ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MateCardSkeleton extends StatelessWidget {
+  const _MateCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 268,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Row(
+            children: [
+              _SkeletonBox(width: 56, height: 56, radius: 28),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SkeletonBox(width: 118, height: 16),
+                    SizedBox(height: 8),
+                    _SkeletonBox(width: 74, height: 22, radius: 11),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 18),
+          _SkeletonBox(width: 160, height: 14),
+          SizedBox(height: 10),
+          _SkeletonBox(width: 116, height: 16),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkerCardSkeleton extends StatelessWidget {
+  const _WorkerCardSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 262,
+      padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+      ),
+      child: Column(
+        children: const [
+          Row(
+            children: [
+              _SkeletonBox(width: 56, height: 56, radius: 16),
+              SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _SkeletonBox(width: 58, height: 12),
+                    SizedBox(height: 8),
+                    _SkeletonBox(width: 120, height: 16),
+                    SizedBox(height: 6),
+                    _SkeletonBox(width: 92, height: 13),
+                  ],
+                ),
+              ),
+              _SkeletonBox(width: 44, height: 26, radius: 13),
+            ],
+          ),
+          Spacer(),
+          Row(
+            children: [
+              Expanded(
+                child: _SkeletonBox(
+                  width: double.infinity,
+                  height: 40,
+                  radius: 16,
+                ),
+              ),
+              SizedBox(width: 10),
+              _SkeletonBox(width: 40, height: 40, radius: 20),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
 
 class _SkeletonBox extends StatelessWidget {
   final double width;
   final double height;
-  const _SkeletonBox({required this.width, required this.height});
+  final double radius;
+
+  const _SkeletonBox({
+    required this.width,
+    required this.height,
+    this.radius = 8,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1070,124 +1632,243 @@ class _SkeletonBox extends StatelessWidget {
       height: height,
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(8),
+        borderRadius: BorderRadius.circular(radius),
       ),
     );
   }
 }
 
-Widget _buildSkeletonCard() {
-  return Container(
-    width: 220,
-    decoration: BoxDecoration(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(20),
-    ),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Container(
-          height: 155,
-          decoration: const BoxDecoration(
-            color: AppColors.surfaceContainerHigh,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              _SkeletonBox(width: 110, height: 15),
-              SizedBox(height: 6),
-              _SkeletonBox(width: 75, height: 12),
-              SizedBox(height: 10),
-              _SkeletonBox(width: 140, height: 11),
-              SizedBox(height: 12),
-              _SkeletonBox(width: double.infinity, height: 38),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
+class _HeroIllustration extends StatelessWidget {
+  const _HeroIllustration();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 220,
+      height: 214,
+      child: CustomPaint(
+        painter: _HeroScenePainter(),
+      ),
+    );
+  }
 }
 
-// ── Category Circle ──────────────────────────────────────────────────────────────
+class _HeroScenePainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final buildingPaint = Paint()
+      ..color = const Color(0xFF768FEF).withValues(alpha: 0.18);
+    final detailPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.22);
+    final purpleLeafPaint = Paint()
+      ..color = const Color(0xFF8F7AEB).withValues(alpha: 0.30);
+    final blueLeafPaint = Paint()
+      ..color = const Color(0xFF6D83EA).withValues(alpha: 0.20);
 
-class _CategoryCircle extends StatelessWidget {
-  final String label;
-  final String imageUrl;
-  final VoidCallback onTap;
-  final bool isAllServices;
+    final buildings = [
+      Rect.fromLTWH(size.width * 0.36, size.height * 0.42, 16, 70),
+      Rect.fromLTWH(size.width * 0.48, size.height * 0.34, 22, 86),
+      Rect.fromLTWH(size.width * 0.62, size.height * 0.28, 24, 98),
+      Rect.fromLTWH(size.width * 0.76, size.height * 0.38, 18, 78),
+    ];
+    for (final rect in buildings) {
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(rect, const Radius.circular(8)),
+        buildingPaint,
+      );
+      for (double y = rect.top + 10; y < rect.bottom - 8; y += 14) {
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(rect.left + 5, y, 4, 6),
+            const Radius.circular(2),
+          ),
+          detailPaint,
+        );
+        canvas.drawRRect(
+          RRect.fromRectAndRadius(
+            Rect.fromLTWH(rect.left + rect.width - 9, y, 4, 6),
+            const Radius.circular(2),
+          ),
+          detailPaint,
+        );
+      }
+    }
 
-  const _CategoryCircle({
-    required this.label,
-    required this.imageUrl,
-    required this.onTap,
-    this.isAllServices = false,
+    canvas.drawOval(
+      Rect.fromLTWH(size.width * 0.08, size.height * 0.74, 20, 68),
+      blueLeafPaint,
+    );
+    canvas.drawOval(
+      Rect.fromLTWH(size.width * 0.90, size.height * 0.62, 18, 78),
+      purpleLeafPaint,
+    );
+    canvas.drawOval(
+      Rect.fromLTWH(size.width * 0.86, size.height * 0.68, 12, 60),
+      purpleLeafPaint,
+    );
+
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _HeroBadge extends StatelessWidget {
+  final IconData icon;
+  final Color background;
+  final Color iconColor;
+
+  const _HeroBadge({
+    required this.icon,
+    required this.background,
+    this.iconColor = Colors.white,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 72,
-            height: 72,
-            decoration: BoxDecoration(
-              color: isAllServices
-                  ? AppColors.surfaceContainerHigh
-                  : Colors.white,
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            clipBehavior: Clip.antiAlias,
-            child: isAllServices
-                ? const Center(
-                    child: Icon(
-                      Icons.grid_view_rounded,
-                      size: 32,
-                      color: AppColors.primary,
-                    ),
-                  )
-                : Image.network(
-                    imageUrl,
-                    fit: BoxFit.cover,
-                    errorBuilder: (ctx, err, stack) => const Center(
-                      child: Icon(
-                        Icons.image_not_supported,
-                        color: AppColors.outlineVariant,
-                      ),
-                    ),
-                  ),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            label,
-            style: AppTheme.body(
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-              color: AppColors.onSurface,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
+    return Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        color: background,
+        shape: BoxShape.circle,
+        border: Border.all(color: Colors.white.withValues(alpha: 0.35)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.white.withValues(alpha: 0.18),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
           ),
         ],
+      ),
+      child: Icon(icon, size: 20, color: iconColor),
+    );
+  }
+}
+
+class _HeroPinBadge extends StatelessWidget {
+  final bool isCompact;
+
+  const _HeroPinBadge({required this.isCompact});
+
+  @override
+  Widget build(BuildContext context) {
+    final size = isCompact ? 82.0 : 94.0;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: const Color(0xFF6372EA),
+        shape: BoxShape.circle,
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF6372EA).withValues(alpha: 0.24),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: Icon(
+        Icons.location_on_rounded,
+        color: Colors.white,
+        size: isCompact ? 42 : 50,
       ),
     );
   }
 }
 
-// ── Worker Card ────────────────────────────────────────────────────────────────
+class _HeroTrailPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.42)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 1.6;
+
+    final pathOne = Path()
+      ..moveTo(size.width * 0.24, size.height * 0.30)
+      ..quadraticBezierTo(
+        size.width * 0.50,
+        size.height * 0.10,
+        size.width * 0.82,
+        size.height * 0.26,
+      );
+    final pathTwo = Path()
+      ..moveTo(size.width * 0.18, size.height * 0.72)
+      ..quadraticBezierTo(
+        size.width * 0.42,
+        size.height * 0.40,
+        size.width * 0.72,
+        size.height * 0.62,
+      );
+
+    _drawDashedPath(canvas, pathOne, paint);
+    _drawDashedPath(canvas, pathTwo, paint);
+
+    final cloudPaint = Paint()
+      ..color = Colors.white.withValues(alpha: 0.28)
+      ..style = PaintingStyle.fill;
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(size.width * 0.24, size.height * 0.06, 34, 10),
+        const Radius.circular(8),
+      ),
+      cloudPaint,
+    );
+    canvas.drawRRect(
+      RRect.fromRectAndRadius(
+        Rect.fromLTWH(size.width * 0.80, size.height * 0.14, 32, 10),
+        const Radius.circular(8),
+      ),
+      cloudPaint,
+    );
+  }
+
+  void _drawDashedPath(Canvas canvas, Path path, Paint paint) {
+    for (final metric in path.computeMetrics()) {
+      double distance = 0;
+      while (distance < metric.length) {
+        final next = distance + 7;
+        canvas.drawPath(metric.extractPath(distance, next), paint);
+        distance += 11;
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+class _GlowOrb extends StatelessWidget {
+  final double size;
+  final Color color;
+
+  const _GlowOrb({required this.size, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(colors: [color, Colors.transparent]),
+      ),
+    );
+  }
+}
+
+class _HomeCategoryItem {
+  final String label;
+  final String category;
+  final String imageUrl;
+
+  const _HomeCategoryItem({
+    required this.label,
+    required this.category,
+    required this.imageUrl,
+  });
+}
 
 class _WorkerData {
   final String name;
@@ -1197,263 +1878,43 @@ class _WorkerData {
   final String imageUrl;
   final bool available;
 
-  _WorkerData({
+  const _WorkerData({
     required this.name,
     required this.role,
     required this.rating,
     required this.location,
     required this.imageUrl,
-    this.available = false,
+    required this.available,
   });
 }
 
-class _WorkerCard extends StatelessWidget {
-  final _WorkerData data;
-  final VoidCallback onTap;
-  final VoidCallback? onChat;
+class _ChatActionButton extends StatelessWidget {
+  final VoidCallback? onTap;
 
-  const _WorkerCard({required this.data, required this.onTap, this.onChat});
+  const _ChatActionButton({this.onTap});
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 220,
+        width: 42,
+        height: 42,
         decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(20),
+          color: AppColors.primary,
+          shape: BoxShape.circle,
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.07),
-              blurRadius: 16,
+              color: AppColors.primary.withValues(alpha: 0.22),
+              blurRadius: 12,
               offset: const Offset(0, 6),
             ),
           ],
         ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Photo ──
-            Stack(
-              children: [
-                ClipRRect(
-                  borderRadius: const BorderRadius.vertical(
-                    top: Radius.circular(20),
-                  ),
-                  child: Stack(
-                    children: [
-                      Image.network(
-                        data.imageUrl,
-                        height: 155,
-                        width: double.infinity,
-                        fit: BoxFit.cover,
-                        errorBuilder: (ctx, e, s) => Container(
-                          height: 155,
-                          color: AppColors.surfaceContainerHighest,
-                          child: Center(
-                            child: Icon(
-                              Icons.person,
-                              size: 52,
-                              color: AppColors.outline.withValues(alpha: 0.4),
-                            ),
-                          ),
-                        ),
-                      ),
-                      // Bottom gradient
-                      Positioned(
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        child: Container(
-                          height: 60,
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.bottomCenter,
-                              end: Alignment.topCenter,
-                              colors: [
-                                Colors.black.withValues(alpha: 0.4),
-                                Colors.transparent,
-                              ],
-                            ),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                // Rating badge
-                Positioned(
-                  top: 10,
-                  right: 10,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 9,
-                      vertical: 4,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.95),
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.1),
-                          blurRadius: 6,
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(
-                          Icons.star_rounded,
-                          color: AppColors.amber500,
-                          size: 13,
-                        ),
-                        const SizedBox(width: 3),
-                        Text(
-                          data.rating,
-                          style: AppTheme.body(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w800,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                // Available badge
-                if (data.available)
-                  Positioned(
-                    top: 10,
-                    left: 10,
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: AppColors.secondary,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(
-                            width: 5,
-                            height: 5,
-                            decoration: const BoxDecoration(
-                              shape: BoxShape.circle,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Available',
-                            style: AppTheme.body(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-            // ── Info ──
-            Padding(
-              padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    data.name,
-                    style: AppTheme.headline(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 3),
-                  Text(
-                    data.role,
-                    style: AppTheme.body(
-                      fontSize: 12,
-                      color: AppColors.onSurfaceVariant,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_rounded,
-                        size: 12,
-                        color: AppColors.outlineVariant,
-                      ),
-                      const SizedBox(width: 3),
-                      Expanded(
-                        child: Text(
-                          data.location,
-                          style: AppTheme.body(
-                            fontSize: 11,
-                            color: AppColors.outlineVariant,
-                          ),
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton.icon(
-                          onPressed: onTap,
-                          icon: const Icon(Icons.phone_rounded, size: 14),
-                          label: const Text('Call'),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            textStyle: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      if (onChat != null)
-                        SizedBox(
-                          width: 40,
-                          child: ElevatedButton(
-                            onPressed: onChat,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.secondary,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(vertical: 10),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            child: const Icon(Icons.chat_rounded, size: 18),
-                          ),
-                        ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
+        child: const Icon(
+          Icons.chat_bubble_rounded,
+          color: Colors.white,
+          size: 18,
         ),
       ),
     );
