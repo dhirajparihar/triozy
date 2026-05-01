@@ -178,7 +178,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             width: 90,
                             height: 90,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const Icon(
+                            errorBuilder: (context, error, stackTrace) => const Icon(
                               Icons.handyman_rounded,
                               size: 40,
                               color: AppColors.primary,
