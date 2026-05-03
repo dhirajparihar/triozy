@@ -25,21 +25,16 @@ class TriozyTopAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
+    return SafeArea(
+      bottom: false,
+      child: ClipRRect(
       child: BackdropFilter(
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: LayoutBuilder(
           builder: (context, constraints) {
-            final width = constraints.maxWidth;
-            final wordmarkSize = width < 360 ? 16.0 : 18.0;
-            final brandSlotWidth = width < 360 ? 118.0 : 138.0;
             return Container(
-              height: MediaQuery.of(context).padding.top + 76,
-              padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 16,
-                left: 24,
-                right: 24,
-              ),
+              height: 70,
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.85),
                 border: const Border(
@@ -201,6 +196,7 @@ class TriozyTopAppBar extends StatelessWidget {
             );
           },
         ),
+      ),
       ),
     );
   }
