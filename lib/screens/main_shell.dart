@@ -39,15 +39,23 @@ class _MainShellState extends State<MainShell> {
   bool _isLocationDialogOpen = false;
   final GlobalKey<HomeScreenState> _homeScreenKey =
       GlobalKey<HomeScreenState>();
+  final GlobalKey<SearchResultsScreenState> _searchScreenKey =
+      GlobalKey<SearchResultsScreenState>();
 
   late final List<Widget> _screens = [
     HomeScreen(
       key: _homeScreenKey,
-      onSearchTapped: () => setState(() => _currentIndex = 1),
+      onSearchTapped: () {
+        setState(() => _currentIndex = 1);
+        // Delay one frame so the tab is visible before requesting focus
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _searchScreenKey.currentState?.focusAndSearch('');
+        });
+      },
       onRequestsTapped: () => setState(() => _currentIndex = 2),
       onMatesTapped: () => setState(() => _currentIndex = 3),
     ),
-    const SearchResultsScreen(),
+    SearchResultsScreen(key: _searchScreenKey),
     const RequestsScreen(showMyPostsTab: false),
     const MateScreen(),
     widget.isWorker
