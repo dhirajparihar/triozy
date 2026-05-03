@@ -21,6 +21,18 @@ import '../services/database_service.dart';
 import '../services/location_service.dart';
 import '../theme/app_colors.dart';
 
+class ScreenUtil {
+  static bool isMobile(BuildContext context) =>
+      MediaQuery.of(context).size.width < 600;
+
+  static bool isTablet(BuildContext context) =>
+      MediaQuery.of(context).size.width >= 600 &&
+      MediaQuery.of(context).size.width < 1024;
+
+  static bool isDesktop(BuildContext context) =>
+      MediaQuery.of(context).size.width >= 1024;
+}
+
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onSearchTapped;
   final VoidCallback? onRequestsTapped;
@@ -285,43 +297,53 @@ class HomeScreenState extends State<HomeScreen> {
       WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
     }
 
+    final width = MediaQuery.of(context).size.width;
+    final horizontalPadding = width < 600 ? 16.0 : 32.0;
+
     return RefreshIndicator(
-      onRefresh: _onRefresh,
-      color: AppColors.primary,
-      child: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(
-          parent: BouncingScrollPhysics(),
-        ),
-        padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _buildHeroSection(context),
-            const SizedBox(height: 54),
-            _buildQuickActions(context),
-            const SizedBox(height: 28),
-            _buildCategoriesSection(context),
-            if (_recentMates.isNotEmpty || _loading) ...[
-              const SizedBox(height: 30),
-              _buildMatesSection(context),
-            ],
-            const SizedBox(height: 30),
-            _buildTopWorkersSection(context),
-          ],
-        ),
-      ),
-    );
+  onRefresh: _onRefresh,
+  color: AppColors.primary,
+  child: SingleChildScrollView(
+    physics: const AlwaysScrollableScrollPhysics(
+      parent: BouncingScrollPhysics(),
+    ),
+    padding: EdgeInsets.only(
+      left: horizontalPadding,
+      right: horizontalPadding,
+      top: MediaQuery.of(context).padding.top,
+      bottom: 16,
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildHeroSection(context),
+        const SizedBox(height: 54),
+        _buildQuickActions(context),
+        const SizedBox(height: 28),
+        _buildCategoriesSection(context),
+        if (_recentMates.isNotEmpty || _loading) ...[
+          const SizedBox(height: 30),
+          _buildMatesSection(context),
+        ],
+        const SizedBox(height: 30),
+        _buildTopWorkersSection(context),
+      ],
+    ),
+  ),
+);
   }
 
   Widget _buildHeroSection(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final isCompact = constraints.maxWidth < 340;
+        final width = constraints.maxWidth;
+        final scale = (width / 400).clamp(0.75, 1.2);
+        final isCompact = width < 340;
         final outerPadding = isCompact ? 18.0 : 24.0;
-        final heroHeight = isCompact ? 222.0 : 244.0;
-        final titleSize = isCompact ? 21.5 : 29.0;
-        final bodySize = isCompact ? 11.8 : 13.4;
-        final illustrationWidth = isCompact ? 130.0 : 182.0;
+        final heroHeight = (240 * scale).clamp(200.0, 260.0);
+        final titleSize = (24 * scale).clamp(18.0, 32.0);
+        final bodySize = (12.5 * scale).clamp(11.0, 14.0);
+        final illustrationWidth = (160 * scale).clamp(120.0, 220.0);
         final searchInset = isCompact ? 6.0 : 10.0;
 
         return Stack(
@@ -450,7 +472,9 @@ class HomeScreenState extends State<HomeScreen> {
                                 left: isCompact ? 14 : 14,
                                 child: _HeroBadge(
                                   icon: Icons.electric_scooter_rounded,
-                                  background: Colors.white.withValues(alpha: 0.88),
+                                  background: Colors.white.withValues(
+                                    alpha: 0.88,
+                                  ),
                                   iconColor: const Color(0xFF6376E8),
                                 ),
                               ),
@@ -464,7 +488,9 @@ class HomeScreenState extends State<HomeScreen> {
                                 right: isCompact ? 0 : 4,
                                 child: _HeroBadge(
                                   icon: Icons.handyman_rounded,
-                                  background: Colors.white.withValues(alpha: 0.88),
+                                  background: Colors.white.withValues(
+                                    alpha: 0.88,
+                                  ),
                                   iconColor: const Color(0xFF6376E8),
                                 ),
                               ),
@@ -473,7 +499,9 @@ class HomeScreenState extends State<HomeScreen> {
                                 bottom: isCompact ? 66 : 72,
                                 child: _HeroBadge(
                                   icon: Icons.groups_rounded,
-                                  background: Colors.white.withValues(alpha: 0.88),
+                                  background: Colors.white.withValues(
+                                    alpha: 0.88,
+                                  ),
                                   iconColor: const Color(0xFFF08A53),
                                 ),
                               ),
@@ -482,7 +510,9 @@ class HomeScreenState extends State<HomeScreen> {
                                 bottom: isCompact ? 44 : 48,
                                 child: _HeroBadge(
                                   icon: Icons.home_rounded,
-                                  background: Colors.white.withValues(alpha: 0.88),
+                                  background: Colors.white.withValues(
+                                    alpha: 0.88,
+                                  ),
                                   iconColor: const Color(0xFF8A67E5),
                                 ),
                               ),
@@ -563,70 +593,69 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildQuickActions(BuildContext context) {
+    final isMobile = ScreenUtil.isMobile(context);
+    final cardWidth = isMobile ? 120.0 : 260.0;
+
     return SizedBox(
-      height: 164,
-      child: ListView(
+      height: 160,
+      child: ListView.separated(
         scrollDirection: Axis.horizontal,
         physics: const BouncingScrollPhysics(),
-        children: [
-          SizedBox(
-            width: 122,
-            child: _QuickActionCard(
-              title: 'Services',
-              subtitle: 'Find pros',
-              icon: Icons.handyman_rounded,
-              tint: const Color(0xFFEFF5FF),
-              accent: AppColors.primary,
-              onTap: widget.onSearchTapped,
-            ),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 122,
-            child: _QuickActionCard(
-              title: 'Requests',
-              subtitle: 'Post a job',
-              icon: Icons.assignment_rounded,
-              tint: const Color(0xFFFFF3EC),
-              accent: const Color(0xFFF97316),
-              onTap:
-                  widget.onRequestsTapped ??
-                  () => Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (_) => const AddRequestScreen()),
-                  ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 122,
-            child: _QuickActionCard(
-              title: 'Mates',
-              subtitle: 'Find roommates',
-              icon: Icons.group_rounded,
-              tint: const Color(0xFFF1FBF3),
-              accent: const Color(0xFF2F9E44),
-              onTap: widget.onMatesTapped,
-            ),
-          ),
-          const SizedBox(width: 12),
-          SizedBox(
-            width: 122,
-            child: _QuickActionCard(
-              title: 'Rides',
-              subtitle: 'Book or share',
-              icon: Icons.directions_car_filled_rounded,
-              tint: const Color(0xFFF7F1FF),
-              accent: const Color(0xFF8B5CF6),
-              onTap: () => _showComingSoon('Rides'),
-            ),
-          ),
-        ],
+        padding: const EdgeInsets.only(right: 10),
+        itemCount: 4,
+        separatorBuilder: (_, __) => const SizedBox(width: 16),
+        itemBuilder: (context, index) {
+          return SizedBox(
+            width: cardWidth,
+            child: [
+              _QuickActionCard(
+                title: 'Services',
+                subtitle: 'Find pros',
+                icon: Icons.handyman_rounded,
+                tint: const Color(0xFFEFF5FF),
+                accent: AppColors.primary,
+                onTap: widget.onSearchTapped,
+              ),
+              _QuickActionCard(
+                title: 'Requests',
+                subtitle: 'Post a job',
+                icon: Icons.assignment_rounded,
+                tint: const Color(0xFFFFF3EC),
+                accent: const Color(0xFFF97316),
+                onTap: widget.onRequestsTapped ??
+                    () => Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (_) => const AddRequestScreen(),
+                          ),
+                        ),
+              ),
+              _QuickActionCard(
+                title: 'Mates',
+                subtitle: 'Find roommates',
+                icon: Icons.group_rounded,
+                tint: const Color(0xFFF1FBF3),
+                accent: const Color(0xFF2F9E44),
+                onTap: widget.onMatesTapped,
+              ),
+              _QuickActionCard(
+                title: 'Rides',
+                subtitle: 'Book or share',
+                icon: Icons.directions_car_filled_rounded,
+                tint: const Color(0xFFF7F1FF),
+                accent: const Color(0xFF8B5CF6),
+                onTap: () => _showComingSoon('Rides'),
+              ),
+            ][index],
+          );
+        },
       ),
     );
   }
 
   Widget _buildCategoriesSection(BuildContext context) {
+    final isMobile = ScreenUtil.isMobile(context);
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -639,14 +668,49 @@ class HomeScreenState extends State<HomeScreen> {
           ),
         ),
         const SizedBox(height: 16),
-        SizedBox(
-          height: 126,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            padding: const EdgeInsets.only(right: 24),
+        if (isMobile)
+          SizedBox(
+            height: 126,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              padding: const EdgeInsets.only(right: 24),
+              itemCount: _categories.length + 1,
+              separatorBuilder: (_, _) => const SizedBox(width: 18),
+              itemBuilder: (context, index) {
+                if (index == _categories.length) {
+                  return _CategoryCircle(
+                    label: 'All Services',
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const AllCategoriesScreen(),
+                      ),
+                    ),
+                    isAllServices: true,
+                  );
+                }
+
+                final item = _categories[index];
+                return _CategoryCircle(
+                  label: item.label,
+                  imageUrl: item.imageUrl,
+                  onTap: () => _openCategory(item.category),
+                );
+              },
+            ),
+          )
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
             itemCount: _categories.length + 1,
-            separatorBuilder: (_, _) => const SizedBox(width: 18),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 4,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              childAspectRatio: 1,
+            ),
             itemBuilder: (context, index) {
               if (index == _categories.length) {
                 return _CategoryCircle(
@@ -669,7 +733,6 @@ class HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
-        ),
       ],
     );
   }
@@ -862,6 +925,14 @@ class HomeScreenState extends State<HomeScreen> {
       ],
     );
   }
+}
+
+double cardWidth(BuildContext context) {
+  final width = MediaQuery.of(context).size.width;
+
+  if (width > 1000) return 320;
+  if (width > 600) return 260;
+  return width * 0.75;
 }
 
 class _SectionHeader extends StatelessWidget {
@@ -1173,7 +1244,7 @@ class _MatePreviewCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 268,
+        width: cardWidth(context),
         padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
         decoration: BoxDecoration(
           color: Colors.white,
@@ -1325,7 +1396,7 @@ class _WorkerCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        width: 262,
+        width: cardWidth(context),
         padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
         decoration: BoxDecoration(
           color: const Color(0xFFFBFCFE),
@@ -1646,9 +1717,7 @@ class _HeroIllustration extends StatelessWidget {
     return SizedBox(
       width: 220,
       height: 214,
-      child: CustomPaint(
-        painter: _HeroScenePainter(),
-      ),
+      child: CustomPaint(painter: _HeroScenePainter()),
     );
   }
 }
@@ -1658,8 +1727,7 @@ class _HeroScenePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final buildingPaint = Paint()
       ..color = const Color(0xFF768FEF).withValues(alpha: 0.18);
-    final detailPaint = Paint()
-      ..color = Colors.white.withValues(alpha: 0.22);
+    final detailPaint = Paint()..color = Colors.white.withValues(alpha: 0.22);
     final purpleLeafPaint = Paint()
       ..color = const Color(0xFF8F7AEB).withValues(alpha: 0.30);
     final blueLeafPaint = Paint()
@@ -1706,7 +1774,6 @@ class _HeroScenePainter extends CustomPainter {
       Rect.fromLTWH(size.width * 0.86, size.height * 0.68, 12, 60),
       purpleLeafPaint,
     );
-
   }
 
   @override
