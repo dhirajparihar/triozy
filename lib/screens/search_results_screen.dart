@@ -15,12 +15,13 @@ class SearchResultsScreen extends StatefulWidget {
   const SearchResultsScreen({super.key});
 
   @override
-  State<SearchResultsScreen> createState() => _SearchResultsScreenState();
+  State<SearchResultsScreen> createState() => SearchResultsScreenState();
 }
 
-class _SearchResultsScreenState extends State<SearchResultsScreen> {
+class SearchResultsScreenState extends State<SearchResultsScreen> {
   late final DatabaseService _db;
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   List<WorkerModel> _allWorkers = [];
   List<WorkerModel> _results = [];
   bool _loading = true;
@@ -56,7 +57,16 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
+  }
+
+  void focusAndSearch(String query) {
+    _searchController.text = query;
+    _searchFocusNode.requestFocus();
+    if (query.trim().isNotEmpty) {
+      _search(query.trim());
+    }
   }
 
   Future<void> _loadAll() async {
@@ -435,6 +445,7 @@ class _SearchResultsScreenState extends State<SearchResultsScreen> {
           Expanded(
             child: TextField(
               controller: _searchController,
+              focusNode: _searchFocusNode,
               style: AppTheme.body(fontSize: 15),
               decoration: InputDecoration(
                 hintText: 'Search services...',

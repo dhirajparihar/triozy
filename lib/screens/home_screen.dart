@@ -690,16 +690,16 @@ class HomeScreenState extends State<HomeScreen> {
           child: _loading
               ? ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.only(right: 80),
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.only(right: 16),
                   itemCount: 3,
                   separatorBuilder: (_, _) => const SizedBox(width: 14),
                   itemBuilder: (_, _) => const _MateCardSkeleton(),
                 )
               : ListView.separated(
                   scrollDirection: Axis.horizontal,
-                  physics: const BouncingScrollPhysics(),
-                  padding: const EdgeInsets.only(right: 80),
+                  physics: const ClampingScrollPhysics(),
+                  padding: const EdgeInsets.only(right: 16),
                   itemCount: _recentMates.length,
                   separatorBuilder: (_, _) => const SizedBox(width: 14),
                   itemBuilder: (context, index) {
@@ -761,8 +761,8 @@ class HomeScreenState extends State<HomeScreen> {
             height: 166,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.only(right: 80),
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.only(right: 16),
               itemCount: 3,
               separatorBuilder: (_, _) => const SizedBox(width: 14),
               itemBuilder: (_, _) => const _WorkerCardSkeleton(),
@@ -828,8 +828,8 @@ class HomeScreenState extends State<HomeScreen> {
             height: 166,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
-              physics: const BouncingScrollPhysics(),
-              padding: const EdgeInsets.only(right: 80),
+              physics: const ClampingScrollPhysics(),
+              padding: const EdgeInsets.only(right: 16),
               itemCount: _topWorkers.length,
               separatorBuilder: (_, _) => const SizedBox(width: 14),
               itemBuilder: (context, index) {
