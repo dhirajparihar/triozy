@@ -603,7 +603,7 @@ class HomeScreenState extends State<HomeScreen> {
         physics: const BouncingScrollPhysics(),
         padding: const EdgeInsets.only(right: 10),
         itemCount: 4,
-        separatorBuilder: (_, __) => const SizedBox(width: 16),
+        separatorBuilder: (_, index) => const SizedBox(width: 16),
         itemBuilder: (context, index) {
           return SizedBox(
             width: cardWidth,
