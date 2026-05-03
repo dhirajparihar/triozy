@@ -2,7 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, kIsWeb;
+import 'package:in_app_update/in_app_update.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
@@ -121,6 +122,7 @@ class _DeepLinkGateState extends State<_DeepLinkGate> {
       _entryScreen = _resolveWebEntryScreen();
     }
     _checkFirstTime();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkForAppUpdate());
     // Enforce a minimum display duration for the splash screen so the neat animation plays fully
     // without flickering or jumping when loading data super fast.
     Future.delayed(const Duration(milliseconds: 2600), () {
@@ -138,6 +140,23 @@ class _DeepLinkGateState extends State<_DeepLinkGate> {
       setState(() {
         _isFirstTime = prefs.getBool('isFirstTime') ?? true;
       });
+    }
+  }
+
+  Future<void> _checkForAppUpdate() async {
+    if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
+      return;
+    }
+
+    try {
+      final updateInfo = await InAppUpdate.checkForUpdate();
+      if (updateInfo.updateAvailability != UpdateAvailability.updateAvailable) {
+        return;
+      }
+
+      await InAppUpdate.performImmediateUpdate();
+    } catch (_) {
+      // Ignore update check failures so startup is not blocked outside Play Store.
     }
   }
 
