@@ -2,9 +2,11 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
-import '../theme/app_colors.dart';
+
+import '../main.dart';
 import '../services/auth_service.dart';
 import '../services/session_service.dart';
+import '../theme/app_colors.dart';
 import 'policy_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -16,7 +18,14 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
   late final AuthService _authService;
+  final TextEditingController _phoneController = TextEditingController(
+    text: '+91 ',
+  );
+  final TextEditingController _otpController = TextEditingController();
+
   bool _isLoading = false;
+  bool _otpSent = false;
+  String? _verificationId;
 
   @override
   void initState() {
@@ -24,41 +33,87 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     _authService = context.read<AuthService>();
   }
 
-  Future<void> _handleGoogleSignIn() async {
-    // Detect storage-partitioned / popup-blocked browsers
-    if (_isBrowserIncompatible()) {
-      _showOpenInChromeDialog();
+  @override
+  void dispose() {
+    _phoneController.dispose();
+    _otpController.dispose();
+    super.dispose();
+  }
+
+  void _openAuthenticatedFlow() {
+    Navigator.of(context).pushAndRemoveUntil(
+      MaterialPageRoute(builder: (_) => const AuthGate()),
+      (route) => false,
+    );
+  }
+
+  Future<void> _sendOtp() async {
+    setState(() => _isLoading = true);
+    await _authService.sendOtp(
+      phoneNumber: _phoneController.text.trim(),
+      onCodeSent: (verificationId, _) {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          _verificationId = verificationId;
+          _otpSent = true;
+          _isLoading = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('OTP sent')),
+        );
+      },
+      onVerificationFailed: (message) {
+        if (!mounted) {
+          return;
+        }
+        setState(() => _isLoading = false);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(message)),
+        );
+      },
+      onAutoVerified: () {
+        if (!mounted) {
+          return;
+        }
+        setState(() => _isLoading = false);
+        _openAuthenticatedFlow();
+      },
+    );
+  }
+
+  Future<void> _verifyOtp() async {
+    final verificationId = _verificationId;
+    if (verificationId == null || _otpController.text.trim().length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Enter the 6-digit OTP')),
+      );
       return;
     }
 
     setState(() => _isLoading = true);
     try {
-      final user = await _authService.signInWithGoogle();
-      if (user == null || !mounted) {
-        setState(() => _isLoading = false);
+      await _authService.verifyOtp(
+        verificationId: verificationId,
+        smsCode: _otpController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
+      );
+      if (!mounted) {
         return;
       }
+      _openAuthenticatedFlow();
     } catch (e) {
-      if (!mounted) return;
-      final msg = e.toString();
-      if (msg.contains('missing initial state') ||
-          msg.contains('sessionStorage') ||
-          msg.contains('popup_closed') ||
-          msg.contains('popup-blocked')) {
-        _showOpenInChromeDialog();
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: const Text('Sign in failed. Please try again.'),
-            backgroundColor: AppColors.error,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
-          ),
-        );
+      if (!mounted) {
+        return;
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('OTP verification failed: $e')),
+      );
     } finally {
-      if (mounted) setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
   }
 
@@ -66,102 +121,20 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     context.read<SessionService>().enterGuestMode();
   }
 
-  bool _isBrowserIncompatible() {
-    // Only relevant on web
-    if (!const bool.fromEnvironment('dart.library.html',
-        defaultValue: false)) {
-      try {
-        return false;
-      } catch (_) {
-        return false;
-      }
-    }
-    return false;
-  }
-
-  void _showOpenInChromeDialog() {
-    showDialog(
-      context: context,
-      barrierDismissible: true,
-      builder: (ctx) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        backgroundColor: Colors.white,
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 56,
-                height: 56,
-                decoration: BoxDecoration(
-                  color: AppColors.primary.withValues(alpha: 0.08),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.open_in_browser_rounded,
-                    size: 28, color: AppColors.primary),
-              ),
-              const SizedBox(height: 16),
-              Text(
-                'Open in Chrome',
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.onSurface,
-                  letterSpacing: -0.4,
-                ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                'Your current browser doesn\'t support Google Sign-In.\n\nPlease open Triozy in Google Chrome to sign in.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(
-                  fontSize: 14,
-                  color: AppColors.onSurfaceVariant,
-                  height: 1.55,
-                ),
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(ctx),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
-                  ),
-                  child: Text(
-                    'Got it',
-                    style: GoogleFonts.inter(
-                        fontSize: 15, fontWeight: FontWeight.w700),
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final canSubmitPhone = _phoneController.text.trim().length >= 10;
+
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 24.0),
+              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  // ── Top Banner / Logo ──────────────────────────────────────
                   Center(
                     child: Container(
                       width: 140,
@@ -178,9 +151,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                             width: 90,
                             height: 90,
                             fit: BoxFit.cover,
-                            errorBuilder: (context, error, stackTrace) => const Icon(
-                              Icons.handyman_rounded,
-                              size: 40,
+                            errorBuilder: (_, _, _) => const Icon(
+                              Icons.home_work_rounded,
+                              size: 42,
                               color: AppColors.primary,
                             ),
                           ),
@@ -188,12 +161,9 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       ),
                     ),
                   ),
-                  
-                  const SizedBox(height: 48),
-                  
-                  // ── Title and Subtitle ─────────────────────────────────────
+                  const SizedBox(height: 40),
                   Text(
-                    'Welcome to Triozy',
+                    'Sign in with your phone number',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
                       fontSize: 28,
@@ -202,125 +172,135 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                       letterSpacing: -0.5,
                     ),
                   ),
-                  const SizedBox(height: 16),
+                  const SizedBox(height: 14),
                   Text(
-                    'Your one-stop platform to find trusted local pros, post requests, and connect with mates nearby.',
+                    'Use OTP verification to continue, then complete your student or professional profile.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
                       fontSize: 16,
                       color: AppColors.onSurfaceVariant,
-                      height: 1.5,
+                      height: 1.55,
                     ),
                   ),
-                  
-                  const SizedBox(height: 48),
-              
-              // ── Bottom Action Buttons ──────────────────────────────────
-              SizedBox(
-                height: 56,
-                child: ElevatedButton(
-                  onPressed: _isLoading ? null : _handleGoogleSignIn,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF10276E), // Matched to logo shade
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                  const SizedBox(height: 36),
+                  TextField(
+                    controller: _phoneController,
+                    keyboardType: TextInputType.phone,
+                    decoration: InputDecoration(
+                      labelText: 'Phone number',
+                      hintText: '+91 9876543210',
+                      filled: true,
+                      fillColor: AppColors.surfaceContainerLow,
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(18),
+                        borderSide: BorderSide.none,
+                      ),
                     ),
+                    onChanged: (_) => setState(() {}),
                   ),
-                  child: _isLoading
-                      ? const SizedBox(
-                          width: 24,
-                          height: 24,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(
-                              width: 28,
-                              height: 28,
-                              decoration: BoxDecoration(
-                                color: Colors.white,
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Padding(
-                                padding: const EdgeInsets.all(5),
-                                child: Image.network(
-                                  "https://img.icons8.com/color/48/000000/google-logo.png",
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return Center(
-                                      child: Text(
-                                        'G',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w800,
-                                          color: AppColors.primary,
-                                          height: 1,
-                                        ),
-                                      ),
-                                    );
-                                  },
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Flexible(
-                              child: Text(
-                                'Continue with Google',
-                                style: GoogleFonts.inter(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                ),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
+                  const SizedBox(height: 14),
+                  if (_otpSent)
+                    TextField(
+                      controller: _otpController,
+                      keyboardType: TextInputType.number,
+                      maxLength: 6,
+                      decoration: InputDecoration(
+                        labelText: 'OTP',
+                        hintText: 'Enter 6-digit code',
+                        counterText: '',
+                        filled: true,
+                        fillColor: AppColors.surfaceContainerLow,
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(18),
+                          borderSide: BorderSide.none,
                         ),
-                ),
-              ),
-              
-              const SizedBox(height: 16),
-              
-              SizedBox(
-                height: 56,
-                child: OutlinedButton(
-                  onPressed: _isLoading ? null : _handleContinueAsGuest,
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: AppColors.onSurface,
-                    side: const BorderSide(
-                      color: AppColors.outlineVariant,
-                      width: 1.5,
+                      ),
                     ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                  const SizedBox(height: 18),
+                  SizedBox(
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed: _isLoading
+                          ? null
+                          : _otpSent
+                              ? _verifyOtp
+                              : canSubmitPhone
+                                  ? _sendOtp
+                                  : null,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10276E),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: _isLoading
+                          ? const SizedBox(
+                              width: 24,
+                              height: 24,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2.5,
+                                color: Colors.white,
+                              ),
+                            )
+                          : Text(
+                              _otpSent ? 'Verify OTP' : 'Send OTP',
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
                     ),
                   ),
-                  child: Text(
-                    'Continue as Guest',
-                    style: GoogleFonts.inter(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w600,
+                  if (_otpSent) ...[
+                    const SizedBox(height: 12),
+                    TextButton(
+                      onPressed: _isLoading ? null : _sendOtp,
+                      child: Text(
+                        'Resend OTP',
+                        style: GoogleFonts.inter(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    height: 56,
+                    child: OutlinedButton(
+                      onPressed: _isLoading ? null : _handleContinueAsGuest,
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.onSurface,
+                        side: const BorderSide(
+                          color: AppColors.outlineVariant,
+                          width: 1.5,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: Text(
+                        'Continue as Guest',
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+                  const SizedBox(height: 28),
+                  const _PolicyDisclaimerText(),
+                ],
               ),
-              
-              const SizedBox(height: 32),
-              
-              // ── Policy Disclaimer ──────────────────────────────────────
-              const _PolicyDisclaimerText(),
-            ],
+            ),
           ),
         ),
       ),
-    ),
-  ),
-);
+    );
   }
 }
 

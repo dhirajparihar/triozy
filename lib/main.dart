@@ -18,8 +18,8 @@ import 'providers/chat_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/welcome_screen.dart';
+import 'screens/complete_profile_screen.dart';
 import 'screens/main_shell.dart';
-import 'screens/worker_setup_screen.dart';
 import 'screens/worker_profile_screen.dart';
 import 'screens/account_deletion_screen.dart';
 
@@ -250,24 +250,18 @@ class _RoleRouterState extends State<_RoleRouter> {
 
   /// Derive a simple key from the routing-relevant fields
   String _routeKey(Map<String, dynamic> userData) {
-    final role = userData['role'] as String? ?? 'customer';
     final isComplete = userData['isProfileComplete'] as bool? ?? false;
-    return '${role}_$isComplete';
+    return '$isComplete';
   }
 
   Widget _buildScreen(Map<String, dynamic> userData) {
-    final role = userData['role'] as String? ?? 'customer';
     final isProfileComplete = userData['isProfileComplete'] as bool? ?? false;
 
-    if (role == 'worker') {
-      if (!isProfileComplete) {
-        return const WorkerSetupScreen();
-      } else {
-        return const MainShell(isWorker: true);
-      }
-    } else {
-      return const MainShell(isWorker: false);
+    if (!isProfileComplete) {
+      return const CompleteProfileScreen();
     }
+
+    return const MainShell(isWorker: false);
   }
 
   Future<void> _autoCreateUser() async {
@@ -276,12 +270,9 @@ class _RoleRouterState extends State<_RoleRouter> {
     try {
       final user = FirebaseAuth.instance.currentUser!;
       final authService = context.read<AuthService>();
-      await authService.saveUser(
-        uid: user.uid,
-        name: user.displayName ?? '',
-        email: user.email ?? '',
-        role: 'customer',
-        photoUrl: user.photoURL,
+      await authService.ensureStarterUser(
+        user: user,
+        phoneNumber: user.phoneNumber ?? '',
       );
     } catch (_) {
       if (mounted) setState(() => _isCreatingUser = false);
