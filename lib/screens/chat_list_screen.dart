@@ -3,12 +3,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../models/chat_model.dart';
+import '../models/listing_model.dart';
 import '../providers/chat_provider.dart';
 import '../services/database_service.dart';
 import 'chat_detail_screen.dart';
 
 class ChatListScreen extends StatefulWidget {
-  const ChatListScreen({super.key});
+  final bool showScaffold;
+
+  const ChatListScreen({super.key, this.showScaffold = true});
 
   @override
   State<ChatListScreen> createState() => _ChatListScreenState();
@@ -63,27 +66,22 @@ class _ChatListScreenState extends State<ChatListScreen> {
   Widget build(BuildContext context) {
     final uid = _currentUserId;
     if (uid == null || uid.isEmpty) {
-      return Scaffold(
-        appBar: AppBar(
-          title: const Text('Messages'),
-          elevation: 0,
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-        ),
-        body: const Center(child: Text('Please sign in to view chats')),
-      );
+      return widget.showScaffold
+          ? Scaffold(
+              appBar: AppBar(
+                title: const Text('Messages'),
+                elevation: 0,
+                backgroundColor: Colors.white,
+                foregroundColor: Colors.black87,
+              ),
+              body: const Center(child: Text('Please sign in to view chats')),
+            )
+          : const Center(child: Text('Please sign in to view chats'));
     }
 
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Messages'),
-        elevation: 0,
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black87,
-      ),
-      body: Consumer<ChatProvider>(
-        builder: (context, chatProvider, _) {
-          return Column(
+    final content = Consumer<ChatProvider>(
+      builder: (context, chatProvider, _) {
+        return Column(
             children: [
               Padding(
                 padding: const EdgeInsets.all(16.0),
@@ -125,8 +123,21 @@ class _ChatListScreenState extends State<ChatListScreen> {
               ),
             ],
           );
-        },
+      },
+    );
+
+    if (!widget.showScaffold) {
+      return content;
+    }
+
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Messages'),
+        elevation: 0,
+        backgroundColor: Colors.white,
+        foregroundColor: Colors.black87,
       ),
+      body: content,
     );
   }
 
@@ -410,6 +421,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
         bgcolor = Colors.orange[100]!;
         textcolor = Colors.orange[900]!;
         break;
+      case ChatType.listing:
+        bgcolor = Colors.blue[100]!;
+        textcolor = Colors.blue[900]!;
+        break;
     }
 
     return Container(
@@ -451,7 +466,25 @@ class _ChatListScreenState extends State<ChatListScreen> {
     String location = '';
     String typeLabel = conv.chatType.label;
 
-    if (conv.chatType == ChatType.service) {
+    if (conv.chatType == ChatType.listing) {
+      final listingDoc = await firestore
+          .collection('listings')
+          .doc(conv.referenceId)
+          .get();
+      if (listingDoc.exists) {
+        final data = listingDoc.data()!;
+        final ownerId = (data['ownerId'] ?? '').toString().trim();
+        if (ownerId == otherUserId) {
+          name = (data['ownerName'] ?? name).toString();
+          photoUrl = (data['ownerPhotoUrl'] ?? '').toString();
+          location = (data['location'] ?? '').toString();
+        }
+        final category = ListingCategoryX.fromString(
+          (data['category'] ?? '').toString(),
+        );
+        typeLabel = category.label;
+      }
+    } else if (conv.chatType == ChatType.service) {
       var workerDoc = await firestore
           .collection('workers')
           .doc(conv.referenceId)
@@ -571,7 +604,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Start by messaging a worker, mate, or request poster',
+              'Start by messaging on a room, flatmate, or marketplace listing',
               style: Theme.of(
                 context,
               ).textTheme.bodyMedium?.copyWith(color: Colors.grey[600]),

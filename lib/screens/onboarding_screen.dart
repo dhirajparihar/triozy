@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:triozy_app/main.dart';
+
+import '../main.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
 
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
@@ -13,205 +16,176 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final PageController _pageController = PageController();
   int _currentIndex = 0;
 
-  final List<OnboardingContent> _contents = [
-    OnboardingContent(
-      title: 'Find Help Instantly',
+  final List<_OnboardingSlide> _slides = const [
+    _OnboardingSlide(
+      title: 'Find a home base fast',
       description:
-          'Search and connect with trusted local professionals for any task you need done quickly and efficiently.',
-      icon: Icons.search_rounded,
-    ),
-    OnboardingContent(
-      title: 'Grow Your Business',
-      description:
-          'Register as a worker, showcase your skills, and get hired by people in your community.',
-      icon: Icons.work_outline_rounded,
-    ),
-    OnboardingContent(
-      title: 'Seamless Communication',
-      description:
-          'Chat securely with clients or workers and navigate to jobs directly within the app.',
-      icon: Icons.chat_bubble_outline_rounded,
-    ),
-    OnboardingContent(
-      title: 'Post Requests',
-      description:
-          'Easily create a post to quickly find the help, services, or items you need in your community.',
-      icon: Icons.post_add_rounded,
-    ),
-    OnboardingContent(
-      title: 'Find a Roommate',
-      description:
-          'Connect with verified people and discover your perfect living arrangements.',
+          'Explore rooms, PGs, and flats designed for students and professionals moving into a new city.',
       icon: Icons.home_work_rounded,
     ),
-    OnboardingContent(
-      title: 'Find a Ridemate',
+    _OnboardingSlide(
+      title: 'Move in with the right people',
       description:
-          'Share rides and daily commutes with trustable companions around you.',
-      icon: Icons.directions_car_filled_rounded,
+          'Discover flatmates with aligned budgets, neighborhoods, and move-in timelines.',
+      icon: Icons.groups_rounded,
+    ),
+    _OnboardingSlide(
+      title: 'Buy essentials without overpaying',
+      description:
+          'Pick up trusted used furniture, electronics, and daily essentials from people nearby.',
+      icon: Icons.shopping_bag_outlined,
     ),
   ];
 
   Future<void> _completeOnboarding() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isFirstTime', false);
-    if (!mounted) return;
-    Navigator.of(
-      context,
-    ).pushReplacement(MaterialPageRoute(builder: (_) => const AuthGate()));
-  }
-
-  @override
-  void dispose() {
-    _pageController.dispose();
-    super.dispose();
+    if (!mounted) {
+      return;
+    }
+    Navigator.of(context).pushReplacement(
+      MaterialPageRoute(builder: (_) => const AuthGate()),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isLastPage = _currentIndex == _contents.length - 1;
+    final isLastPage = _currentIndex == _slides.length - 1;
 
     return Scaffold(
-      backgroundColor: theme.scaffoldBackgroundColor,
+      backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
-          children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: TextButton(
-                onPressed: _completeOnboarding,
-                child: Text(
-                  'Skip',
-                  style: TextStyle(
-                    color: theme.colorScheme.primary,
-                    fontWeight: FontWeight.w600,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: _completeOnboarding,
+                    child: Text(
+                      'Skip',
+                      style: AppTheme.body(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                      ),
+                    ),
                   ),
-                ),
+                ],
               ),
-            ),
-            Expanded(
-              child: PageView.builder(
-                controller: _pageController,
-                itemCount: _contents.length,
-                onPageChanged: (index) {
-                  setState(() {
-                    _currentIndex = index;
-                  });
-                },
-                itemBuilder: (context, index) {
-                  final content = _contents[index];
-                  return Padding(
-                    padding: const EdgeInsets.all(40.0),
-                    child: Column(
+              Expanded(
+                child: PageView.builder(
+                  controller: _pageController,
+                  itemCount: _slides.length,
+                  onPageChanged: (index) => setState(() => _currentIndex = index),
+                  itemBuilder: (context, index) {
+                    final slide = _slides[index];
+                    return Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          padding: const EdgeInsets.all(32),
+                          width: 180,
+                          height: 180,
                           decoration: BoxDecoration(
-                            color: theme.colorScheme.primary.withValues(
-                              alpha: 0.1,
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFFEFF5FF), Color(0xFFDCE8FF)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
                             ),
-                            shape: BoxShape.circle,
+                            borderRadius: BorderRadius.circular(48),
                           ),
-                          child: Icon(
-                            content.icon,
-                            size: 100,
-                            color: theme.colorScheme.primary,
-                          ),
+                          child: Icon(slide.icon, color: AppColors.primary, size: 82),
                         ),
-                        const SizedBox(height: 48),
+                        const SizedBox(height: 42),
                         Text(
-                          content.title,
+                          slide.title,
                           textAlign: TextAlign.center,
-                          style: theme.textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: theme.colorScheme.onSurface,
-                          ),
+                          style: AppTheme.headline(fontSize: 32, letterSpacing: -1.1),
                         ),
                         const SizedBox(height: 16),
-                        Text(
-                          content.description,
-                          textAlign: TextAlign.center,
-                          style: theme.textTheme.bodyLarge?.copyWith(
-                            color: theme.colorScheme.onSurface.withValues(
-                              alpha: 0.7,
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Text(
+                            slide.description,
+                            textAlign: TextAlign.center,
+                            style: AppTheme.body(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.onSurfaceVariant,
+                              height: 1.7,
                             ),
-                            height: 1.5,
                           ),
                         ),
                       ],
-                    ),
-                  );
-                },
+                    );
+                  },
+                ),
               ),
-            ),
-            Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              Row(
                 children: [
-                  Row(
-                    children: List.generate(
-                      _contents.length,
-                      (index) => Container(
-                        margin: const EdgeInsets.only(right: 8),
-                        height: 8,
-                        width: _currentIndex == index ? 24 : 8,
-                        decoration: BoxDecoration(
-                          color: _currentIndex == index
-                              ? theme.colorScheme.primary
-                              : theme.colorScheme.primary.withValues(
-                                  alpha: 0.2,
-                                ),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                      ),
+                  Expanded(
+                    child: Row(
+                      children: List.generate(_slides.length, (index) {
+                        final selected = index == _currentIndex;
+                        return AnimatedContainer(
+                          duration: const Duration(milliseconds: 180),
+                          width: selected ? 28 : 8,
+                          height: 8,
+                          margin: const EdgeInsets.only(right: 8),
+                          decoration: BoxDecoration(
+                            color: selected ? AppColors.primary : AppColors.primaryFixed,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                        );
+                      }),
                     ),
                   ),
                   ElevatedButton(
                     onPressed: () {
                       if (isLastPage) {
                         _completeOnboarding();
-                      } else {
-                        _pageController.nextPage(
-                          duration: const Duration(milliseconds: 300),
-                          curve: Curves.easeInOut,
-                        );
+                        return;
                       }
+                      _pageController.nextPage(
+                        duration: const Duration(milliseconds: 260),
+                        curve: Curves.easeOut,
+                      );
                     },
                     style: ElevatedButton.styleFrom(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 32,
-                        vertical: 16,
-                      ),
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 16),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(30),
+                        borderRadius: BorderRadius.circular(18),
                       ),
-                      backgroundColor: theme.colorScheme.primary,
-                      foregroundColor: theme.colorScheme.onPrimary,
                     ),
                     child: Text(
                       isLastPage ? 'Get Started' : 'Next',
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+                      style: AppTheme.body(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
 }
 
-class OnboardingContent {
+class _OnboardingSlide {
   final String title;
   final String description;
   final IconData icon;
 
-  OnboardingContent({
+  const _OnboardingSlide({
     required this.title,
     required this.description,
     required this.icon,

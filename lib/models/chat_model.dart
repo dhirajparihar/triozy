@@ -11,7 +11,7 @@ String _normalizeUid(String raw) {
 }
 
 /// Chat types
-enum ChatType { mate, service, request }
+enum ChatType { mate, service, request, listing }
 
 extension ChatTypeX on ChatType {
   String get value {
@@ -22,6 +22,8 @@ extension ChatTypeX on ChatType {
         return 'service';
       case ChatType.request:
         return 'request';
+      case ChatType.listing:
+        return 'listing';
     }
   }
 
@@ -33,6 +35,8 @@ extension ChatTypeX on ChatType {
         return 'Service';
       case ChatType.request:
         return 'Request';
+      case ChatType.listing:
+        return 'Listing';
     }
   }
 
@@ -42,6 +46,8 @@ extension ChatTypeX on ChatType {
         return ChatType.service;
       case 'request':
         return ChatType.request;
+      case 'listing':
+        return ChatType.listing;
       default:
         return ChatType.mate;
     }
@@ -193,6 +199,8 @@ class ConversationModel {
         return '#10B981'; // Green
       case ChatType.request:
         return '#F97316'; // Orange
+      case ChatType.listing:
+        return '#2563EB'; // Blue
     }
   }
 

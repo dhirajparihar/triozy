@@ -181,7 +181,7 @@ class _DeepLinkGateState extends State<_DeepLinkGate> {
   Widget build(BuildContext context) {
     if (!_animationCompleted) {
       return const SplashScreen(
-        statusText: 'Warming up your local network...',
+        statusText: 'Preparing your next-city move...',
         showLoader: true,
       );
     }
