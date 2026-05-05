@@ -1,205 +1,178 @@
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:geoflutterfire_plus/geoflutterfire_plus.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_auth_platform_interface/firebase_auth_platform_interface.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:flutter/foundation.dart' show VoidCallback, kIsWeb;
 
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  ConfirmationResult? _webConfirmationResult;
 
-  User? get currentUser => _auth.currentUser;
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
-
-  /// Sign in with Google and return the Firebase User
-  Future<User?> signInWithGoogle() async {
-    try {
-      if (kIsWeb) {
-        // On web, use signInWithPopup directly with Firebase Auth
-        final googleProvider = GoogleAuthProvider();
-        googleProvider.addScope('email');
-        googleProvider.addScope('profile');
-        final userCredential = await _auth.signInWithPopup(googleProvider);
-        return userCredential.user;
-      } else {
-        // On mobile, use google_sign_in package
-        final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-        if (googleUser == null) return null; // User cancelled
-
-        final GoogleSignInAuthentication googleAuth =
-            await googleUser.authentication;
-
-        final credential = GoogleAuthProvider.credential(
-          accessToken: googleAuth.accessToken,
-          idToken: googleAuth.idToken,
-        );
-
-        final userCredential = await _auth.signInWithCredential(credential);
-        return userCredential.user;
-      }
-    } catch (e) {
-      rethrow;
-    }
+  FirebaseAuthPlatform get _authPlatformDelegate {
+    return FirebaseAuthPlatform.instanceFor(
+      app: Firebase.app(),
+      pluginConstants: <dynamic, dynamic>{},
+    );
   }
 
-  /// Sign in using email/password for app-review accounts.
-  Future<User?> signInWithEmail({
-    required String email,
-    required String password,
+  Future<void> sendOtp({
+    required String phoneNumber,
+    required void Function(String verificationId, int? resendToken) onCodeSent,
+    required void Function(String message) onVerificationFailed,
+    VoidCallback? onAutoVerified,
   }) async {
-    try {
-      final userCredential = await _auth.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-      return userCredential.user;
-    } catch (e) {
-      rethrow;
+    final normalizedPhone = phoneNumber.trim();
+    if (normalizedPhone.isEmpty) {
+      onVerificationFailed('Enter a valid phone number.');
+      return;
     }
+
+    if (kIsWeb) {
+      try {
+        _webConfirmationResult = await _auth.signInWithPhoneNumber(
+          normalizedPhone,
+          RecaptchaVerifier(
+            auth: _authPlatformDelegate,
+            onSuccess: () {},
+            onError: (error) {
+              onVerificationFailed(
+                error.message ?? 'reCAPTCHA failed. Please try again.',
+              );
+            },
+            onExpired: () {
+              onVerificationFailed(
+                'reCAPTCHA expired. Please request a new OTP.',
+              );
+            },
+          ),
+        );
+        onCodeSent('web_confirmation', null);
+      } catch (e) {
+        onVerificationFailed('Could not send OTP on web: $e');
+      }
+      return;
+    }
+
+    await _auth.verifyPhoneNumber(
+      phoneNumber: normalizedPhone,
+      timeout: const Duration(seconds: 60),
+      verificationCompleted: (credential) async {
+        final result = await _auth.signInWithCredential(credential);
+        await ensureStarterUser(
+          user: result.user,
+          phoneNumber: normalizedPhone,
+        );
+        onAutoVerified?.call();
+      },
+      verificationFailed: (exception) {
+        onVerificationFailed(
+          exception.message ?? 'Could not send OTP. Please try again.',
+        );
+      },
+      codeSent: onCodeSent,
+      codeAutoRetrievalTimeout: (verificationId) {
+        onCodeSent(verificationId, null);
+      },
+    );
   }
 
-  /// Finds worker document by canonical doc id (uid) first, then legacy uid-field query.
-  Future<DocumentReference<Map<String, dynamic>>?> _workerDocRef(String uid) async {
-    final byId = _firestore.collection('workers').doc(uid);
-    final byIdSnap = await byId.get();
-    if (byIdSnap.exists) return byId;
+  Future<User?> verifyOtp({
+    required String verificationId,
+    required String smsCode,
+    required String phoneNumber,
+  }) async {
+    if (kIsWeb) {
+      final confirmationResult = _webConfirmationResult;
+      if (confirmationResult == null) {
+        throw Exception('OTP session expired. Please request a new code.');
+      }
+      final result = await confirmationResult.confirm(smsCode.trim());
+      await ensureStarterUser(user: result.user, phoneNumber: phoneNumber);
+      return result.user;
+    }
 
-    final snap = await _firestore
-        .collection('workers')
-        .where('uid', isEqualTo: uid)
-        .limit(1)
-        .get();
-    if (snap.docs.isNotEmpty) return snap.docs.first.reference;
-    return null;
+    final credential = PhoneAuthProvider.credential(
+      verificationId: verificationId,
+      smsCode: smsCode.trim(),
+    );
+    final result = await _auth.signInWithCredential(credential);
+    await ensureStarterUser(user: result.user, phoneNumber: phoneNumber);
+    return result.user;
   }
 
-  /// Check if user document exists in Firestore
+  Future<void> ensureStarterUser({
+    required User? user,
+    required String phoneNumber,
+  }) async {
+    if (user == null) {
+      return;
+    }
+
+    final userRef = _firestore.collection('users').doc(user.uid);
+    final snapshot = await userRef.get();
+    final existing = snapshot.data() ?? <String, dynamic>{};
+
+    await userRef.set({
+      'uid': user.uid,
+      'phoneNumber': phoneNumber,
+      'isProfileComplete': existing['isProfileComplete'] ?? false,
+      'name': existing['name'] ?? '',
+      'occupation': existing['occupation'] ?? '',
+      'createdAt': existing['createdAt'] ?? FieldValue.serverTimestamp(),
+      'updatedAt': FieldValue.serverTimestamp(),
+    }, SetOptions(merge: true));
+  }
+
   Future<Map<String, dynamic>?> getUserData(String uid) async {
     final byId = await _firestore.collection('users').doc(uid).get();
-    if (byId.exists) return byId.data();
+    if (byId.exists) {
+      return byId.data();
+    }
+
     final fallback = await _firestore
         .collection('users')
         .where('uid', isEqualTo: uid)
         .limit(1)
         .get();
-    if (fallback.docs.isNotEmpty) return fallback.docs.first.data();
+    if (fallback.docs.isNotEmpty) {
+      return fallback.docs.first.data();
+    }
     return null;
   }
 
-  /// Stream real-time updates of the user document
   Stream<Map<String, dynamic>?> userDataStream(String uid) {
-    return _firestore
-        .collection('users')
-        .where('uid', isEqualTo: uid)
-        .limit(1)
-        .snapshots()
-        .map((snap) => snap.docs.isNotEmpty ? snap.docs.first.data() : null);
+    return _firestore.collection('users').doc(uid).snapshots().map((snap) {
+      if (snap.exists) {
+        return snap.data();
+      }
+      return null;
+    });
   }
 
-  /// Save user with role to Firestore
-  Future<void> saveUser({
+  Future<void> completeUserProfile({
     required String uid,
     required String name,
-    required String email,
-    required String role,
-    String? photoUrl,
+    required String occupation,
+    required String organizationName,
+    String? gender,
   }) async {
-    final userRef = _firestore.collection('users').doc(uid);
-    final data = <String, dynamic>{
-      'uid': uid,
-      'name': name,
-      'email': email,
-      'role': role,
-      'photoUrl': photoUrl ?? '',
-      'isProfileComplete': role == 'customer' ? true : false,
-    };
-    data['createdAt'] = FieldValue.serverTimestamp();
-    await userRef.set(data, SetOptions(merge: true));
-  }
-
-  /// Save worker profile data (now with optional geo location)
-  Future<void> saveWorkerProfile({
-    required String uid,
-    required List<String> skills,
-    required int experience,
-    String? location,
-    String? name,
-    String? phone,
-    String? description,
-    double? latitude,
-    double? longitude,
-    String? photoUrl,
-  }) async {
-    final user = _auth.currentUser;
-
-    final workerData = <String, dynamic>{
-      'uid': uid,
-      'name': name ?? user?.displayName ?? '',
-      'email': user?.email ?? '',
-      'photoUrl': photoUrl ?? user?.photoURL ?? '',
-      'phone': phone ?? '',
-      'skills': skills,
-      'serviceType': skills.isNotEmpty ? skills.first : '',
-      'experience': experience,
-      'location': location ?? '',
-      'description': description ?? '',
-      'rating': 0.0,
-      'totalJobs': 0,
-      'isAvailable': true,
-      'isSubscribed': false,
-      'status': 'none',
-      'createdAt': FieldValue.serverTimestamp(),
-    };
-
-    // Add geo data if coordinates are provided
-    if (latitude != null && longitude != null) {
-      final geoFirePoint = GeoFirePoint(GeoPoint(latitude, longitude));
-      workerData['position'] = geoFirePoint.data;
-      workerData['latitude'] = latitude;
-      workerData['longitude'] = longitude;
-    }
-
-    // Save to canonical workers/{uid}
-    await _firestore
-        .collection('workers')
-        .doc(uid)
-        .set(workerData, SetOptions(merge: true));
-
-    // Mark profile as not yet complete in users collection
     await _firestore.collection('users').doc(uid).set({
       'uid': uid,
-      'isProfileComplete': false,
-    }, SetOptions(merge: true));
-  }
-
-  /// Activate worker profile after completing registration
-  Future<void> activateWorkerProfile({required String uid}) async {
-    // Update workers collection
-    await _firestore.collection('workers').doc(uid).set({
-      'uid': uid,
-      'isSubscribed': true,
-      'status': 'active',
-    }, SetOptions(merge: true));
-
-    // Update users collection
-    await _firestore.collection('users').doc(uid).set({
-      'uid': uid,
+      'name': name.trim(),
+      'occupation': occupation.trim(),
+      'organizationName': organizationName.trim(),
+      'gender': (gender ?? '').trim(),
       'isProfileComplete': true,
+      'role': FieldValue.delete(),
+      'roleDetail': FieldValue.delete(),
+      'city': FieldValue.delete(),
+      'primaryUse': FieldValue.delete(),
+      'updatedAt': FieldValue.serverTimestamp(),
     }, SetOptions(merge: true));
   }
 
-  /// Get worker profile data
-  Future<Map<String, dynamic>?> getWorkerData(String uid) async {
-    final workerRef = await _workerDocRef(uid);
-    if (workerRef == null) return null;
-    final doc = await workerRef.get();
-    return doc.exists ? doc.data() : null;
-  }
-
-  /// Sign out
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
     await _auth.signOut();
   }
 }

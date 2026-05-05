@@ -18,8 +18,8 @@ import 'providers/chat_provider.dart';
 import 'screens/splash_screen.dart';
 import 'screens/onboarding_screen.dart';
 import 'screens/welcome_screen.dart';
+import 'screens/complete_profile_screen.dart';
 import 'screens/main_shell.dart';
-import 'screens/worker_setup_screen.dart';
 import 'screens/worker_profile_screen.dart';
 import 'screens/account_deletion_screen.dart';
 
@@ -40,9 +40,11 @@ void main() async {
       }
     }
   }
-  FirebaseFirestore.instance.settings = const Settings(
-    persistenceEnabled: true,
-  );
+  if (!kIsWeb) {
+    FirebaseFirestore.instance.settings = const Settings(
+      persistenceEnabled: true,
+    );
+  }
   runApp(const TriozyApp());
 }
 
@@ -84,15 +86,6 @@ class TriozyApp extends StatelessWidget {
               settings: settings,
             );
           }
-          if (uri != null &&
-              uri.pathSegments.length == 2 &&
-              uri.pathSegments[0] == 'worker') {
-            final workerId = uri.pathSegments[1];
-            return MaterialPageRoute(
-              builder: (_) => WorkerProfileScreen(workerId: workerId),
-              settings: settings,
-            );
-          }
           return null;
         },
         home: const _DeepLinkGate(),
@@ -101,8 +94,8 @@ class TriozyApp extends StatelessWidget {
   }
 }
 
-/// Checks the web URL on startup for deep links (e.g. /#/worker/uid)
-/// and navigates directly to that screen, otherwise falls through to AuthGate.
+/// Checks the web URL on startup for supported deep links and otherwise
+/// falls through to the normal auth flow.
 class _DeepLinkGate extends StatefulWidget {
   const _DeepLinkGate();
 
@@ -162,17 +155,9 @@ class _DeepLinkGateState extends State<_DeepLinkGate> {
 
   Widget? _resolveWebEntryScreen() {
     final path = Uri.base.path;
-    final fragment = Uri.base.fragment; // e.g. "/worker/abc123"
+    final fragment = Uri.base.fragment;
     if (path == '/account-delete' || fragment == '/account-delete') {
       return const AccountDeletionScreen();
-    }
-
-    final uri = Uri.tryParse(fragment);
-    if (uri != null &&
-        uri.pathSegments.length == 2 &&
-        uri.pathSegments[0] == 'worker') {
-      final workerId = uri.pathSegments[1];
-      return WorkerProfileScreen(workerId: workerId);
     }
     return null;
   }
@@ -231,10 +216,10 @@ class AuthGate extends StatelessWidget {
   }
 }
 
-/// Streams the user doc from Firestore and routes based on role/profile state.
+/// Streams the user doc from Firestore and routes based on profile state.
 /// Only rebuilds the child widget when the routing decision actually changes
-/// (role or isProfileComplete), preventing unnecessary MainShell rebuilds
-/// that would reset the current tab index.
+/// (isProfileComplete), preventing unnecessary MainShell rebuilds that would
+/// reset the current tab index.
 class _RoleRouter extends StatefulWidget {
   const _RoleRouter();
 
@@ -250,24 +235,18 @@ class _RoleRouterState extends State<_RoleRouter> {
 
   /// Derive a simple key from the routing-relevant fields
   String _routeKey(Map<String, dynamic> userData) {
-    final role = userData['role'] as String? ?? 'customer';
     final isComplete = userData['isProfileComplete'] as bool? ?? false;
-    return '${role}_$isComplete';
+    return '$isComplete';
   }
 
   Widget _buildScreen(Map<String, dynamic> userData) {
-    final role = userData['role'] as String? ?? 'customer';
     final isProfileComplete = userData['isProfileComplete'] as bool? ?? false;
 
-    if (role == 'worker') {
-      if (!isProfileComplete) {
-        return const WorkerSetupScreen();
-      } else {
-        return const MainShell(isWorker: true);
-      }
-    } else {
-      return const MainShell(isWorker: false);
+    if (!isProfileComplete) {
+      return const CompleteProfileScreen();
     }
+
+    return const MainShell(isWorker: false);
   }
 
   Future<void> _autoCreateUser() async {
@@ -276,12 +255,9 @@ class _RoleRouterState extends State<_RoleRouter> {
     try {
       final user = FirebaseAuth.instance.currentUser!;
       final authService = context.read<AuthService>();
-      await authService.saveUser(
-        uid: user.uid,
-        name: user.displayName ?? '',
-        email: user.email ?? '',
-        role: 'customer',
-        photoUrl: user.photoURL,
+      await authService.ensureStarterUser(
+        user: user,
+        phoneNumber: user.phoneNumber ?? '',
       );
     } catch (_) {
       if (mounted) setState(() => _isCreatingUser = false);
@@ -305,7 +281,7 @@ class _RoleRouterState extends State<_RoleRouter> {
 
         final userData = snapshot.data;
 
-        // New user: auto-create Firestore doc as customer, show spinner
+        // New user: create the starter Firestore user document, then continue.
         if (userData == null) {
           _autoCreateUser();
           return const Scaffold(
