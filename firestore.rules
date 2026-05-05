@@ -45,7 +45,7 @@ service cloud.firestore {
         'createdAt',
       ]) &&
           hasValidChatParticipants(data) &&
-          data.chatType in ['mate', 'service', 'request'] &&
+          data.chatType in ['listing'] &&
           data.referenceId is string &&
           data.lastMessage is string &&
           data.lastSenderId is string &&
@@ -65,6 +65,10 @@ service cloud.firestore {
       return isAuthenticated() && resource.data.userId == currentUserId();
     }
 
+    function isOwnerByOwnerIdField() {
+      return isAuthenticated() && resource.data.ownerId == currentUserId();
+    }
+
     match /users/{userId} {
       allow read: if isAuthenticated();
 
@@ -75,6 +79,30 @@ service cloud.firestore {
           request.resource.data.get('uid', currentUserId()) == currentUserId();
 
       allow delete: if false;
+    }
+
+    match /listings/{listingId} {
+      allow read: if true;
+
+      allow create: if isAuthenticated() &&
+          request.resource.data.ownerId == currentUserId() &&
+          request.resource.data.title is string &&
+          request.resource.data.title.size() > 0 &&
+          request.resource.data.description is string &&
+          request.resource.data.description.size() > 0 &&
+          request.resource.data.location is string &&
+          request.resource.data.location.size() > 0 &&
+          request.resource.data.price is number &&
+          request.resource.data.type in ['housing', 'marketplace'] &&
+          request.resource.data.category in ['room', 'pg', 'flat', 'flatmate', 'item'] &&
+          request.resource.data.imageUrls is list &&
+          request.resource.data.highlights is list;
+
+      allow update: if isOwnerByOwnerIdField() &&
+          request.resource.data.ownerId == resource.data.ownerId &&
+          request.resource.data.get('createdAt', resource.data.createdAt) == resource.data.createdAt;
+
+      allow delete: if isOwnerByOwnerIdField();
     }
 
     match /jobs/{jobId} {

@@ -1,11 +1,13 @@
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 import '../models/chat_model.dart';
 import '../models/listing_model.dart';
 import '../providers/chat_provider.dart';
 import '../services/database_service.dart';
+import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
 
 class ChatDetailScreen extends StatefulWidget {
   final String conversationId;
@@ -17,9 +19,9 @@ class ChatDetailScreen extends StatefulWidget {
 }
 
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
-  late TextEditingController _messageController;
-  late ScrollController _scrollController;
-  late String _currentUserId;
+  late final TextEditingController _messageController;
+  late final ScrollController _scrollController;
+  late final String _currentUserId;
   late Future<_ChatHeaderData> _headerFuture;
   bool _isSending = false;
   bool _isUserNearBottom = true;
@@ -29,12 +31,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   void initState() {
     super.initState();
     _messageController = TextEditingController();
-    _scrollController = ScrollController();
-    _scrollController.addListener(_onScroll);
+    _scrollController = ScrollController()..addListener(_onScroll);
     _currentUserId = FirebaseAuth.instance.currentUser?.uid ?? '';
     _headerFuture = _resolveHeaderData();
 
-    // Open conversation in provider
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _openConversation();
     });
@@ -43,15 +43,18 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   Future<void> _openConversation() async {
     final provider = context.read<ChatProvider>();
     await provider.openConversation(widget.conversationId, _currentUserId);
-    if (!mounted) return;
+    if (!mounted) {
+      return;
+    }
     await provider.markConversationAsReadIfNeeded(widget.conversationId);
   }
 
   @override
   void dispose() {
     _messageController.dispose();
-    _scrollController.removeListener(_onScroll);
-    _scrollController.dispose();
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
     context.read<ChatProvider>().closeConversation();
     super.dispose();
   }
@@ -66,13 +69,14 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+    if (!_scrollController.hasClients) {
+      return;
     }
+    _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
   }
 
   void _maybeAutoScroll(List<MessageModel> messages) {
@@ -80,6 +84,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       _lastMessageCount = 0;
       return;
     }
+
     final hasNewMessage = messages.length != _lastMessageCount;
     _lastMessageCount = messages.length;
     if (!hasNewMessage) {
@@ -93,37 +98,43 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   Future<void> _sendMessage() async {
-    if (_isSending || _messageController.text.trim().isEmpty) return;
-
     final text = _messageController.text.trim();
+    if (_isSending || text.isEmpty) {
+      return;
+    }
+
     _messageController.clear();
+    setState(() {
+      _isSending = true;
+    });
 
     try {
-      setState(() => _isSending = true);
       await context.read<ChatProvider>().sendMessage(text);
       _scrollToBottom();
-    } catch (e) {
+    } catch (error) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Failed to send: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to send message: $error')),
+      );
     } finally {
       if (mounted) {
-        setState(() => _isSending = false);
+        setState(() {
+          _isSending = false;
+        });
       }
     }
   }
 
+  bool get _canSend => !_isSending && _messageController.text.trim().isNotEmpty;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      resizeToAvoidBottomInset: true,
       appBar: _buildAppBar(),
       body: Column(
         children: [
-          // Messages list
           Expanded(
             child: Consumer<ChatProvider>(
               builder: (context, chatProvider, _) {
@@ -139,79 +150,73 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                   return Center(
                     child: Text(
                       'No messages yet',
-                      style: Theme.of(
-                        context,
-                      ).textTheme.bodyLarge?.copyWith(color: Colors.grey),
+                      style: AppTheme.body(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.slate500,
+                      ),
                     ),
                   );
                 }
 
                 return ListView.builder(
                   controller: _scrollController,
-                  padding: const EdgeInsets.all(16.0),
+                  padding: const EdgeInsets.all(16),
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     final message = messages[index];
-                    final isOwn = message.senderId == _currentUserId;
-
-                    return _buildMessageBubble(message, isOwn);
+                    return _MessageBubble(
+                      message: message,
+                      isOwn: message.senderId == _currentUserId,
+                      formattedTime: _formatTime(message.timestamp),
+                    );
                   },
                 );
               },
             ),
           ),
-
-          // Message input
           SafeArea(
             top: false,
-            child: Container(
+            child: Padding(
               padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
               child: Row(
                 children: [
                   Expanded(
                     child: TextField(
                       controller: _messageController,
+                      maxLines: null,
                       textInputAction: TextInputAction.send,
+                      onSubmitted: (_) => _sendMessage(),
+                      onChanged: (_) => setState(() {}),
                       decoration: InputDecoration(
                         hintText: 'Type a message...',
+                        filled: true,
+                        fillColor: AppColors.surfaceContainerLow,
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(24),
                           borderSide: BorderSide.none,
                         ),
-                        filled: true,
-                        fillColor: Colors.grey[100],
                         contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16.0,
-                          vertical: 12.0,
+                          horizontal: 16,
+                          vertical: 12,
                         ),
                       ),
-                      maxLines: null,
-                      onSubmitted: (_) => _sendMessage(),
-                      onChanged: (value) {
-                        setState(() {});
-                      },
                     ),
                   ),
                   const SizedBox(width: 8),
                   Material(
+                    color: _canSend
+                        ? AppColors.primary
+                        : AppColors.primary.withValues(alpha: 0.45),
                     shape: const CircleBorder(),
-                    color: (_messageController.text.trim().isEmpty || _isSending)
-                        ? Colors.blue.withValues(alpha: 0.55)
-                        : Colors.blue,
                     child: InkWell(
-                      onTap:
-                          (_messageController.text.trim().isEmpty || _isSending)
-                          ? null
-                          : _sendMessage,
-                      child: Padding(
-                        padding: const EdgeInsets.all(12.0),
+                      onTap: _canSend ? _sendMessage : null,
+                      customBorder: const CircleBorder(),
+                      child: const Padding(
+                        padding: EdgeInsets.all(12),
                         child: Icon(
-                          Icons.send,
-                          color:
-                              (_messageController.text.trim().isEmpty ||
-                                  _isSending)
-                              ? Colors.white.withValues(alpha: 0.5)
-                              : Colors.white,
+                          Icons.send_rounded,
+                          color: Colors.white,
                           size: 20,
                         ),
                       ),
@@ -227,26 +232,38 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   AppBar _buildAppBar() {
-    final fallback = const _ChatHeaderData(
-      name: 'Messages',
-      photoUrl: '',
-      typeLabel: '',
-    );
     return AppBar(
+      backgroundColor: Colors.white,
+      foregroundColor: AppColors.onSurface,
+      elevation: 0.5,
       title: FutureBuilder<_ChatHeaderData>(
         future: _headerFuture,
         builder: (context, snapshot) {
-          final data = snapshot.data ?? fallback;
+          final data = snapshot.data ??
+              const _ChatHeaderData(
+                name: 'Messages',
+                photoUrl: '',
+                typeLabel: '',
+              );
           final avatar = _safeAvatarProvider(data.photoUrl);
-          final initial = data.name.isNotEmpty
-              ? data.name[0].toUpperCase()
-              : '?';
+          final initial = data.name.isEmpty ? '?' : data.name[0].toUpperCase();
+
           return Row(
             children: [
               CircleAvatar(
-                radius: 16,
+                radius: 18,
+                backgroundColor: AppColors.blue50,
                 backgroundImage: avatar,
-                child: avatar == null ? Text(initial) : null,
+                child: avatar == null
+                    ? Text(
+                        initial,
+                        style: AppTheme.body(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      )
+                    : null,
               ),
               const SizedBox(width: 10),
               Expanded(
@@ -258,9 +275,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                       data.name,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w600,
+                      style: AppTheme.body(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                     if (data.typeLabel.isNotEmpty)
@@ -268,7 +285,11 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         data.typeLabel,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 12),
+                        style: AppTheme.body(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.slate500,
+                        ),
                       ),
                   ],
                 ),
@@ -277,115 +298,25 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
           );
         },
       ),
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back),
-        onPressed: () => Navigator.of(context).pop(),
-      ),
-      elevation: 1,
-      backgroundColor: Colors.white,
-      foregroundColor: Colors.black87,
     );
   }
 
-  Widget _buildMessageBubble(MessageModel message, bool isOwn) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 3.0),
-      child: Align(
-        alignment: isOwn ? Alignment.centerRight : Alignment.centerLeft,
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.78,
-          ),
-          child: Container(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 12,
-              vertical: 8,
-            ),
-            decoration: BoxDecoration(
-              color: isOwn ? const Color(0xFF2F80ED) : Colors.grey[200],
-              borderRadius: BorderRadius.only(
-                topLeft: const Radius.circular(16),
-                topRight: const Radius.circular(16),
-                bottomLeft: Radius.circular(isOwn ? 16 : 4),
-                bottomRight: Radius.circular(isOwn ? 4 : 16),
-              ),
-            ),
-            child: Column(
-              crossAxisAlignment:
-                  isOwn ? CrossAxisAlignment.end : CrossAxisAlignment.start,
-              children: [
-                Text(
-                  message.text,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: isOwn ? Colors.white : Colors.black87,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      _formatTime(message.timestamp),
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: isOwn
-                            ? Colors.white.withValues(alpha: 0.7)
-                            : Colors.grey,
-                      ),
-                    ),
-                    if (isOwn) ...[
-                      const SizedBox(width: 4),
-                      Icon(
-                        message.status == 'read'
-                            ? Icons.done_all_rounded
-                            : Icons.done_rounded,
-                        size: 14,
-                        color: message.status == 'read'
-                            ? Colors.cyan
-                            : Colors.white.withValues(alpha: 0.7),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  ImageProvider? _safeAvatarProvider(String? url) {
-    final raw = (url ?? '').trim();
-    if (raw.isEmpty) {
+  ImageProvider? _safeAvatarProvider(String rawUrl) {
+    final trimmed = rawUrl.trim();
+    if (trimmed.isEmpty) {
       return null;
     }
-    final uri = Uri.tryParse(raw);
+    final uri = Uri.tryParse(trimmed);
     if (uri == null ||
         !uri.hasScheme ||
         (uri.scheme != 'http' && uri.scheme != 'https')) {
       return null;
     }
-    return NetworkImage(raw);
-  }
-
-  String _mateTypeLabel(String value) {
-    switch (value.toLowerCase()) {
-      case 'helpmate':
-        return 'Helpmate';
-      case 'ridemate':
-        return 'Ridemate';
-      case 'roommate':
-      default:
-        return 'Roommate';
-    }
+    return NetworkImage(trimmed);
   }
 
   Future<_ChatHeaderData> _resolveHeaderData() async {
-    final uid = _currentUserId;
-    final db = context.read<DatabaseService>();
-    if (uid.isEmpty) {
+    if (_currentUserId.isEmpty) {
       return const _ChatHeaderData(
         name: 'Messages',
         photoUrl: '',
@@ -393,12 +324,16 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       );
     }
 
-    final firestore = FirebaseFirestore.instance;
-    final convSnap = await firestore
-        .collection('chats')
-        .doc(widget.conversationId)
-        .get();
-    if (!convSnap.exists) {
+    final chatProvider = context.read<ChatProvider>();
+    ConversationModel? conversation;
+    for (final item in chatProvider.conversations) {
+      if (item.id == widget.conversationId) {
+        conversation = item;
+        break;
+      }
+    }
+
+    if (conversation == null) {
       return const _ChatHeaderData(
         name: 'Messages',
         photoUrl: '',
@@ -406,107 +341,38 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       );
     }
 
-    final data = convSnap.data() ?? <String, dynamic>{};
-    final participants = List<String>.from(data['participants'] ?? []);
-    final otherUserId = participants.firstWhere(
-      (id) => id != uid,
+    final otherUserId = conversation.participants.firstWhere(
+      (id) => id != _currentUserId,
       orElse: () => '',
     );
-    final referenceId = (data['referenceId'] ?? '').toString();
-    final chatType = ChatTypeX.fromString((data['chatType'] ?? '').toString());
+    final db = context.read<DatabaseService>();
+    final listing = await db.getListing(conversation.referenceId);
 
     String name = 'User';
     String photoUrl = '';
-    String typeLabel = chatType.label;
+    String typeLabel = 'Listing';
 
-    if (chatType == ChatType.listing) {
-      final listingDoc = await firestore
-          .collection('listings')
-          .doc(referenceId)
-          .get();
-      if (listingDoc.exists) {
-        final listing = listingDoc.data()!;
-        final ownerId = (listing['ownerId'] ?? '').toString().trim();
-        if (ownerId == otherUserId) {
-          name = (listing['ownerName'] ?? name).toString();
-          photoUrl = (listing['ownerPhotoUrl'] ?? '').toString();
-        }
-        final category = ListingCategoryX.fromString(
-          (listing['category'] ?? '').toString(),
-        );
-        typeLabel = category.label;
+    if (listing != null) {
+      typeLabel = listing.category.label;
+      if (listing.ownerId == otherUserId) {
+        name = listing.ownerName.isEmpty ? name : listing.ownerName;
+        photoUrl = listing.ownerPhotoUrl;
       }
-    } else if (chatType == ChatType.service) {
-      var workerDoc = await firestore
-          .collection('workers')
-          .doc(referenceId)
-          .get();
-      if (!workerDoc.exists) {
-        final fallback = await firestore
-            .collection('workers')
-            .where('uid', isEqualTo: referenceId)
-            .limit(1)
-            .get();
-        if (fallback.docs.isNotEmpty) {
-          workerDoc = fallback.docs.first;
-        }
-      }
-      if (workerDoc.exists) {
-        final worker = workerDoc.data()!;
-        final workerUid = (worker['uid'] ?? referenceId).toString().trim();
-        if (workerUid == otherUserId) {
-          name = (worker['name'] ?? name).toString();
-          photoUrl = (worker['photoUrl'] ?? '').toString();
-        }
-        final serviceType = (worker['serviceType'] ?? '').toString().trim();
-        if (serviceType.isNotEmpty) {
-          typeLabel = serviceType;
-        }
-      }
-    } else if (chatType == ChatType.mate) {
-      final mateDoc = await firestore
-          .collection('mates')
-          .doc(referenceId)
-          .get();
-      if (mateDoc.exists) {
-        final mate = mateDoc.data()!;
-        final mateOwnerId = (mate['userId'] ?? '').toString().trim();
-        if (mateOwnerId == otherUserId) {
-          name = (mate['userName'] ?? name).toString();
-          photoUrl = (mate['userPhoto'] ?? '').toString();
-        }
-        final mateType = (mate['type'] ?? '').toString().trim();
-        if (mateType.isNotEmpty) {
-          typeLabel = _mateTypeLabel(mateType);
-        }
-      }
-    } else if (chatType == ChatType.request) {
-      final requestDoc = await firestore
-          .collection('jobs')
-          .doc(referenceId)
-          .get();
-      if (requestDoc.exists) {
-        final request = requestDoc.data()!;
-        final posterId = (request['userId'] ?? '').toString().trim();
-        if (posterId == otherUserId) {
-          name = (request['posterName'] ?? name).toString();
-          photoUrl = (request['photoUrl'] ?? '').toString();
-        }
-        final category = (request['category'] ?? '').toString().trim();
-        if (category.isNotEmpty) {
-          typeLabel = category;
-        }
+      if (listing.title.trim().isNotEmpty) {
+        typeLabel = '${listing.category.label} - ${listing.title.trim()}';
       }
     }
 
     if ((name == 'User' || photoUrl.isEmpty) && otherUserId.isNotEmpty) {
       final userData = await db.getUserData(otherUserId);
       if (userData != null) {
-        if (name == 'User') {
-          name = (userData['name'] ?? name).toString();
+        final resolvedName = (userData['name'] ?? '').toString().trim();
+        final resolvedPhoto = (userData['photoUrl'] ?? '').toString().trim();
+        if (resolvedName.isNotEmpty) {
+          name = resolvedName;
         }
-        if (photoUrl.isEmpty) {
-          photoUrl = (userData['photoUrl'] ?? '').toString();
+        if (resolvedPhoto.isNotEmpty) {
+          photoUrl = resolvedPhoto;
         }
       }
     }
@@ -524,13 +390,95 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     if (difference.inMinutes < 1) {
       return 'Just now';
-    } else if (difference.inHours < 1) {
-      return '${difference.inMinutes}m';
-    } else if (difference.inDays < 1) {
-      return '${difference.inHours}h';
-    } else {
-      return '${dateTime.day}/${dateTime.month}';
     }
+    if (difference.inHours < 1) {
+      return '${difference.inMinutes}m';
+    }
+    if (difference.inDays < 1) {
+      return '${difference.inHours}h';
+    }
+    return '${dateTime.day}/${dateTime.month}';
+  }
+}
+
+class _MessageBubble extends StatelessWidget {
+  final MessageModel message;
+  final bool isOwn;
+  final String formattedTime;
+
+  const _MessageBubble({
+    required this.message,
+    required this.isOwn,
+    required this.formattedTime,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Align(
+        alignment: isOwn ? Alignment.centerRight : Alignment.centerLeft,
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: MediaQuery.of(context).size.width * 0.78,
+          ),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: isOwn ? AppColors.primary : AppColors.surfaceContainer,
+              borderRadius: BorderRadius.only(
+                topLeft: const Radius.circular(16),
+                topRight: const Radius.circular(16),
+                bottomLeft: Radius.circular(isOwn ? 16 : 4),
+                bottomRight: Radius.circular(isOwn ? 4 : 16),
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment:
+                  isOwn ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+              children: [
+                Text(
+                  message.text,
+                  style: AppTheme.body(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: isOwn ? Colors.white : AppColors.onSurface,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      formattedTime,
+                      style: AppTheme.body(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: isOwn
+                            ? Colors.white.withValues(alpha: 0.72)
+                            : AppColors.slate500,
+                      ),
+                    ),
+                    if (isOwn) ...[
+                      const SizedBox(width: 4),
+                      Icon(
+                        message.status == 'read'
+                            ? Icons.done_all_rounded
+                            : Icons.done_rounded,
+                        size: 14,
+                        color: message.status == 'read'
+                            ? Colors.cyanAccent
+                            : Colors.white.withValues(alpha: 0.72),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 
