@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../models/chat_model.dart';
+import '../models/listing_model.dart';
 import '../providers/chat_provider.dart';
 import '../services/database_service.dart';
 
@@ -418,7 +419,24 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     String photoUrl = '';
     String typeLabel = chatType.label;
 
-    if (chatType == ChatType.service) {
+    if (chatType == ChatType.listing) {
+      final listingDoc = await firestore
+          .collection('listings')
+          .doc(referenceId)
+          .get();
+      if (listingDoc.exists) {
+        final listing = listingDoc.data()!;
+        final ownerId = (listing['ownerId'] ?? '').toString().trim();
+        if (ownerId == otherUserId) {
+          name = (listing['ownerName'] ?? name).toString();
+          photoUrl = (listing['ownerPhotoUrl'] ?? '').toString();
+        }
+        final category = ListingCategoryX.fromString(
+          (listing['category'] ?? '').toString(),
+        );
+        typeLabel = category.label;
+      }
+    } else if (chatType == ChatType.service) {
       var workerDoc = await firestore
           .collection('workers')
           .doc(referenceId)
