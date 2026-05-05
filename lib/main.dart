@@ -20,7 +20,6 @@ import 'screens/onboarding_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/complete_profile_screen.dart';
 import 'screens/main_shell.dart';
-import 'screens/worker_profile_screen.dart';
 import 'screens/account_deletion_screen.dart';
 
 void main() async {
