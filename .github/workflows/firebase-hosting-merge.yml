@@ -30,7 +30,7 @@ jobs:
 
       # ✅ Build web
       - name: Build web
-        run: flutter build web --release
+        run: flutter build web --release --dart-define="CLOUDINARY_CLOUD_NAME=${{ secrets.CLOUDINARY_CLOUD_NAME }}" --dart-define="CLOUDINARY_UPLOAD_PRESET=${{ secrets.CLOUDINARY_UPLOAD_PRESET }}" --dart-define="CLOUDINARY_UPLOAD_FOLDER=${{ secrets.CLOUDINARY_UPLOAD_FOLDER }}"
 
       # ✅ Deploy live
       - name: Deploy to Firebase

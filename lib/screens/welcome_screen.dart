@@ -18,26 +18,12 @@ class WelcomeScreen extends StatefulWidget {
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
   late final AuthService _authService;
-  final TextEditingController _phoneController = TextEditingController(
-    text: '+91 ',
-  );
-  final TextEditingController _otpController = TextEditingController();
-
   bool _isLoading = false;
-  bool _otpSent = false;
-  String? _verificationId;
 
   @override
   void initState() {
     super.initState();
     _authService = context.read<AuthService>();
-  }
-
-  @override
-  void dispose() {
-    _phoneController.dispose();
-    _otpController.dispose();
-    super.dispose();
   }
 
   void _openAuthenticatedFlow() {
@@ -47,69 +33,18 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     );
   }
 
-  Future<void> _sendOtp() async {
-    setState(() => _isLoading = true);
-    await _authService.sendOtp(
-      phoneNumber: _phoneController.text.trim(),
-      onCodeSent: (verificationId, _) {
-        if (!mounted) {
-          return;
-        }
-        setState(() {
-          _verificationId = verificationId;
-          _otpSent = true;
-          _isLoading = false;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('OTP sent')),
-        );
-      },
-      onVerificationFailed: (message) {
-        if (!mounted) {
-          return;
-        }
-        setState(() => _isLoading = false);
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(message)),
-        );
-      },
-      onAutoVerified: () {
-        if (!mounted) {
-          return;
-        }
-        setState(() => _isLoading = false);
-        _openAuthenticatedFlow();
-      },
-    );
-  }
-
-  Future<void> _verifyOtp() async {
-    final verificationId = _verificationId;
-    if (verificationId == null || _otpController.text.trim().length < 6) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Enter the 6-digit OTP')),
-      );
-      return;
-    }
-
+  Future<void> _handleGoogleSignIn() async {
     setState(() => _isLoading = true);
     try {
-      await _authService.verifyOtp(
-        verificationId: verificationId,
-        smsCode: _otpController.text.trim(),
-        phoneNumber: _phoneController.text.trim(),
-      );
-      if (!mounted) {
-        return;
+      final user = await _authService.signInWithGoogle();
+      if (user != null && mounted) {
+        _openAuthenticatedFlow();
       }
-      _openAuthenticatedFlow();
     } catch (e) {
-      if (!mounted) {
-        return;
-      }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('OTP verification failed: $e')),
-      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Sign in failed: $e')));
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -123,8 +58,6 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final canSubmitPhone = _phoneController.text.trim().length >= 10;
-
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
@@ -163,7 +96,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   ),
                   const SizedBox(height: 40),
                   Text(
-                    'Sign in with your phone number',
+                    'Sign in to get started',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
                       fontSize: 28,
@@ -174,7 +107,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   ),
                   const SizedBox(height: 14),
                   Text(
-                    'Use OTP verification to continue, then complete your student or professional profile.',
+                    'Use Google Sign-In to continue, then complete your student or professional profile.',
                     textAlign: TextAlign.center,
                     style: GoogleFonts.inter(
                       fontSize: 16,
@@ -183,91 +116,45 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     ),
                   ),
                   const SizedBox(height: 36),
-                  TextField(
-                    controller: _phoneController,
-                    keyboardType: TextInputType.phone,
-                    decoration: InputDecoration(
-                      labelText: 'Phone number',
-                      hintText: '+91 9876543210',
-                      filled: true,
-                      fillColor: AppColors.surfaceContainerLow,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(18),
-                        borderSide: BorderSide.none,
-                      ),
-                    ),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 14),
-                  if (_otpSent)
-                    TextField(
-                      controller: _otpController,
-                      keyboardType: TextInputType.number,
-                      maxLength: 6,
-                      decoration: InputDecoration(
-                        labelText: 'OTP',
-                        hintText: 'Enter 6-digit code',
-                        counterText: '',
-                        filled: true,
-                        fillColor: AppColors.surfaceContainerLow,
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(18),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                  const SizedBox(height: 18),
                   SizedBox(
                     height: 56,
-                    child: ElevatedButton(
-                      onPressed: _isLoading
-                          ? null
-                          : _otpSent
-                              ? _verifyOtp
-                              : canSubmitPhone
-                                  ? _sendOtp
-                                  : null,
+                    child: ElevatedButton.icon(
+                      onPressed: _isLoading ? null : _handleGoogleSignIn,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF10276E),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black87,
+                        elevation: 1,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
                         ),
                       ),
-                      child: _isLoading
+                      icon: Image.asset(
+                        'assets/google_logo.png', // Fallback handled if needed, or default icon
+                        height: 24,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const Icon(
+                              Icons.g_mobiledata,
+                              color: Colors.blue,
+                              size: 32,
+                            ),
+                      ),
+                      label: _isLoading
                           ? const SizedBox(
                               width: 24,
                               height: 24,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2.5,
-                                color: Colors.white,
                               ),
                             )
                           : Text(
-                              _otpSent ? 'Verify OTP' : 'Send OTP',
+                              'Sign in with Google',
                               style: GoogleFonts.inter(
                                 fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
+                                fontWeight: FontWeight.w600,
                               ),
                             ),
                     ),
                   ),
-                  if (_otpSent) ...[
-                    const SizedBox(height: 12),
-                    TextButton(
-                      onPressed: _isLoading ? null : _sendOtp,
-                      child: Text(
-                        'Resend OTP',
-                        style: GoogleFonts.inter(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                  ],
                   const SizedBox(height: 12),
                   SizedBox(
                     height: 56,
@@ -308,9 +195,9 @@ class _PolicyDisclaimerText extends StatelessWidget {
   const _PolicyDisclaimerText();
 
   void _open(BuildContext context, PolicyType type) {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => PolicyScreen(type: type)),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => PolicyScreen(type: type)));
   }
 
   @override

@@ -9,6 +9,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'theme/app_theme.dart';
 import 'services/auth_service.dart';
+import 'services/cloudinary_service.dart';
 import 'services/database_service.dart';
 import 'services/location_service.dart';
 import 'services/session_service.dart';
@@ -56,6 +57,7 @@ class TriozyApp extends StatelessWidget {
       providers: [
         // Singleton services — available everywhere via context.read<T>()
         Provider<AuthService>(create: (_) => AuthService()),
+        Provider<CloudinaryService>(create: (_) => CloudinaryService()),
         Provider<DatabaseService>(create: (_) => DatabaseService()),
         Provider<LocationService>(create: (_) => LocationService()),
         Provider<ChatService>(create: (_) => ChatService()),
@@ -256,7 +258,8 @@ class _RoleRouterState extends State<_RoleRouter> {
       final authService = context.read<AuthService>();
       await authService.ensureStarterUser(
         user: user,
-        phoneNumber: user.phoneNumber ?? '',
+        email: user.email,
+        displayName: user.displayName,
       );
     } catch (_) {
       if (mounted) setState(() => _isCreatingUser = false);
