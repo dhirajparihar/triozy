@@ -17,7 +17,7 @@ class AppBottomNavBar extends StatelessWidget {
   Widget build(BuildContext context) {
     final items = const [
       (Icons.home_rounded, 'Home'),
-      (Icons.travel_explore_rounded, 'Explore'),
+      (Icons.apps_rounded, 'Services'),
       (Icons.chat_bubble_rounded, 'Chat'),
       (Icons.person_outline_rounded, 'Profile'),
     ];

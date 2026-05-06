@@ -374,17 +374,15 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class _HomeLoadingState extends StatelessWidget {
-  final bool compact;
-
-  const _HomeLoadingState({this.compact = false});
+  const _HomeLoadingState();
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: List.generate(
-        compact ? 2 : 1,
+        1,
         (_) => Container(
-          height: compact ? 270 : 330,
+          height: 330,
           margin: const EdgeInsets.only(bottom: 16),
           decoration: BoxDecoration(
             color: Colors.white,
