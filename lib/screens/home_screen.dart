@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/listing_model.dart';
-import '../providers/location_provider.dart';
 import '../services/database_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -26,7 +25,6 @@ class HomeScreen extends StatefulWidget {
 
 class HomeScreenState extends State<HomeScreen> {
   List<ListingModel> _featured = [];
-  List<ListingModel> _recent = [];
   Set<String> _savedIds = <String>{};
   bool _loading = true;
 
@@ -42,7 +40,6 @@ class HomeScreenState extends State<HomeScreen> {
     final db = context.read<DatabaseService>();
     try {
       final featured = await db.getFeaturedListings(limit: 4);
-      final recent = await db.getRecentListings(limit: 8);
       final userId = FirebaseAuth.instance.currentUser?.uid;
       final saved = userId == null
           ? <ListingModel>[]
@@ -53,7 +50,6 @@ class HomeScreenState extends State<HomeScreen> {
       }
       setState(() {
         _featured = featured;
-        _recent = recent;
         _savedIds = saved.map((listing) => listing.id).toSet();
         _loading = false;
       });
@@ -98,8 +94,6 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final location = context.watch<LocationProvider>().address;
-
     return RefreshIndicator(
       onRefresh: _loadData,
       color: AppColors.primary,
@@ -107,7 +101,6 @@ class HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 110),
         children: [
           _HeroSection(
-            location: location,
             onSearchTap: widget.onExploreTapped,
           ),
           const SizedBox(height: 24),
@@ -141,27 +134,9 @@ class HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
-            ),
+          ),
           const SizedBox(height: 28),
           const _LivingStrip(),
-          const SizedBox(height: 28),
-          _SectionHeader(title: 'Recently added'),
-          const SizedBox(height: 14),
-          if (_loading)
-            const _HomeLoadingState(compact: true)
-          else
-            ..._recent.map((listing) {
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: ListingCard(
-                  listing: listing,
-                  compact: true,
-                  onTap: () => _openListing(listing),
-                  onSaveTap: () => _toggleSave(listing.id),
-                  isSaved: _savedIds.contains(listing.id),
-                ),
-              );
-            }),
         ],
       ),
     );
@@ -169,10 +144,9 @@ class HomeScreenState extends State<HomeScreen> {
 }
 
 class _HeroSection extends StatelessWidget {
-  final String location;
   final VoidCallback? onSearchTap;
 
-  const _HeroSection({required this.location, this.onSearchTap});
+  const _HeroSection({this.onSearchTap});
 
   @override
   Widget build(BuildContext context) {
@@ -190,29 +164,6 @@ class _HeroSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.location_on_rounded, color: AppColors.primary, size: 16),
-                const SizedBox(width: 6),
-                Text(
-                  location == 'Locating...' ? 'Your city' : location,
-                  style: AppTheme.label(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 18),
           Text(
             'Move to a new city without starting from zero.',
             style: AppTheme.headline(fontSize: 30, letterSpacing: -1.0),
@@ -282,51 +233,58 @@ class _QuickCategoryRow extends StatelessWidget {
     ];
 
     return SizedBox(
-      height: 112,
+      height: 146,
       child: Row(
-        children: categories.map((entry) {
+        children: List.generate(categories.length, (index) {
+          final entry = categories[index];
+          final isLast = index == categories.length - 1;
+
           return Expanded(
             child: Padding(
-              padding: const EdgeInsets.only(right: 10),
+              padding: EdgeInsets.only(right: isLast ? 0 : 10),
               child: GestureDetector(
                 onTap: () => onCategorySelected?.call(entry.$1),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(22),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.04),
-                        blurRadius: 18,
-                        offset: const Offset(0, 8),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      height: 82,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 18,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: AppColors.blue50,
-                          borderRadius: BorderRadius.circular(14),
+                      padding: const EdgeInsets.all(14),
+                      child: Center(
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: AppColors.blue50,
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: Icon(entry.$2, color: AppColors.primary, size: 20),
                         ),
-                        child: Icon(entry.$2, color: AppColors.primary, size: 20),
                       ),
-                      const Spacer(),
-                      Text(
-                        entry.$1.label,
-                        style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w700),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 10),
+                    Text(
+                      entry.$1.label,
+                      textAlign: TextAlign.center,
+                      style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w700),
+                    ),
+                  ],
                 ),
               ),
             ),
           );
-        }).toList(),
+        }),
       ),
     );
   }
