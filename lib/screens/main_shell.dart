@@ -7,6 +7,7 @@ import '../providers/chat_provider.dart';
 import '../providers/location_provider.dart';
 import '../services/fcm_service.dart';
 import '../services/permission_center.dart';
+import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/bottom_nav_bar.dart';
 import '../widgets/top_app_bar.dart';
@@ -36,6 +37,7 @@ class _MainShellState extends State<MainShell> {
   int _currentIndex = 0;
   DateTime? _lastBackPressedAt;
   bool _isLocationDialogOpen = false;
+  String? _profileName;
 
   late final List<Widget> _screens = [
     HomeScreen(
@@ -72,6 +74,15 @@ class _MainShellState extends State<MainShell> {
       final uid = FirebaseAuth.instance.currentUser?.uid;
       if (uid != null && uid.isNotEmpty) {
         context.read<ChatProvider>().initialize(uid);
+        // Fetch profile name from Firestore as a fallback when displayName is empty
+        AuthService().getUserData(uid).then((data) {
+          if (mounted && data != null) {
+            final name = (data['name'] ?? '').toString().trim();
+            if (name.isNotEmpty) {
+              setState(() => _profileName = name);
+            }
+          }
+        }).catchError((_) {});
       }
 
       FCMService().initialize();
@@ -202,6 +213,10 @@ class _MainShellState extends State<MainShell> {
               right: 0,
               child: TriozyTopAppBar(
                 location: locationProvider.address,
+                userDisplayName: FirebaseAuth.instance.currentUser?.displayName ?? _profileName ??
+                    (FirebaseAuth.instance.currentUser?.email != null
+                        ? FirebaseAuth.instance.currentUser!.email!.split('@').first.replaceAll(RegExp(r'[._]'), ' ')
+                        : null),
                 avatarUrl: FirebaseAuth.instance.currentUser?.photoURL,
                 showAvatar: _currentIndex != 3,
                 onAvatarTap: () => setState(() => _currentIndex = 3),

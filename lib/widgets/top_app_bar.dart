@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../theme/app_colors.dart';
 
 class TriozyTopAppBar extends StatelessWidget {
+  final String? userDisplayName;
   final String? location;
   final String? avatarUrl;
   final bool showAvatar;
@@ -14,6 +15,7 @@ class TriozyTopAppBar extends StatelessWidget {
 
   const TriozyTopAppBar({
     super.key,
+    this.userDisplayName,
     this.location,
     this.avatarUrl,
     this.showAvatar = true,
@@ -25,6 +27,9 @@ class TriozyTopAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final rawName = (userDisplayName ?? '').trim();
+    final firstName = rawName.isEmpty ? '' : rawName.split(' ').first;
+    final titleText = firstName.isEmpty ? 'Welcome' : 'Welcome, $firstName!';
     return SafeArea(
       bottom: false,
       child: ClipRRect(
@@ -53,7 +58,7 @@ class TriozyTopAppBar extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Triozy',
+                            titleText,
                             style: GoogleFonts.manrope(
                               fontWeight: FontWeight.w900,
                               fontSize: 24.0,
