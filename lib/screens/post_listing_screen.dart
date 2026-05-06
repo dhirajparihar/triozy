@@ -1,13 +1,13 @@
 import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/listing_model.dart';
+import '../services/cloudinary_service.dart';
 import '../services/database_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -60,16 +60,16 @@ class _PostListingScreenState extends State<PostListingScreen> {
       return [];
     }
 
-    final storage = FirebaseStorage.instance;
+    final cloudinary = context.read<CloudinaryService>();
     final urls = <String>[];
     for (var index = 0; index < _pickedImages.length; index++) {
       final bytes = await _pickedImages[index].readAsBytes();
-      final ref = storage.ref('listing_images/$listingId/image_$index.jpg');
-      await ref.putData(
-        Uint8List.fromList(bytes),
-        SettableMetadata(contentType: 'image/jpeg'),
+      final url = await cloudinary.uploadImage(
+        bytes: Uint8List.fromList(bytes),
+        fileName: _pickedImages[index].name,
+        folder: 'listings/$listingId',
       );
-      urls.add(await ref.getDownloadURL());
+      urls.add(url);
     }
     return urls;
   }
