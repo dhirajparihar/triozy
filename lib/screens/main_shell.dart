@@ -15,6 +15,7 @@ import 'chat_list_screen.dart';
 import 'home_screen.dart';
 import 'post_listing_screen.dart';
 import 'search_results_screen.dart';
+import 'services_screen.dart';
 import 'user_profile_screen.dart';
 
 enum _LocationDialogAction { skip, openSettings }
@@ -43,19 +44,13 @@ class _MainShellState extends State<MainShell> {
     HomeScreen(
       key: _homeScreenKey,
       onExploreTapped: () {
-        setState(() => _currentIndex = 1);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _exploreKey.currentState?.focusAndSearch('');
-        });
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchResultsScreen(initialQuery: '')));
       },
       onCategorySelected: (category) {
-        setState(() => _currentIndex = 1);
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _exploreKey.currentState?.applyQuickCategory(category);
-        });
+        Navigator.push(context, MaterialPageRoute(builder: (_) => SearchResultsScreen(initialCategory: category)));
       },
     ),
-    SearchResultsScreen(key: _exploreKey),
+    const ServicesScreen(),
     const ChatListScreen(showScaffold: false),
     UserProfileScreen(isGuest: widget.isGuest),
   ];
@@ -202,31 +197,34 @@ class _MainShellState extends State<MainShell> {
           children: [
             Padding(
               padding: EdgeInsets.only(
-                top: MediaQuery.of(context).padding.top + 76,
+                top: _currentIndex == 1
+                  ? MediaQuery.of(context).padding.top
+                  : MediaQuery.of(context).padding.top + 76,
                 bottom: MediaQuery.of(context).padding.bottom + 76,
               ),
               child: IndexedStack(index: _currentIndex, children: _screens),
             ),
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: TriozyTopAppBar(
-                location: locationProvider.address,
-                userDisplayName: FirebaseAuth.instance.currentUser?.displayName ?? _profileName ??
-                    (FirebaseAuth.instance.currentUser?.email != null
-                        ? FirebaseAuth.instance.currentUser!.email!.split('@').first.replaceAll(RegExp(r'[._]'), ' ')
-                        : null),
-                avatarUrl: FirebaseAuth.instance.currentUser?.photoURL,
-                showAvatar: _currentIndex != 3,
-                onAvatarTap: () => setState(() => _currentIndex = 3),
-                onLocationTap: () {
-                  _refreshLocationAndPromptIfFailed();
-                },
-                unreadCount: unreadCount,
-                onChatTap: () => setState(() => _currentIndex = 2),
+            if (_currentIndex != 1)
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: TriozyTopAppBar(
+                  location: locationProvider.address,
+                  userDisplayName: FirebaseAuth.instance.currentUser?.displayName ?? _profileName ??
+                      (FirebaseAuth.instance.currentUser?.email != null
+                          ? FirebaseAuth.instance.currentUser!.email!.split('@').first.replaceAll(RegExp(r'[._]'), ' ')
+                          : null),
+                  avatarUrl: FirebaseAuth.instance.currentUser?.photoURL,
+                  showAvatar: _currentIndex != 3,
+                  onAvatarTap: () => setState(() => _currentIndex = 3),
+                  onLocationTap: () {
+                    _refreshLocationAndPromptIfFailed();
+                  },
+                  unreadCount: unreadCount,
+                  onChatTap: () => setState(() => _currentIndex = 2),
+                ),
               ),
-            ),
             Positioned(
               left: 0,
               right: 0,

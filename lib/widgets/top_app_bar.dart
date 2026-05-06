@@ -37,9 +37,20 @@ class TriozyTopAppBar extends StatelessWidget {
         filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
         child: LayoutBuilder(
           builder: (context, constraints) {
+            final compact = constraints.maxWidth < 380;
+            final sideButtonCount = (onChatTap != null ? 1 : 0) + (showAvatar ? 1 : 0);
+            final reservedActionWidth = sideButtonCount == 0
+                ? 0.0
+                : sideButtonCount * 44.0 + (sideButtonCount * 8.0);
+            final availableTitleWidth = constraints.maxWidth - 48 - reservedActionWidth;
+            final titleFontSize = _responsiveTitleFontSize(
+              firstName: firstName,
+              availableWidth: availableTitleWidth,
+            );
+
             return Container(
-              height: 70,
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+              height: compact ? 66 : 70,
+              padding: EdgeInsets.symmetric(horizontal: compact ? 18 : 24),
               decoration: BoxDecoration(
                 color: Colors.white.withValues(alpha: 0.85),
                 border: const Border(
@@ -59,14 +70,17 @@ class TriozyTopAppBar extends StatelessWidget {
                         children: [
                           Text(
                             titleText,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: GoogleFonts.manrope(
                               fontWeight: FontWeight.w900,
-                              fontSize: 24.0,
+                              fontSize: titleFontSize,
                               color: AppColors.blue700,
                               letterSpacing: -0.5,
+                              height: 1.0,
                             ),
                           ),
-                          const SizedBox(height: 2),
+                          SizedBox(height: compact ? 6 : 8),
                           Row(
                             children: [
                               Flexible(
@@ -76,7 +90,7 @@ class TriozyTopAppBar extends StatelessWidget {
                                   overflow: TextOverflow.ellipsis,
                                   style: GoogleFonts.inter(
                                     fontWeight: FontWeight.w600,
-                                    fontSize: 13,
+                                    fontSize: compact ? 12 : 13,
                                     color: AppColors.slate500,
                                   ),
                                 ),
@@ -211,5 +225,30 @@ class TriozyTopAppBar extends StatelessWidget {
       color: AppColors.surfaceContainerHigh,
       child: const Icon(Icons.person, color: AppColors.outline, size: 20),
     );
+  }
+
+  double _responsiveTitleFontSize({
+    required String firstName,
+    required double availableWidth,
+  }) {
+    var fontSize = 24.0;
+
+    if (availableWidth < 220) {
+      fontSize = 21.0;
+    }
+    if (availableWidth < 190) {
+      fontSize = 19.0;
+    }
+    if (firstName.length > 8) {
+      fontSize -= 1.0;
+    }
+    if (firstName.length > 11) {
+      fontSize -= 1.5;
+    }
+    if (firstName.length > 14) {
+      fontSize -= 1.5;
+    }
+
+    return fontSize.clamp(16.0, 24.0).toDouble();
   }
 }

@@ -13,7 +13,9 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
 class PostListingScreen extends StatefulWidget {
-  const PostListingScreen({super.key});
+  final ListingCategory? initialCategory;
+
+  const PostListingScreen({super.key, this.initialCategory});
 
   @override
   State<PostListingScreen> createState() => _PostListingScreenState();
@@ -43,6 +45,17 @@ class _PostListingScreenState extends State<PostListingScreen> {
     _priceController.dispose();
     _highlightsController.dispose();
     super.dispose();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final initial = widget.initialCategory;
+      if (initial != null) {
+        setState(() => _selectedCategory = initial);
+      }
+    });
   }
 
   Future<void> _pickImages() async {

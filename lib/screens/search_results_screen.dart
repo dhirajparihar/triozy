@@ -10,7 +10,10 @@ import '../widgets/listing_card.dart';
 import 'listing_detail_screen.dart';
 
 class SearchResultsScreen extends StatefulWidget {
-  const SearchResultsScreen({super.key});
+  final ListingCategory? initialCategory;
+  final String? initialQuery;
+
+  const SearchResultsScreen({super.key, this.initialCategory, this.initialQuery});
 
   @override
   State<SearchResultsScreen> createState() => SearchResultsScreenState();
@@ -31,7 +34,19 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addPostFrameCallback((_) => _loadListings());
+    if (widget.initialCategory != null) {
+      _selectedCategory = widget.initialCategory;
+      _selectedType = widget.initialCategory!.listingType;
+    }
+    if (widget.initialQuery != null) {
+      _searchController.text = widget.initialQuery!;
+    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (widget.initialQuery != null && widget.initialQuery!.isEmpty) {
+        _searchFocusNode.requestFocus();
+      }
+      _loadListings();
+    });
   }
 
   @override

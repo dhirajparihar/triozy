@@ -34,6 +34,29 @@ extension ListingTypeX on ListingType {
 
 enum ListingCategory { room, pg, flat, flatmate, item }
 
+enum ListingFlow { owner, requirement }
+
+extension ListingFlowX on ListingFlow {
+  String get value {
+    switch (this) {
+      case ListingFlow.owner:
+        return 'owner';
+      case ListingFlow.requirement:
+        return 'requirement';
+    }
+  }
+
+  static ListingFlow fromString(String raw) {
+    switch (raw.trim().toLowerCase()) {
+      case 'requirement':
+        return ListingFlow.requirement;
+      case 'owner':
+      default:
+        return ListingFlow.owner;
+    }
+  }
+}
+
 extension ListingCategoryX on ListingCategory {
   String get value {
     switch (this) {
@@ -113,6 +136,7 @@ class ListingModel {
   final String? condition;
   final String? furnishing;
   final String? availableFrom;
+  final ListingFlow flow;
   final bool isFeatured;
   final DateTime? createdAt;
 
@@ -135,6 +159,7 @@ class ListingModel {
     this.condition,
     this.furnishing,
     this.availableFrom,
+    this.flow = ListingFlow.owner,
     this.isFeatured = false,
     this.createdAt,
   });
@@ -159,6 +184,7 @@ class ListingModel {
       condition: map['condition'] as String?,
       furnishing: map['furnishing'] as String?,
       availableFrom: map['availableFrom'] as String?,
+      flow: ListingFlowX.fromString((map['flow'] ?? '').toString()),
       isFeatured: map['isFeatured'] as bool? ?? false,
       createdAt: map['createdAt'] is Timestamp
           ? (map['createdAt'] as Timestamp).toDate()
@@ -185,6 +211,7 @@ class ListingModel {
       'condition': condition,
       'furnishing': furnishing,
       'availableFrom': availableFrom,
+      'flow': flow.value,
       'isFeatured': isFeatured,
       if (includeCreatedAt) 'createdAt': FieldValue.serverTimestamp(),
     };
