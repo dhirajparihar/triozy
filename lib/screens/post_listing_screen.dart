@@ -13,9 +13,14 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
 class PostListingScreen extends StatefulWidget {
-  final ListingCategory? initialCategory;
+  final PropertyType? initialPropertyType;
+  final ListingPurpose? initialPurpose;
 
-  const PostListingScreen({super.key, this.initialCategory});
+  const PostListingScreen({
+    super.key,
+    this.initialPropertyType,
+    this.initialPurpose,
+  });
 
   @override
   State<PostListingScreen> createState() => _PostListingScreenState();
@@ -31,7 +36,8 @@ class _PostListingScreenState extends State<PostListingScreen> {
 
   final ImagePicker _picker = ImagePicker();
   final List<XFile> _pickedImages = [];
-  ListingCategory _selectedCategory = ListingCategory.room;
+  PropertyType _selectedPropertyType = PropertyType.room;
+  ListingPurpose _selectedPurpose = ListingPurpose.offerProperty;
   String? _genderPreference;
   String? _condition;
   String? _furnishing;
@@ -51,11 +57,32 @@ class _PostListingScreenState extends State<PostListingScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      final initial = widget.initialCategory;
-      if (initial != null) {
-        setState(() => _selectedCategory = initial);
+      if (widget.initialPropertyType != null || widget.initialPurpose != null) {
+        setState(() {
+          _selectedPropertyType = widget.initialPropertyType ?? _selectedPropertyType;
+          _selectedPurpose = widget.initialPurpose ??
+              (_selectedPropertyType == PropertyType.item
+                  ? ListingPurpose.marketplaceSell
+                  : _selectedPurpose);
+        });
       }
     });
+  }
+
+  ListingPurpose get _resolvedPurpose {
+    if (_selectedPropertyType == PropertyType.item) {
+      return ListingPurpose.marketplaceSell;
+    }
+    return _selectedPurpose == ListingPurpose.marketplaceSell
+        ? ListingPurpose.offerProperty
+        : _selectedPurpose;
+  }
+
+  List<PropertyType> get _availablePropertyTypes {
+    if (_selectedPurpose == ListingPurpose.needRoommate) {
+      return const [PropertyType.room, PropertyType.flat];
+    }
+    return PropertyType.values;
   }
 
   Future<void> _pickImages() async {
@@ -118,8 +145,8 @@ class _PostListingScreenState extends State<PostListingScreen> {
         description: _descriptionController.text.trim(),
         location: _locationController.text.trim(),
         price: double.parse(_priceController.text.trim()),
-        type: _selectedCategory.listingType,
-        category: _selectedCategory,
+        type: _selectedPropertyType.listingType,
+        propertyType: _selectedPropertyType,
         imageUrls: imageUrls,
         highlights: _highlightsController.text
             .split(',')
@@ -131,6 +158,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
         condition: _condition,
         furnishing: _furnishing,
         availableFrom: 'Available now',
+        purpose: _resolvedPurpose,
         isFeatured: false,
       );
 
@@ -240,20 +268,27 @@ class _PostListingScreenState extends State<PostListingScreen> {
                 keyboardType: TextInputType.number,
               ),
               const SizedBox(height: 12),
-              DropdownButtonFormField<ListingCategory>(
-                initialValue: _selectedCategory,
-                decoration: _inputDecoration('Category'),
-                items: ListingCategory.values.map((category) {
+              DropdownButtonFormField<PropertyType>(
+                initialValue: _selectedPropertyType,
+                decoration: _inputDecoration('Property type'),
+                items: _availablePropertyTypes.map((propertyType) {
                   return DropdownMenuItem(
-                    value: category,
-                    child: Text(category.label),
+                    value: propertyType,
+                    child: Text(propertyType.label),
                   );
                 }).toList(),
                 onChanged: (value) {
                   if (value == null) {
                     return;
                   }
-                  setState(() => _selectedCategory = value);
+                  setState(() {
+                    _selectedPropertyType = value;
+                    _selectedPurpose = value == PropertyType.item
+                        ? ListingPurpose.marketplaceSell
+                        : _selectedPurpose == ListingPurpose.marketplaceSell
+                            ? ListingPurpose.offerProperty
+                            : _selectedPurpose;
+                  });
                 },
               ),
               const SizedBox(height: 12),
@@ -269,7 +304,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
                 hint: 'Wi-Fi, Furnished, Balcony',
               ),
               const SizedBox(height: 18),
-              if (_selectedCategory.listingType == ListingType.housing) ...[
+              if (_selectedPropertyType.listingType == ListingType.housing) ...[
                 DropdownButtonFormField<String>(
                   initialValue: _genderPreference,
                   decoration: _inputDecoration('Gender preference'),

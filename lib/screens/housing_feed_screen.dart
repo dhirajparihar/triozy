@@ -27,7 +27,10 @@ class HousingFeedScreen extends StatelessWidget {
             indicatorColor: AppColors.primary,
             labelColor: AppColors.primary,
             unselectedLabelColor: AppColors.onSurfaceVariant,
-            labelStyle: AppTheme.body(fontSize: 14, fontWeight: FontWeight.w800),
+            labelStyle: AppTheme.body(
+              fontSize: 14,
+              fontWeight: FontWeight.w800,
+            ),
             tabs: const [
               Tab(text: 'Rooms'),
               Tab(text: 'Flatmates'),
@@ -37,9 +40,12 @@ class HousingFeedScreen extends StatelessWidget {
         ),
         body: const TabBarView(
           children: [
-            _HousingCategoryTab(category: ListingCategory.room),
-            _HousingCategoryTab(category: ListingCategory.flatmate),
-            _HousingCategoryTab(category: ListingCategory.pg),
+            _HousingTab(propertyType: PropertyType.room),
+            _HousingTab(
+              purpose: ListingPurpose.needRoommate,
+              includeRoomRequirements: true,
+            ),
+            _HousingTab(propertyType: PropertyType.pg),
           ],
         ),
       ),
@@ -47,16 +53,22 @@ class HousingFeedScreen extends StatelessWidget {
   }
 }
 
-class _HousingCategoryTab extends StatefulWidget {
-  final ListingCategory category;
+class _HousingTab extends StatefulWidget {
+  final PropertyType? propertyType;
+  final ListingPurpose? purpose;
+  final bool includeRoomRequirements;
 
-  const _HousingCategoryTab({required this.category});
+  const _HousingTab({
+    this.propertyType,
+    this.purpose,
+    this.includeRoomRequirements = false,
+  });
 
   @override
-  State<_HousingCategoryTab> createState() => _HousingCategoryTabState();
+  State<_HousingTab> createState() => _HousingTabState();
 }
 
-class _HousingCategoryTabState extends State<_HousingCategoryTab> {
+class _HousingTabState extends State<_HousingTab> {
   List<ListingModel> _listings = [];
   Set<String> _savedIds = <String>{};
   bool _loading = true;
@@ -70,35 +82,52 @@ class _HousingCategoryTabState extends State<_HousingCategoryTab> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final db = context.read<DatabaseService>();
-    final listings = await db.searchListings(
-      type: ListingType.housing,
-      category: widget.category,
-    );
+    final listings = await db.searchListings(type: ListingType.housing);
     final userId = FirebaseAuth.instance.currentUser?.uid;
-    final saved = userId == null ? <ListingModel>[] : await db.getSavedListings(userId);
+    final saved = userId == null
+        ? <ListingModel>[]
+        : await db.getSavedListings(userId);
 
     if (!mounted) {
       return;
     }
 
     setState(() {
-      _listings = listings
-        .where((listing) => listing.flow == ListingFlow.owner)
-        .toList()
+      _listings = listings.where(_matchesTab).toList()
         ..sort(
-          (a, b) => (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)),
+          (a, b) => (b.createdAt ?? DateTime(0)).compareTo(
+            a.createdAt ?? DateTime(0),
+          ),
         );
       _savedIds = saved.map((listing) => listing.id).toSet();
       _loading = false;
     });
   }
 
+  bool _matchesTab(ListingModel listing) {
+    if (widget.includeRoomRequirements) {
+      return listing.isRequirementPost ||
+          listing.purpose == ListingPurpose.needRoommate;
+    }
+    if (!widget.includeRoomRequirements && listing.isRequirementPost) {
+      return false;
+    }
+    if (widget.propertyType != null &&
+        listing.propertyType != widget.propertyType) {
+      return false;
+    }
+    if (widget.purpose != null && listing.purpose != widget.purpose) {
+      return false;
+    }
+    return true;
+  }
+
   Future<void> _toggleSave(String listingId) async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sign in to save listings')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Sign in to save listings')));
       return;
     }
 
@@ -124,7 +153,8 @@ class _HousingCategoryTabState extends State<_HousingCategoryTab> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ListingDetailScreen(listingId: listing.id, seed: listing),
+        builder: (_) =>
+            ListingDetailScreen(listingId: listing.id, seed: listing),
       ),
     );
   }
@@ -140,7 +170,11 @@ class _HousingCategoryTabState extends State<_HousingCategoryTab> {
           if (_loading)
             const _HousingLoadingState()
           else if (_listings.isEmpty)
-            _HousingEmptyState(category: widget.category)
+            _HousingEmptyState(
+              propertyType: widget.propertyType,
+              purpose: widget.purpose,
+              includeRoomRequirements: widget.includeRoomRequirements,
+            )
           else
             ..._listings.map((listing) {
               return Padding(
@@ -176,33 +210,44 @@ class _HousingLoadingState extends StatelessWidget {
 }
 
 class _HousingEmptyState extends StatelessWidget {
-  final ListingCategory category;
+  final PropertyType? propertyType;
+  final ListingPurpose? purpose;
+  final bool includeRoomRequirements;
 
-  const _HousingEmptyState({required this.category});
+  const _HousingEmptyState({
+    this.propertyType,
+    this.purpose,
+    this.includeRoomRequirements = false,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final (icon, title, subtitle) = switch (category) {
-      ListingCategory.room => (
-          Icons.meeting_room_rounded,
-          'No rooms yet',
-          'Fresh room listings will appear here as soon as they are posted.',
-        ),
-      ListingCategory.flatmate => (
-          Icons.groups_rounded,
-          'No flatmate posts yet',
-          'This tab will fill up once people start looking for flatmates.',
-        ),
-      ListingCategory.pg => (
-          Icons.apartment_rounded,
-          'No PGs yet',
-          'PG and hostel listings from owners will show up here.',
-        ),
+    final (icon, title, subtitle) = switch ((propertyType, purpose)) {
+      (PropertyType.room, _) => (
+        Icons.meeting_room_rounded,
+        'No rooms yet',
+        'Fresh room listings will appear here as soon as they are posted.',
+      ),
+      (_, ListingPurpose.needRoommate) when includeRoomRequirements => (
+        Icons.groups_rounded,
+        'No flatmate or room needs yet',
+        'People looking for rooms or flatmates will appear here.',
+      ),
+      (_, ListingPurpose.needRoommate) => (
+        Icons.groups_rounded,
+        'No flatmate posts yet',
+        'This tab will fill up once people start looking for flatmates.',
+      ),
+      (PropertyType.pg, _) => (
+        Icons.apartment_rounded,
+        'No PGs yet',
+        'PG and hostel listings from owners will show up here.',
+      ),
       _ => (
-          Icons.home_work_rounded,
-          'No housing listings yet',
-          'Listings will show up here once they are posted.',
-        ),
+        Icons.home_work_rounded,
+        'No housing listings yet',
+        'Listings will show up here once they are posted.',
+      ),
     };
 
     return Container(

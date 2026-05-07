@@ -1,7 +1,8 @@
-﻿import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/material.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/listing_model.dart';
+import '../services/database_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'housing_feed_screen.dart';
@@ -9,15 +10,15 @@ import 'post_listing_screen.dart';
 import 'requirement_form_screen.dart';
 
 class HousingEntryScreen extends StatelessWidget {
-  static const visitedKey = 'housing_first_listing_created';
-
   const HousingEntryScreen({super.key});
 
   static Future<Route<void>> buildRoute() async {
-    final prefs = await SharedPreferences.getInstance();
-    final hasCompletedFirstListing = prefs.getBool(visitedKey) ?? false;
+    final user = FirebaseAuth.instance.currentUser;
+    final hasPostedListing =
+        user != null && await DatabaseService().hasUserPostedListing(user.uid);
+
     return MaterialPageRoute<void>(
-      builder: (_) => hasCompletedFirstListing
+      builder: (_) => hasPostedListing
           ? const HousingFeedScreen()
           : const _HousingChoiceScreen(),
     );
@@ -32,23 +33,13 @@ class HousingEntryScreen extends StatelessWidget {
 class _HousingChoiceScreen extends StatelessWidget {
   const _HousingChoiceScreen();
 
-  Future<void> _openFlow(
-    BuildContext context, {
-    required Widget screen,
-  }) async {
+  Future<void> _openFlow(BuildContext context, {required Widget screen}) async {
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (_) => screen),
     );
 
     if (result != true || !context.mounted) {
-      return;
-    }
-
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool(HousingEntryScreen.visitedKey, true);
-
-    if (!context.mounted) {
       return;
     }
 
@@ -79,7 +70,10 @@ class _HousingChoiceScreen extends StatelessWidget {
                 Text(
                   'Choose how you want to start',
                   textAlign: TextAlign.center,
-                  style: AppTheme.headline(fontSize: 28, color: AppColors.primary),
+                  style: AppTheme.headline(
+                    fontSize: 28,
+                    color: AppColors.primary,
+                  ),
                 ),
                 const SizedBox(height: 10),
                 Text(
@@ -97,19 +91,21 @@ class _HousingChoiceScreen extends StatelessWidget {
                   icon: Icons.meeting_room_rounded,
                   title: 'Room',
                   subtitle: 'Looking for a room',
-                  onTap: () => _openFlow(
-                    context,
-                    screen: const RequirementFormScreen(),
-                  ),
+                  onTap: () =>
+                      _openFlow(context, screen: const RequirementFormScreen()),
                 ),
                 const SizedBox(height: 14),
                 _HousingChoiceCard(
                   icon: Icons.groups_rounded,
                   title: 'Flatmate',
-                  subtitle: 'Looking for a flatmate while already having a room/flat',
+                  subtitle:
+                      'Looking for a flatmate while already having a room/flat',
                   onTap: () => _openFlow(
                     context,
-                    screen: const PostListingScreen(initialCategory: ListingCategory.flatmate),
+                    screen: const PostListingScreen(
+                      initialPropertyType: PropertyType.flat,
+                      initialPurpose: ListingPurpose.needRoommate,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 14),
@@ -119,7 +115,10 @@ class _HousingChoiceScreen extends StatelessWidget {
                   subtitle: 'For PG owners to list their property',
                   onTap: () => _openFlow(
                     context,
-                    screen: const PostListingScreen(initialCategory: ListingCategory.pg),
+                    screen: const PostListingScreen(
+                      initialPropertyType: PropertyType.pg,
+                      initialPurpose: ListingPurpose.offerProperty,
+                    ),
                   ),
                 ),
               ],
@@ -177,7 +176,13 @@ class _HousingChoiceCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(title, style: AppTheme.body(fontSize: 17, fontWeight: FontWeight.w800)),
+                  Text(
+                    title,
+                    style: AppTheme.body(
+                      fontSize: 17,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                   const SizedBox(height: 4),
                   Text(
                     subtitle,
@@ -190,11 +195,14 @@ class _HousingChoiceCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.arrow_forward_ios_rounded, size: 16, color: AppColors.slate400),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 16,
+              color: AppColors.slate400,
+            ),
           ],
         ),
       ),
     );
   }
 }
-

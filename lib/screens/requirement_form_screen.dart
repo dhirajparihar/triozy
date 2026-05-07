@@ -21,7 +21,9 @@ class RequirementFormScreen extends StatefulWidget {
 
 class _RequirementFormScreenState extends State<RequirementFormScreen> {
   final _formKey = GlobalKey<FormState>();
-  final ValueNotifier<NeedType> _needTypeNotifier = ValueNotifier(NeedType.room);
+  final ValueNotifier<NeedType> _needTypeNotifier = ValueNotifier(
+    NeedType.room,
+  );
   final TextEditingController _locationController = TextEditingController();
   double _minBudget = 4000;
   double _maxBudget = 12000;
@@ -60,10 +62,9 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
 
   Future<void> _loadDraft() async {
     final prefs = await SharedPreferences.getInstance();
-    final draft = prefs.getString('requirement_draft');
-    if (draft == null) return;
+    final hasDraft = prefs.getBool('requirement_draft') ?? false;
+    if (!hasDraft) return;
     try {
-      // For now minimal: restore description & location
       _descController.text = prefs.getString('req_desc') ?? '';
       _locationController.text = prefs.getString('req_location') ?? '';
       setState(() {});
@@ -72,6 +73,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
 
   Future<void> _saveDraft() async {
     final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('requirement_draft', true);
     await prefs.setString('req_desc', _descController.text);
     await prefs.setString('req_location', _locationController.text);
   }
@@ -125,14 +127,15 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
     return '${date.day} ${monthNames[date.month - 1]} ${date.year}';
   }
 
-  ListingCategory _listingCategoryForNeed(NeedType needType) {
+  PropertyType _propertyTypeForNeed(NeedType needType) {
     switch (needType) {
       case NeedType.pg:
       case NeedType.hostel:
-        return ListingCategory.pg;
-      case NeedType.room:
+        return PropertyType.pg;
       case NeedType.flat:
-        return ListingCategory.room;
+        return PropertyType.flat;
+      case NeedType.room:
+        return PropertyType.room;
     }
   }
 
@@ -154,11 +157,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
   }
 
   List<String> _buildHighlights(NeedType needType) {
-    final highlights = <String>[
-      'Needs ${needType.label}',
-      _moveIn,
-      _occupancy,
-    ];
+    final highlights = <String>['Needs ${needType.label}', _moveIn, _occupancy];
 
     if (_gender != 'Any') {
       highlights.add(_gender);
@@ -172,11 +171,42 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
     return highlights.take(4).toList();
   }
 
+  RequirementModel _buildRequirement({
+    required String id,
+    required String userId,
+    required NeedType needType,
+    required String location,
+  }) {
+    return RequirementModel(
+      id: id,
+      userId: userId,
+      needType: needType,
+      location: location,
+      minBudget: _minBudget.toInt(),
+      maxBudget: _maxBudget.toInt(),
+      moveInWhen: _moveIn,
+      occupancy: _occupancy,
+      genderPreference: _gender,
+      description: _descController.text.trim(),
+      amenities: _amenities.toList(),
+      lifestyle: _lifestyle.toList(),
+      contactMethods: _contact.toList(),
+    );
+  }
+
   Future<void> _publish() async {
     if (!_formKey.currentState!.validate()) return;
+    if (_maxBudget <= 0 || _minBudget > _maxBudget) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Choose a valid budget range')),
+      );
+      return;
+    }
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Sign in to publish')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Sign in to publish')));
       return;
     }
 
@@ -184,41 +214,56 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
       final id = const Uuid().v4();
       final db = context.read<DatabaseService>();
       final userData = await db.getUserData(user.uid);
-      final ownerName =
-          (userData?['name'] ?? user.displayName ?? '').toString().trim();
+      final ownerName = (userData?['name'] ?? user.displayName ?? '')
+          .toString()
+          .trim();
+      final ownerPhotoUrl = (userData?['photoUrl'] ?? user.photoURL ?? '')
+          .toString()
+          .trim();
       final needType = _needTypeNotifier.value;
       final location = _locationController.text.trim();
-      final maxBudget = _maxBudget.toInt();
+      final requirement = _buildRequirement(
+        id: id,
+        userId: user.uid,
+        needType: needType,
+        location: location,
+      );
 
       final listing = ListingModel(
         id: id,
         ownerId: user.uid,
         ownerName: ownerName.isEmpty ? 'Triozy user' : ownerName,
-        ownerPhotoUrl: user.photoURL ?? '',
-        title: _buildListingTitle(needType, location, maxBudget),
-        description: _descController.text.trim(),
+        ownerPhotoUrl: ownerPhotoUrl,
+        title: _buildListingTitle(needType, location, requirement.maxBudget),
+        description: requirement.description,
         location: location,
-        price: maxBudget.toDouble(),
+        price: requirement.maxBudget.toDouble(),
         type: ListingType.housing,
-        category: _listingCategoryForNeed(needType),
+        propertyType: _propertyTypeForNeed(needType),
         imageUrls: const [],
         highlights: _buildHighlights(needType),
         genderPreference: _gender,
         furnishing: _amenities.contains('Furnished') ? 'Furnished' : null,
         availableFrom: _moveIn,
-        flow: ListingFlow.requirement,
+        purpose: ListingPurpose.needPlace,
+        requirementDetails: requirement,
       );
 
       await db.createListing(listing);
       final prefs = await SharedPreferences.getInstance();
+      await prefs.remove('requirement_draft');
       await prefs.remove('req_desc');
       await prefs.remove('req_location');
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Requirement published')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Requirement published')));
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not publish: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not publish: $e')));
     }
   }
 
@@ -239,7 +284,13 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           children: [
-            Text('Post your requirement and connect with owners, flatmates, and PG providers.', style: AppTheme.body(fontSize: 14, color: AppColors.onSurfaceVariant)),
+            Text(
+              'Post your requirement and connect with owners, flatmates, and PG providers.',
+              style: AppTheme.body(
+                fontSize: 14,
+                color: AppColors.onSurfaceVariant,
+              ),
+            ),
             const SizedBox(height: 18),
             Text('Need Type', style: AppTheme.headline(fontSize: 16)),
             const SizedBox(height: 8),
@@ -269,73 +320,142 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
                 hintText: 'Search locality, college, office area...',
                 filled: true,
                 fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
               ),
-              validator: (v) => (v == null || v.trim().isEmpty) ? 'Enter a location' : null,
+              validator: (v) =>
+                  (v == null || v.trim().isEmpty) ? 'Enter a location' : null,
             ),
             const SizedBox(height: 18),
             Text('Budget range', style: AppTheme.headline(fontSize: 16)),
             const SizedBox(height: 8),
             Row(
               children: [
-                Text('Selected: ₹${_minBudget.toInt()} - ₹${_maxBudget.toInt()}', style: AppTheme.body(fontSize: 14)),
+                Text(
+                  'Selected: ₹${_minBudget.toInt()} - ₹${_maxBudget.toInt()}',
+                  style: AppTheme.body(fontSize: 14),
+                ),
               ],
             ),
             Wrap(
               spacing: 8,
               children: [
-                ElevatedButton(onPressed: () => setState(() { _minBudget = 0; _maxBudget = 5000; }), child: const Text('Under ₹5k')),
-                ElevatedButton(onPressed: () => setState(() { _minBudget = 5000; _maxBudget = 10000; }), child: const Text('₹5k–₹10k')),
-                ElevatedButton(onPressed: () => setState(() { _minBudget = 10000; _maxBudget = 15000; }), child: const Text('₹10k–₹15k')),
-                ElevatedButton(onPressed: () => setState(() { _minBudget = 15000; _maxBudget = 50000; }), child: const Text('₹15k+')),
+                ElevatedButton(
+                  onPressed: () => setState(() {
+                    _minBudget = 0;
+                    _maxBudget = 5000;
+                  }),
+                  child: const Text('Under ₹5k'),
+                ),
+                ElevatedButton(
+                  onPressed: () => setState(() {
+                    _minBudget = 5000;
+                    _maxBudget = 10000;
+                  }),
+                  child: const Text('₹5k–₹10k'),
+                ),
+                ElevatedButton(
+                  onPressed: () => setState(() {
+                    _minBudget = 10000;
+                    _maxBudget = 15000;
+                  }),
+                  child: const Text('₹10k–₹15k'),
+                ),
+                ElevatedButton(
+                  onPressed: () => setState(() {
+                    _minBudget = 15000;
+                    _maxBudget = 50000;
+                  }),
+                  child: const Text('₹15k+'),
+                ),
               ],
             ),
             const SizedBox(height: 18),
             Text('Move-in date', style: AppTheme.headline(fontSize: 16)),
             const SizedBox(height: 8),
-            Wrap(spacing: 8, children: [
-              ChoiceChip(
-                label: const Text('Immediately'),
-                
-                selected: _moveIn == 'Immediately' && _customMoveInDate == null,
-                onSelected: (_) => _selectPresetMoveIn('Immediately'),
-              ),
-              ChoiceChip(
-                label: const Text('Within 7 days'),
-              
-                selected: _moveIn == 'Within 7 days' && _customMoveInDate == null,
-                onSelected: (_) => _selectPresetMoveIn('Within 7 days'),
-              ),
-              ChoiceChip(
-                label: const Text('This month'),
-               
-                selected: _moveIn == 'This month' && _customMoveInDate == null,
-                onSelected: (_) => _selectPresetMoveIn('This month'),
-              ),
-              ChoiceChip(
-                 label: Text(
-                  _customMoveInDate == null ? 'Select date' : _formatDateLabel(_customMoveInDate!),
+            Wrap(
+              spacing: 8,
+              children: [
+                ChoiceChip(
+                  label: const Text('Immediately'),
+
+                  selected:
+                      _moveIn == 'Immediately' && _customMoveInDate == null,
+                  onSelected: (_) => _selectPresetMoveIn('Immediately'),
                 ),
-                selected: _customMoveInDate != null,
-                onSelected: (_) => _selectCustomMoveInDate(),
-              ),
-            ]),
+                ChoiceChip(
+                  label: const Text('Within 7 days'),
+
+                  selected:
+                      _moveIn == 'Within 7 days' && _customMoveInDate == null,
+                  onSelected: (_) => _selectPresetMoveIn('Within 7 days'),
+                ),
+                ChoiceChip(
+                  label: const Text('This month'),
+
+                  selected:
+                      _moveIn == 'This month' && _customMoveInDate == null,
+                  onSelected: (_) => _selectPresetMoveIn('This month'),
+                ),
+                ChoiceChip(
+                  label: Text(
+                    _customMoveInDate == null
+                        ? 'Select date'
+                        : _formatDateLabel(_customMoveInDate!),
+                  ),
+                  selected: _customMoveInDate != null,
+                  onSelected: (_) => _selectCustomMoveInDate(),
+                ),
+              ],
+            ),
             const SizedBox(height: 18),
             Text('Occupancy type', style: AppTheme.headline(fontSize: 16)),
             const SizedBox(height: 8),
-            Wrap(spacing: 8, children: [
-              ChoiceChip(label: const Text('Single'), selected: _occupancy=='Single', onSelected: (_) => setState(() => _occupancy='Single')),
-              ChoiceChip(label: const Text('Shared'), selected: _occupancy=='Shared', onSelected: (_) => setState(() => _occupancy='Shared')),
-              ChoiceChip(label: const Text('Any'), selected: _occupancy=='Any', onSelected: (_) => setState(() => _occupancy='Any')),
-            ]),
+            Wrap(
+              spacing: 8,
+              children: [
+                ChoiceChip(
+                  label: const Text('Single'),
+                  selected: _occupancy == 'Single',
+                  onSelected: (_) => setState(() => _occupancy = 'Single'),
+                ),
+                ChoiceChip(
+                  label: const Text('Shared'),
+                  selected: _occupancy == 'Shared',
+                  onSelected: (_) => setState(() => _occupancy = 'Shared'),
+                ),
+                ChoiceChip(
+                  label: const Text('Any'),
+                  selected: _occupancy == 'Any',
+                  onSelected: (_) => setState(() => _occupancy = 'Any'),
+                ),
+              ],
+            ),
             const SizedBox(height: 18),
             Text('Gender preference', style: AppTheme.headline(fontSize: 16)),
             const SizedBox(height: 8),
-            Wrap(spacing: 8, children: [
-              ChoiceChip(label: const Text('Male'), selected: _gender=='Male', onSelected: (_) => setState(() => _gender='Male')),
-              ChoiceChip(label: const Text('Female'), selected: _gender=='Female', onSelected: (_) => setState(() => _gender='Female')),
-              ChoiceChip(label: const Text('Any'), selected: _gender=='Any', onSelected: (_) => setState(() => _gender='Any')),
-            ]),
+            Wrap(
+              spacing: 8,
+              children: [
+                ChoiceChip(
+                  label: const Text('Male'),
+                  selected: _gender == 'Male',
+                  onSelected: (_) => setState(() => _gender = 'Male'),
+                ),
+                ChoiceChip(
+                  label: const Text('Female'),
+                  selected: _gender == 'Female',
+                  onSelected: (_) => setState(() => _gender = 'Female'),
+                ),
+                ChoiceChip(
+                  label: const Text('Any'),
+                  selected: _gender == 'Any',
+                  onSelected: (_) => setState(() => _gender = 'Any'),
+                ),
+              ],
+            ),
             const SizedBox(height: 18),
             Text('Short description', style: AppTheme.headline(fontSize: 16)),
             const SizedBox(height: 8),
@@ -343,12 +463,18 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
               controller: _descController,
               maxLines: 5,
               decoration: InputDecoration(
-                hintText: 'Need single room near Vijay Nagar. Working professional. Budget 8k.',
+                hintText:
+                    'Need single room near Vijay Nagar. Working professional. Budget 8k.',
                 filled: true,
                 fillColor: Colors.white,
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide.none,
+                ),
               ),
-              validator: (v) => (v==null || v.trim().isEmpty) ? 'Add a short description' : null,
+              validator: (v) => (v == null || v.trim().isEmpty)
+                  ? 'Add a short description'
+                  : null,
             ),
             const SizedBox(height: 8),
             ValueListenableBuilder<TextEditingValue>(
@@ -356,64 +482,164 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
               builder: (_, value, _) {
                 return Row(
                   children: [
-                    Text('${value.text.length}/280', style: AppTheme.label(fontSize: 12)),
+                    Text(
+                      '${value.text.length}/280',
+                      style: AppTheme.label(fontSize: 12),
+                    ),
                   ],
                 );
               },
             ),
             const SizedBox(height: 18),
-            Text('Optional preferences', style: AppTheme.headline(fontSize: 16)),
+            Text(
+              'Optional preferences',
+              style: AppTheme.headline(fontSize: 16),
+            ),
             const SizedBox(height: 8),
-            Wrap(spacing: 8, children: [
-              FilterChip(label: const Text('WiFi'), selected: _amenities.contains('WiFi'), onSelected: (s) => setState(() => s ? _amenities.add('WiFi') : _amenities.remove('WiFi'))),
-              FilterChip(label: const Text('AC'), selected: _amenities.contains('AC'), onSelected: (s) => setState(() => s ? _amenities.add('AC') : _amenities.remove('AC'))),
-              FilterChip(label: const Text('Attached Bathroom'), selected: _amenities.contains('Attached Bathroom'), onSelected: (s) => setState(() => s ? _amenities.add('Attached Bathroom') : _amenities.remove('Attached Bathroom'))),
-              FilterChip(label: const Text('Parking'), selected: _amenities.contains('Parking'), onSelected: (s) => setState(() => s ? _amenities.add('Parking') : _amenities.remove('Parking'))),
-              FilterChip(label: const Text('Kitchen'), selected: _amenities.contains('Kitchen'), onSelected: (s) => setState(() => s ? _amenities.add('Kitchen') : _amenities.remove('Kitchen'))),
-              FilterChip(label: const Text('Furnished'), selected: _amenities.contains('Furnished'), onSelected: (s) => setState(() => s ? _amenities.add('Furnished') : _amenities.remove('Furnished'))),
-            ]),
+            Wrap(
+              spacing: 8,
+              children: [
+                FilterChip(
+                  label: const Text('WiFi'),
+                  selected: _amenities.contains('WiFi'),
+                  onSelected: (s) => setState(
+                    () =>
+                        s ? _amenities.add('WiFi') : _amenities.remove('WiFi'),
+                  ),
+                ),
+                FilterChip(
+                  label: const Text('AC'),
+                  selected: _amenities.contains('AC'),
+                  onSelected: (s) => setState(
+                    () => s ? _amenities.add('AC') : _amenities.remove('AC'),
+                  ),
+                ),
+                FilterChip(
+                  label: const Text('Attached Bathroom'),
+                  selected: _amenities.contains('Attached Bathroom'),
+                  onSelected: (s) => setState(
+                    () => s
+                        ? _amenities.add('Attached Bathroom')
+                        : _amenities.remove('Attached Bathroom'),
+                  ),
+                ),
+                FilterChip(
+                  label: const Text('Parking'),
+                  selected: _amenities.contains('Parking'),
+                  onSelected: (s) => setState(
+                    () => s
+                        ? _amenities.add('Parking')
+                        : _amenities.remove('Parking'),
+                  ),
+                ),
+                FilterChip(
+                  label: const Text('Kitchen'),
+                  selected: _amenities.contains('Kitchen'),
+                  onSelected: (s) => setState(
+                    () => s
+                        ? _amenities.add('Kitchen')
+                        : _amenities.remove('Kitchen'),
+                  ),
+                ),
+                FilterChip(
+                  label: const Text('Furnished'),
+                  selected: _amenities.contains('Furnished'),
+                  onSelected: (s) => setState(
+                    () => s
+                        ? _amenities.add('Furnished')
+                        : _amenities.remove('Furnished'),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 8),
-            Wrap(spacing: 8, children: [
-              FilterChip(label: const Text('Non-smoker'), selected: _lifestyle.contains('Non-smoker'), onSelected: (s) => setState(() => s ? _lifestyle.add('Non-smoker') : _lifestyle.remove('Non-smoker'))),
-              FilterChip(label: const Text('Veg'), selected: _lifestyle.contains('Veg'), onSelected: (s) => setState(() => s ? _lifestyle.add('Veg') : _lifestyle.remove('Veg'))),
-              FilterChip(label: const Text('Student friendly'), selected: _lifestyle.contains('Student friendly'), onSelected: (s) => setState(() => s ? _lifestyle.add('Student friendly') : _lifestyle.remove('Student friendly'))),
-              FilterChip(label: const Text('Working professional preferred'), selected: _lifestyle.contains('Working professional preferred'), onSelected: (s) => setState(() => s ? _lifestyle.add('Working professional preferred') : _lifestyle.remove('Working professional preferred'))),
-            ]),
+            Wrap(
+              spacing: 8,
+              children: [
+                FilterChip(
+                  label: const Text('Non-smoker'),
+                  selected: _lifestyle.contains('Non-smoker'),
+                  onSelected: (s) => setState(
+                    () => s
+                        ? _lifestyle.add('Non-smoker')
+                        : _lifestyle.remove('Non-smoker'),
+                  ),
+                ),
+                FilterChip(
+                  label: const Text('Veg'),
+                  selected: _lifestyle.contains('Veg'),
+                  onSelected: (s) => setState(
+                    () => s ? _lifestyle.add('Veg') : _lifestyle.remove('Veg'),
+                  ),
+                ),
+                FilterChip(
+                  label: const Text('Student friendly'),
+                  selected: _lifestyle.contains('Student friendly'),
+                  onSelected: (s) => setState(
+                    () => s
+                        ? _lifestyle.add('Student friendly')
+                        : _lifestyle.remove('Student friendly'),
+                  ),
+                ),
+                FilterChip(
+                  label: const Text('Working professional preferred'),
+                  selected: _lifestyle.contains(
+                    'Working professional preferred',
+                  ),
+                  onSelected: (s) => setState(
+                    () => s
+                        ? _lifestyle.add('Working professional preferred')
+                        : _lifestyle.remove('Working professional preferred'),
+                  ),
+                ),
+              ],
+            ),
             const SizedBox(height: 18),
             Text('Contact preference', style: AppTheme.headline(fontSize: 16)),
             const SizedBox(height: 8),
-            Wrap(spacing: 8, children: [
-              FilterChip(
-                label: const Text('In-app Chat'),
-                showCheckmark: false,
-                selected: _contact.contains('In-app Chat'),
-                onSelected: (selected) => setState(
-                  () => selected ? _contact.add('In-app Chat') : _contact.remove('In-app Chat'),
+            Wrap(
+              spacing: 8,
+              children: [
+                FilterChip(
+                  label: const Text('In-app Chat'),
+                  showCheckmark: false,
+                  selected: _contact.contains('In-app Chat'),
+                  onSelected: (selected) => setState(
+                    () => selected
+                        ? _contact.add('In-app Chat')
+                        : _contact.remove('In-app Chat'),
+                  ),
                 ),
-              ),
-              FilterChip(
-                label: const Text('WhatsApp'),
-                showCheckmark: false,
-                selected: _contact.contains('WhatsApp'),
-                onSelected: (selected) => setState(
-                  () => selected ? _contact.add('WhatsApp') : _contact.remove('WhatsApp'),
+                FilterChip(
+                  label: const Text('WhatsApp'),
+                  showCheckmark: false,
+                  selected: _contact.contains('WhatsApp'),
+                  onSelected: (selected) => setState(
+                    () => selected
+                        ? _contact.add('WhatsApp')
+                        : _contact.remove('WhatsApp'),
+                  ),
                 ),
-              ),
-              FilterChip(
-                label: const Text('Call'),
-                showCheckmark: false,
-                selected: _contact.contains('Call'),
-                onSelected: (selected) => setState(
-                  () => selected ? _contact.add('Call') : _contact.remove('Call'),
+                FilterChip(
+                  label: const Text('Call'),
+                  showCheckmark: false,
+                  selected: _contact.contains('Call'),
+                  onSelected: (selected) => setState(
+                    () => selected
+                        ? _contact.add('Call')
+                        : _contact.remove('Call'),
+                  ),
                 ),
-              ),
-            ]),
+              ],
+            ),
           ],
         ),
       ),
       bottomNavigationBar: AnimatedPadding(
         duration: const Duration(milliseconds: 200),
-        padding: EdgeInsets.only(bottom: MediaQuery.of(context).viewInsets.bottom),
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+        ),
         child: SafeArea(
           child: Container(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
@@ -423,8 +649,20 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
               height: 56,
               child: ElevatedButton(
                 onPressed: _publish,
-                style: ElevatedButton.styleFrom(backgroundColor: AppColors.primary, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-                child: Text('Publish Requirement', style: AppTheme.body(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: Text(
+                  'Publish Requirement',
+                  style: AppTheme.body(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
           ),
@@ -432,4 +670,4 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
       ),
     );
   }
- }
+}
