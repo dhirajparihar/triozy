@@ -11,12 +11,12 @@ import 'listing_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onExploreTapped;
-  final ValueChanged<ListingCategory>? onCategorySelected;
+  final ValueChanged<PropertyType>? onPropertyTypeSelected;
 
   const HomeScreen({
     super.key,
     this.onExploreTapped,
-    this.onCategorySelected,
+    this.onPropertyTypeSelected,
   });
 
   @override
@@ -104,7 +104,7 @@ class HomeScreenState extends State<HomeScreen> {
             onSearchTap: widget.onExploreTapped,
           ),
           const SizedBox(height: 24),
-          _QuickCategoryRow(onCategorySelected: widget.onCategorySelected),
+          _QuickCategoryRow(onPropertyTypeSelected: widget.onPropertyTypeSelected),
           const SizedBox(height: 28),
           _SectionHeader(
             title: 'Featured for your move',
@@ -219,17 +219,17 @@ class _HeroSection extends StatelessWidget {
 }
 
 class _QuickCategoryRow extends StatelessWidget {
-  final ValueChanged<ListingCategory>? onCategorySelected;
+  final ValueChanged<PropertyType>? onPropertyTypeSelected;
 
-  const _QuickCategoryRow({this.onCategorySelected});
+  const _QuickCategoryRow({this.onPropertyTypeSelected});
 
   @override
   Widget build(BuildContext context) {
     final categories = [
-      (ListingCategory.room, Icons.bed_rounded),
-      (ListingCategory.flatmate, Icons.groups_rounded),
-      (ListingCategory.pg, Icons.apartment_rounded),
-      (ListingCategory.item, Icons.chair_alt_rounded),
+      (PropertyType.room, Icons.bed_rounded),
+      (PropertyType.flat, Icons.groups_rounded),
+      (PropertyType.pg, Icons.apartment_rounded),
+      (PropertyType.item, Icons.chair_alt_rounded),
     ];
 
     return SizedBox(
@@ -243,7 +243,7 @@ class _QuickCategoryRow extends StatelessWidget {
             child: Padding(
               padding: EdgeInsets.only(right: isLast ? 0 : 10),
               child: GestureDetector(
-                onTap: () => onCategorySelected?.call(entry.$1),
+                onTap: () => onPropertyTypeSelected?.call(entry.$1),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [

@@ -88,13 +88,30 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   Widget build(BuildContext context) {
     final listing = _listing;
 
+    if (_loading && listing == null) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
+    if (listing == null) {
+      return const Scaffold(
+        backgroundColor: AppColors.background,
+        body: Center(child: Text('Listing not found')),
+      );
+    }
+
+    if (listing.isRequirementPost && listing.requirementDetails != null) {
+      return _RequirementDetailScaffold(
+        listing: listing,
+        onStartChat: _startChat,
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
-      body: _loading && listing == null
-          ? const Center(child: CircularProgressIndicator())
-          : listing == null
-              ? const Center(child: Text('Listing not found'))
-              : Stack(
+      body: Stack(
                   children: [
                     ListView(
                       padding: EdgeInsets.zero,
@@ -169,7 +186,8 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                                 spacing: 8,
                                 runSpacing: 8,
                                 children: [
-                                  _Pill(label: listing.categoryLabel),
+                                  _Pill(label: listing.propertyTypeLabel),
+                                  _Pill(label: listing.purposeLabel),
                                   _Pill(label: listing.typeLabel),
                                   if ((listing.genderPreference ?? '').isNotEmpty)
                                     _Pill(label: listing.genderPreference!),
@@ -270,6 +288,452 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   }
 }
 
+class _RequirementDetailScaffold extends StatelessWidget {
+  final ListingModel listing;
+  final VoidCallback onStartChat;
+
+  const _RequirementDetailScaffold({
+    required this.listing,
+    required this.onStartChat,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final details = listing.requirementDetails!;
+    final gender = (listing.genderPreference ?? details.genderPreference).trim();
+    final occupancy = details.occupancy.trim();
+    final lookingFor = details.genderPreference.trim();
+    final rent = details.maxBudget > 0 ? details.maxBudget : listing.price.toInt();
+    final highlights = <String>[
+      ...listing.highlights,
+      ...details.lifestyle,
+      ...details.amenities,
+      if (details.moveInWhen.isNotEmpty) details.moveInWhen,
+    ].where((item) => item.trim().isNotEmpty).toSet().take(6).toList();
+    final preferences = <(IconData, String)>[
+      (Icons.nightlight_round, 'Quiet'),
+      (Icons.local_florist_rounded, 'Lifestyle'),
+      (Icons.menu_book_rounded, 'Study'),
+      (Icons.fitness_center_rounded, 'Fitness'),
+    ];
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.onSurface,
+        elevation: 0,
+        centerTitle: true,
+        title: Text('Detail', style: AppTheme.headline(fontSize: 24)),
+        actions: [
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.more_vert_rounded),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 42, 20, 28),
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  _ownerName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.headline(fontSize: 22),
+                ),
+              ),
+              const SizedBox(width: 12),
+              RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: 'Rs ${rent.toString()}',
+                      style: AppTheme.headline(fontSize: 22),
+                    ),
+                    TextSpan(
+                      text: ' pm',
+                      style: AppTheme.body(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.slate500,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              const Icon(Icons.location_on, color: AppColors.slate500, size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  listing.location,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.body(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.slate500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 70),
+          Text('Basic Info', style: AppTheme.headline(fontSize: 20)),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _BasicInfoCard(
+                  icon: Icons.transgender_rounded,
+                  label: 'Gender',
+                  value: gender.isEmpty ? 'Any' : gender,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _BasicInfoCard(
+                  icon: Icons.bed_rounded,
+                  label: 'Occupancy',
+                  value: occupancy.isEmpty ? 'Any' : occupancy,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _BasicInfoCard(
+                  icon: Icons.manage_search_rounded,
+                  label: 'Looking For',
+                  value: lookingFor.isEmpty ? listing.propertyTypeLabel : lookingFor,
+                ),
+              ),
+            ],
+          ),
+          if (highlights.isNotEmpty) ...[
+            const SizedBox(height: 70),
+            Text('Highlights', style: AppTheme.headline(fontSize: 20)),
+            const SizedBox(height: 22),
+            Wrap(
+              spacing: 12,
+              runSpacing: 16,
+              children: highlights.map((highlight) {
+                return _RequirementHighlightChip(label: highlight);
+              }).toList(),
+            ),
+          ],
+          const SizedBox(height: 70),
+          Text('Preferences', style: AppTheme.headline(fontSize: 20)),
+          const SizedBox(height: 20),
+          SizedBox(
+            height: 86,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: preferences.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 22),
+              itemBuilder: (context, index) {
+                final item = preferences[index];
+                return _PreferenceCircle(icon: item.$1, label: item.$2);
+              },
+            ),
+          ),
+          if (listing.description.trim().isNotEmpty) ...[
+            const SizedBox(height: 44),
+            Text('Description', style: AppTheme.headline(fontSize: 20)),
+            const SizedBox(height: 12),
+            Text(
+              listing.description.trim(),
+              style: AppTheme.body(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: AppColors.onSurfaceVariant,
+                height: 1.55,
+              ),
+            ),
+          ],
+        ],
+      ),
+      bottomNavigationBar: _RequirementContactBar(
+        listing: listing,
+        gender: gender.isEmpty ? 'Any' : gender,
+        onStartChat: onStartChat,
+      ),
+    );
+  }
+
+  String get _ownerName {
+    final name = listing.ownerName.trim();
+    return name.isEmpty ? 'Triozy user' : name;
+  }
+}
+
+class _BasicInfoCard extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _BasicInfoCard({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isTight = constraints.maxWidth < 105;
+        final labelSize = isTight ? 13.0 : 15.0;
+        final valueSize = isTight ? 15.0 : 17.0;
+
+        return Container(
+          height: isTight ? 146 : 138,
+          padding: EdgeInsets.all(isTight ? 12 : 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: AppColors.outlineVariant.withValues(alpha: 0.32),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.05),
+                blurRadius: 12,
+                offset: const Offset(0, 6),
+              ),
+            ],
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Icon(
+                icon,
+                size: isTight ? 28 : 34,
+                color: AppColors.outlineVariant,
+              ),
+              const Spacer(),
+              Text(
+                label,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style: AppTheme.body(
+                  fontSize: labelSize,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.slate500,
+                  height: 1.15,
+                ),
+              ),
+              const SizedBox(height: 8),
+              FittedBox(
+                alignment: Alignment.centerLeft,
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  value,
+                  maxLines: 1,
+                  style: AppTheme.body(
+                    fontSize: valueSize,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _RequirementHighlightChip extends StatelessWidget {
+  final String label;
+
+  const _RequirementHighlightChip({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.check_rounded, size: 28, color: AppColors.slate500),
+          const SizedBox(width: 10),
+          Text(
+            label,
+            style: AppTheme.body(fontSize: 20, fontWeight: FontWeight.w500),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PreferenceCircle extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _PreferenceCircle({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Tooltip(
+      message: label,
+      child: Container(
+        width: 86,
+        height: 86,
+        decoration: BoxDecoration(
+          color: const Color(0xFFFFF6ED),
+          shape: BoxShape.circle,
+          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.18)),
+        ),
+        child: Icon(icon, size: 38, color: AppColors.primary),
+      ),
+    );
+  }
+}
+
+class _RequirementContactBar extends StatelessWidget {
+  final ListingModel listing;
+  final String gender;
+  final VoidCallback onStartChat;
+
+  const _RequirementContactBar({
+    required this.listing,
+    required this.gender,
+    required this.onStartChat,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final name = listing.ownerName.trim().isEmpty
+        ? 'Triozy user'
+        : listing.ownerName.trim();
+
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(28, 12, 28, 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+          ),
+        ),
+        child: Row(
+          children: [
+            _RequirementAvatar(
+              photoUrl: listing.ownerPhotoUrl,
+              name: name,
+              size: 58,
+            ),
+            const SizedBox(width: 18),
+            Expanded(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.headline(fontSize: 20),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    gender,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.body(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.slate500,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 16),
+            GestureDetector(
+              onTap: onStartChat,
+              child: Container(
+                width: 58,
+                height: 58,
+                decoration: const BoxDecoration(
+                  color: AppColors.surfaceContainerLow,
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.chat_bubble_rounded,
+                  color: AppColors.secondary,
+                  size: 28,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _RequirementAvatar extends StatelessWidget {
+  final String photoUrl;
+  final String name;
+  final double size;
+
+  const _RequirementAvatar({
+    required this.photoUrl,
+    required this.name,
+    required this.size,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = name.trim().isEmpty ? 'T' : name.trim()[0].toUpperCase();
+
+    return ClipOval(
+      child: SizedBox(
+        width: size,
+        height: size,
+        child: photoUrl.trim().isEmpty
+            ? Container(
+                color: AppColors.blue50,
+                alignment: Alignment.center,
+                child: Text(
+                  initial,
+                  style: AppTheme.headline(fontSize: size * 0.46, color: AppColors.primary),
+                ),
+              )
+            : CachedNetworkImage(
+                imageUrl: photoUrl,
+                fit: BoxFit.cover,
+                errorWidget: (_, _, _) => Container(
+                  color: AppColors.blue50,
+                  alignment: Alignment.center,
+                  child: Text(
+                    initial,
+                    style: AppTheme.headline(
+                      fontSize: size * 0.46,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ),
+              ),
+      ),
+    );
+  }
+}
+
 class _InfoPanel extends StatelessWidget {
   final ListingModel listing;
 
@@ -329,6 +793,7 @@ class _Pill extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.24)),
       ),
       child: Text(
         label,

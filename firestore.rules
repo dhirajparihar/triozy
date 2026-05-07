@@ -77,6 +77,53 @@ service cloud.firestore {
       return !(key in data) || data[key] == null || data[key] is number;
     }
 
+    function isValidOptionalStringList(data, key) {
+      return !(key in data) || data[key] is list;
+    }
+
+    function isValidListingCombination(data) {
+      return (data.type == 'marketplace' &&
+              data.propertyType == 'item' &&
+              data.purpose == 'marketplaceSell') ||
+          (data.type == 'housing' &&
+              data.propertyType in ['room', 'flat', 'pg'] &&
+              data.purpose in ['needPlace', 'needRoommate', 'offerProperty'] &&
+              (data.purpose != 'needRoommate' ||
+                  data.propertyType in ['room', 'flat']));
+    }
+
+    function isValidRequirementDetails(data) {
+      return !('requirementDetails' in data) ||
+          (data.requirementDetails is map &&
+              data.requirementDetails.keys().hasOnly([
+                'userId',
+                'needType',
+                'location',
+                'minBudget',
+                'maxBudget',
+                'moveInWhen',
+                'occupancy',
+                'genderPreference',
+                'description',
+                'amenities',
+                'lifestyle',
+                'contactMethods',
+              ]) &&
+              data.requirementDetails.userId is string &&
+              data.requirementDetails.needType in ['room', 'flat', 'pg', 'hostel'] &&
+              data.requirementDetails.location is string &&
+              data.requirementDetails.minBudget is number &&
+              data.requirementDetails.maxBudget is number &&
+              data.requirementDetails.minBudget <= data.requirementDetails.maxBudget &&
+              data.requirementDetails.moveInWhen is string &&
+              data.requirementDetails.occupancy is string &&
+              data.requirementDetails.genderPreference is string &&
+              data.requirementDetails.description is string &&
+              data.requirementDetails.amenities is list &&
+              data.requirementDetails.lifestyle is list &&
+              data.requirementDetails.contactMethods is list);
+    }
+
     function isValidListingPayload(data) {
       return data.keys().hasOnly([
         'ownerId',
@@ -89,7 +136,9 @@ service cloud.firestore {
         'longitude',
         'price',
         'type',
-        'category',
+        'propertyType',
+        'purpose',
+        'requirementDetails',
         'imageUrls',
         'highlights',
         'genderPreference',
@@ -112,7 +161,10 @@ service cloud.firestore {
           isValidOptionalNumber(data, 'longitude') &&
           data.price is number &&
           data.type in ['housing', 'marketplace'] &&
-          data.category in ['room', 'pg', 'flat', 'flatmate', 'item'] &&
+          data.propertyType in ['room', 'pg', 'flat', 'item'] &&
+          data.purpose in ['needPlace', 'needRoommate', 'offerProperty', 'marketplaceSell'] &&
+          isValidListingCombination(data) &&
+          isValidRequirementDetails(data) &&
           data.imageUrls is list &&
           data.highlights is list &&
           isValidOptionalString(data, 'genderPreference') &&

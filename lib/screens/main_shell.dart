@@ -46,8 +46,13 @@ class _MainShellState extends State<MainShell> {
       onExploreTapped: () {
         Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchResultsScreen(initialQuery: '')));
       },
-      onCategorySelected: (category) {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => SearchResultsScreen(initialCategory: category)));
+      onPropertyTypeSelected: (propertyType) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => SearchResultsScreen(initialPropertyType: propertyType),
+          ),
+        );
       },
     ),
     const ServicesScreen(),

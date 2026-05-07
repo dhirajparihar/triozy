@@ -10,10 +10,14 @@ import '../widgets/listing_card.dart';
 import 'listing_detail_screen.dart';
 
 class SearchResultsScreen extends StatefulWidget {
-  final ListingCategory? initialCategory;
+  final PropertyType? initialPropertyType;
   final String? initialQuery;
 
-  const SearchResultsScreen({super.key, this.initialCategory, this.initialQuery});
+  const SearchResultsScreen({
+    super.key,
+    this.initialPropertyType,
+    this.initialQuery,
+  });
 
   @override
   State<SearchResultsScreen> createState() => SearchResultsScreenState();
@@ -26,7 +30,7 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
   List<ListingModel> _results = [];
   Set<String> _savedIds = <String>{};
   ListingType _selectedType = ListingType.housing;
-  ListingCategory? _selectedCategory;
+  PropertyType? _selectedPropertyType;
   double? _maxBudget;
   String _sortBy = 'Recently Added';
   bool _loading = true;
@@ -34,9 +38,9 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
   @override
   void initState() {
     super.initState();
-    if (widget.initialCategory != null) {
-      _selectedCategory = widget.initialCategory;
-      _selectedType = widget.initialCategory!.listingType;
+    if (widget.initialPropertyType != null) {
+      _selectedPropertyType = widget.initialPropertyType;
+      _selectedType = widget.initialPropertyType!.listingType;
     }
     if (widget.initialQuery != null) {
       _searchController.text = widget.initialQuery!;
@@ -62,10 +66,10 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
     _loadListings();
   }
 
-  void applyQuickCategory(ListingCategory category) {
+  void applyQuickPropertyType(PropertyType propertyType) {
     setState(() {
-      _selectedCategory = category;
-      _selectedType = category.listingType;
+      _selectedPropertyType = propertyType;
+      _selectedType = propertyType.listingType;
     });
     _loadListings();
   }
@@ -77,7 +81,7 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
     final listings = await db.searchListings(
       query: _searchController.text,
       type: _selectedType,
-      category: _selectedCategory,
+      propertyType: _selectedPropertyType,
       maxPrice: _maxBudget,
     );
     final userId = FirebaseAuth.instance.currentUser?.uid;
@@ -156,15 +160,6 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Explore', style: AppTheme.headline(fontSize: 28)),
-              const SizedBox(height: 6),
-              Text(
-                'Discover housing and essentials around your next city move.',
-                style: AppTheme.body(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.onSurfaceVariant,
-                ),
-              ),
               const SizedBox(height: 16),
               _buildSearchBar(),
               const SizedBox(height: 14),
@@ -283,9 +278,9 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
               onTap: () {
                 setState(() {
                   _selectedType = type;
-                  if (_selectedCategory != null &&
-                      _selectedCategory!.listingType != type) {
-                    _selectedCategory = null;
+                  if (_selectedPropertyType != null &&
+                      _selectedPropertyType!.listingType != type) {
+                    _selectedPropertyType = null;
                   }
                 });
                 _loadListings();
@@ -316,24 +311,24 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
   }
 
   Widget _buildFilterRow() {
-    final categories = ListingCategory.values
-        .where((category) => category.listingType == _selectedType)
+    final propertyTypes = PropertyType.values
+        .where((propertyType) => propertyType.listingType == _selectedType)
         .toList();
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          ...categories.map((category) {
-            final selected = _selectedCategory == category;
+          ...propertyTypes.map((propertyType) {
+            final selected = _selectedPropertyType == propertyType;
             return Padding(
               padding: const EdgeInsets.only(right: 8),
               child: FilterChip(
                 selected: selected,
-                label: Text(category.label),
+                label: Text(propertyType.label),
                 onSelected: (_) {
                   setState(() {
-                    _selectedCategory = selected ? null : category;
+                    _selectedPropertyType = selected ? null : propertyType;
                   });
                   _loadListings();
                 },
@@ -362,11 +357,11 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
               side: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.25)),
             ),
           ),
-          if (_selectedCategory != null || _maxBudget != null)
+          if (_selectedPropertyType != null || _maxBudget != null)
             TextButton(
               onPressed: () {
                 setState(() {
-                  _selectedCategory = null;
+                  _selectedPropertyType = null;
                   _maxBudget = null;
                 });
                 _loadListings();

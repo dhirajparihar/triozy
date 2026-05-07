@@ -32,7 +32,7 @@ class ServicesScreen extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (_) => const SearchResultsScreen(
-              initialCategory: ListingCategory.item,
+              initialPropertyType: PropertyType.item,
             ),
           ),
         ),

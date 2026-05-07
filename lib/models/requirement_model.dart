@@ -28,6 +28,20 @@ extension NeedTypeX on NeedType {
         return 'Room';
     }
   }
+
+  static NeedType fromString(String raw) {
+    switch (raw.trim().toLowerCase()) {
+      case 'flat':
+        return NeedType.flat;
+      case 'pg':
+        return NeedType.pg;
+      case 'hostel':
+        return NeedType.hostel;
+      case 'room':
+      default:
+        return NeedType.room;
+    }
+  }
 }
 
 class RequirementModel {
@@ -63,7 +77,7 @@ class RequirementModel {
     this.createdAt,
   });
 
-  Map<String, dynamic> toMap() => {
+  Map<String, dynamic> toMap({bool includeCreatedAt = true}) => {
         'userId': userId,
         'needType': needType.value,
         'location': location,
@@ -76,14 +90,14 @@ class RequirementModel {
         'amenities': amenities,
         'lifestyle': lifestyle,
         'contactMethods': contactMethods,
-        'createdAt': FieldValue.serverTimestamp(),
+        if (includeCreatedAt) 'createdAt': FieldValue.serverTimestamp(),
       };
 
   factory RequirementModel.fromMap(Map<String, dynamic> map, String id) {
     return RequirementModel(
       id: id,
       userId: (map['userId'] ?? '').toString(),
-      needType: NeedType.values.firstWhere((e) => e.value == (map['needType'] ?? 'room')),
+      needType: NeedTypeX.fromString((map['needType'] ?? 'room').toString()),
       location: (map['location'] ?? '').toString(),
       minBudget: (map['minBudget'] as num?)?.toInt() ?? 0,
       maxBudget: (map['maxBudget'] as num?)?.toInt() ?? 0,

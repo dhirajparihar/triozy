@@ -353,13 +353,13 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     String typeLabel = 'Listing';
 
     if (listing != null) {
-      typeLabel = listing.category.label;
+      typeLabel = listing.propertyType.label;
       if (listing.ownerId == otherUserId) {
         name = listing.ownerName.isEmpty ? name : listing.ownerName;
         photoUrl = listing.ownerPhotoUrl;
       }
       if (listing.title.trim().isNotEmpty) {
-        typeLabel = '${listing.category.label} - ${listing.title.trim()}';
+        typeLabel = '${listing.propertyType.label} - ${listing.title.trim()}';
       }
     }
 
