@@ -56,17 +56,22 @@ class ChatProvider extends ChangeNotifier {
 
   void initialize(String userId) {
     _currentUserId = normalizeChatUid(userId);
+    _isLoading = true;
     _errorMessage = null;
     _conversationsSubscription?.cancel();
+    notifyListeners();
 
     _conversationsSubscription = _chatService
         .streamConversations(_currentUserId!)
         .listen(
           (conversations) {
             _conversations = conversations;
+            _isLoading = false;
+            _errorMessage = null;
             notifyListeners();
           },
           onError: (error) {
+            _isLoading = false;
             _errorMessage = 'Failed to load conversations: $error';
             notifyListeners();
           },
