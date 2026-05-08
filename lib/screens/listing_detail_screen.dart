@@ -2,6 +2,8 @@ import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/chat_model.dart';
 import '../models/listing_model.dart';
@@ -119,6 +121,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
 
     if (listing.needsRoommate && listing.propertyType == PropertyType.room) {
       return _RoomPostDetailScaffold(listing: listing, onStartChat: _startChat);
+    }
+
+    if (listing.propertyType == PropertyType.pg && listing.isOwnerPost) {
+      return _PgDetailScaffold(listing: listing, onStartChat: _startChat);
     }
 
     return Scaffold(
@@ -486,6 +492,1154 @@ class _RoomPostDetailScaffold extends StatelessWidget {
         )
         .toList();
   }
+}
+
+class _PgDetailScaffold extends StatefulWidget {
+  final ListingModel listing;
+  final VoidCallback onStartChat;
+
+  const _PgDetailScaffold({required this.listing, required this.onStartChat});
+
+  @override
+  State<_PgDetailScaffold> createState() => _PgDetailScaffoldState();
+}
+
+class _PgDetailScaffoldState extends State<_PgDetailScaffold> {
+  final PageController _imageController = PageController();
+  int _imageIndex = 0;
+  bool _saved = false;
+
+  @override
+  void dispose() {
+    _imageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final listing = widget.listing;
+    final details = _PgParsedDetails.fromListing(listing);
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: _PgImageCarousel(
+              imageUrls: listing.imageUrls,
+              controller: _imageController,
+              index: _imageIndex,
+              onPageChanged: (index) => setState(() => _imageIndex = index),
+              saved: _saved,
+              onBack: () => Navigator.pop(context),
+              onSave: () => setState(() => _saved = !_saved),
+              onShare: () => Share.share(
+                '${listing.title}\nStarting from ₹${listing.price.toStringAsFixed(0)}/month\n${listing.location}',
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _PgOverviewCard(listing: listing, details: details),
+                const SizedBox(height: 14),
+                _PgPricingCard(listing: listing, details: details),
+                const SizedBox(height: 18),
+                _SectionHeading('Room Configurations'),
+                const SizedBox(height: 10),
+                ...details.rooms.map((room) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _PgRoomCard(room: room),
+                  );
+                }),
+                const SizedBox(height: 8),
+                _SectionHeading('Amenities'),
+                const SizedBox(height: 10),
+                _PgAmenitiesGrid(amenities: details.amenities),
+                const SizedBox(height: 18),
+                _SectionHeading('Rules & Preferences'),
+                const SizedBox(height: 10),
+                _PgRulesCard(details: details, listing: listing),
+                const SizedBox(height: 18),
+                _SectionHeading('Description'),
+                const SizedBox(height: 10),
+                _ReadMoreText(text: details.cleanDescription),
+                const SizedBox(height: 18),
+                _SectionHeading('Location'),
+                const SizedBox(height: 10),
+                _PgLocationCard(listing: listing, nearby: details.nearby),
+                const SizedBox(height: 18),
+                _SectionHeading('Owner / Contact'),
+                const SizedBox(height: 10),
+                _PgOwnerCard(
+                  listing: listing,
+                  phone: details.contact,
+                  whatsApp: details.whatsApp,
+                  onStartChat: widget.onStartChat,
+                ),
+              ]),
+            ),
+          ),
+        ],
+      ),
+      bottomNavigationBar: _PgStickyCta(
+        onBookVisit: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Visit request started')),
+          );
+          widget.onStartChat();
+        },
+        onContactOwner: widget.onStartChat,
+      ),
+    );
+  }
+}
+
+class _PgImageCarousel extends StatelessWidget {
+  final List<String> imageUrls;
+  final PageController controller;
+  final int index;
+  final ValueChanged<int> onPageChanged;
+  final bool saved;
+  final VoidCallback onBack;
+  final VoidCallback onSave;
+  final VoidCallback onShare;
+
+  const _PgImageCarousel({
+    required this.imageUrls,
+    required this.controller,
+    required this.index,
+    required this.onPageChanged,
+    required this.saved,
+    required this.onBack,
+    required this.onSave,
+    required this.onShare,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final images = imageUrls.isEmpty ? [''] : imageUrls;
+    return SizedBox(
+      height: 330,
+      child: Stack(
+        children: [
+          PageView.builder(
+            controller: controller,
+            itemCount: images.length,
+            onPageChanged: onPageChanged,
+            itemBuilder: (context, itemIndex) {
+              final imageUrl = images[itemIndex];
+              return GestureDetector(
+                onTap: imageUrl.isEmpty
+                    ? null
+                    : () => _openImageViewer(
+                        context,
+                        imageUrls: imageUrls,
+                        initialIndex: itemIndex,
+                      ),
+                child: imageUrl.isEmpty
+                    ? Container(
+                        color: AppColors.surfaceContainerHigh,
+                        child: const Center(
+                          child: Icon(
+                            Icons.apartment_rounded,
+                            size: 58,
+                            color: AppColors.outline,
+                          ),
+                        ),
+                      )
+                    : CachedNetworkImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, _, _) =>
+                            Container(color: AppColors.surfaceContainerHigh),
+                      ),
+              );
+            },
+          ),
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    Colors.black.withValues(alpha: 0.35),
+                    Colors.transparent,
+                    Colors.black.withValues(alpha: 0.28),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 12,
+            child: _CircleAction(icon: Icons.arrow_back_rounded, onTap: onBack),
+          ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            right: 12,
+            child: Row(
+              children: [
+                _CircleAction(icon: Icons.ios_share_rounded, onTap: onShare),
+                const SizedBox(width: 10),
+                _CircleAction(
+                  icon: saved
+                      ? Icons.bookmark_rounded
+                      : Icons.bookmark_border_rounded,
+                  onTap: onSave,
+                ),
+              ],
+            ),
+          ),
+          if (images.length > 1)
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 18,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(images.length, (dot) {
+                  final active = dot == index;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    width: active ? 18 : 7,
+                    height: 7,
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    decoration: BoxDecoration(
+                      color: active ? Colors.white : Colors.white70,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                  );
+                }),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CircleAction extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+
+  const _CircleAction({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(999),
+      child: Container(
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.94),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(icon, size: 21, color: AppColors.onSurface),
+      ),
+    );
+  }
+}
+
+class _PgOverviewCard extends StatelessWidget {
+  final ListingModel listing;
+  final _PgParsedDetails details;
+
+  const _PgOverviewCard({required this.listing, required this.details});
+
+  @override
+  Widget build(BuildContext context) {
+    return _DetailCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  listing.title,
+                  style: AppTheme.headline(fontSize: 24),
+                ),
+              ),
+              const SizedBox(width: 10),
+              _VerifiedBadge(label: 'Verified'),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _Pill(label: details.propertyType),
+              if ((listing.genderPreference ?? '').isNotEmpty)
+                _Pill(label: listing.genderPreference!),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              const Icon(Icons.location_on_rounded, color: AppColors.slate500),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  listing.location,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.body(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.slate500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          if (details.nearby.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              'Near ${details.nearby}',
+              style: AppTheme.body(
+                fontSize: 13,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PgPricingCard extends StatelessWidget {
+  final ListingModel listing;
+  final _PgParsedDetails details;
+
+  const _PgPricingCard({required this.listing, required this.details});
+
+  @override
+  Widget build(BuildContext context) {
+    return _DetailCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Starting from ₹${listing.price.toStringAsFixed(0)}/month',
+            style: AppTheme.headline(fontSize: 24, color: AppColors.primary),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _MiniInfoTile(
+                  icon: Icons.security_rounded,
+                  label: 'Deposit',
+                  value: details.deposit.isEmpty
+                      ? 'Ask owner'
+                      : details.deposit,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _MiniInfoTile(
+                  icon: Icons.restaurant_rounded,
+                  label: 'Food',
+                  value: details.foodIncluded ? 'Included' : 'Not included',
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _MiniInfoTile(
+                  icon: Icons.electric_bolt_rounded,
+                  label: 'Electricity',
+                  value: details.electricityIncluded ? 'Included' : 'Extra',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PgRoomCard extends StatefulWidget {
+  final _PgRoomConfig room;
+
+  const _PgRoomCard({required this.room});
+
+  @override
+  State<_PgRoomCard> createState() => _PgRoomCardState();
+}
+
+class _PgRoomCardState extends State<_PgRoomCard> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final room = widget.room;
+    return _DetailCard(
+      padding: const EdgeInsets.all(14),
+      child: Column(
+        children: [
+          InkWell(
+            onTap: () => setState(() => _expanded = !_expanded),
+            borderRadius: BorderRadius.circular(18),
+            child: Row(
+              children: [
+                Container(
+                  width: 46,
+                  height: 46,
+                  decoration: BoxDecoration(
+                    color: AppColors.blue50,
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: const Icon(
+                    Icons.king_bed_rounded,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        room.roomType,
+                        style: AppTheme.body(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '₹${room.rent}/month • ${room.vacantBeds} beds available',
+                        style: AppTheme.label(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.slate500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                Icon(
+                  _expanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                ),
+              ],
+            ),
+          ),
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 180),
+            crossFadeState: _expanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            firstChild: const SizedBox(width: double.infinity),
+            secondChild: Padding(
+              padding: const EdgeInsets.only(top: 14),
+              child: Wrap(
+                spacing: 10,
+                runSpacing: 10,
+                children: [
+                  _PgSpecChip(
+                    icon: Icons.people_rounded,
+                    label: 'Capacity ${room.capacity}',
+                  ),
+                  _PgSpecChip(
+                    icon: Icons.bathtub_rounded,
+                    label: room.attachedBathroom,
+                  ),
+                  _PgSpecChip(icon: Icons.ac_unit_rounded, label: room.ac),
+                  _PgSpecChip(icon: Icons.chair_rounded, label: room.furnished),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PgAmenitiesGrid extends StatelessWidget {
+  final List<String> amenities;
+
+  const _PgAmenitiesGrid({required this.amenities});
+
+  @override
+  Widget build(BuildContext context) {
+    final items = amenities.isEmpty ? ['WiFi', 'Food', 'CCTV'] : amenities;
+    return _DetailCard(
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: items.map((amenity) {
+          return _PgSpecChip(icon: _amenityIcon(amenity), label: amenity);
+        }).toList(),
+      ),
+    );
+  }
+
+  IconData _amenityIcon(String amenity) {
+    final lower = amenity.toLowerCase();
+    if (lower.contains('wifi')) return Icons.wifi_rounded;
+    if (lower.contains('food')) return Icons.restaurant_rounded;
+    if (lower.contains('laundry')) return Icons.local_laundry_service_rounded;
+    if (lower.contains('parking')) return Icons.local_parking_rounded;
+    if (lower.contains('cctv')) return Icons.videocam_rounded;
+    if (lower.contains('backup')) return Icons.battery_charging_full_rounded;
+    if (lower.contains('lift')) return Icons.elevator_rounded;
+    if (lower.contains('geyser')) return Icons.hot_tub_rounded;
+    if (lower.contains('ac')) return Icons.ac_unit_rounded;
+    return Icons.check_circle_rounded;
+  }
+}
+
+class _PgRulesCard extends StatelessWidget {
+  final _PgParsedDetails details;
+  final ListingModel listing;
+
+  const _PgRulesCard({required this.details, required this.listing});
+
+  @override
+  Widget build(BuildContext context) {
+    return _DetailCard(
+      child: Column(
+        children: [
+          _RuleRow('Preferred Gender', listing.genderPreference ?? 'Any'),
+          _RuleRow('Occupants', details.occupantType),
+          _RuleRow('Smoking', details.smoking),
+          _RuleRow('Visitors', details.visitors),
+          _RuleRow(
+            'Curfew',
+            details.curfew.isEmpty ? 'Ask owner' : details.curfew,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PgLocationCard extends StatelessWidget {
+  final ListingModel listing;
+  final String nearby;
+
+  const _PgLocationCard({required this.listing, required this.nearby});
+
+  @override
+  Widget build(BuildContext context) {
+    return _DetailCard(
+      child: Column(
+        children: [
+          Container(
+            height: 132,
+            decoration: BoxDecoration(
+              color: AppColors.blue50,
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.map_rounded,
+                    color: AppColors.primary,
+                    size: 34,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    listing.location,
+                    textAlign: TextAlign.center,
+                    style: AppTheme.body(
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+          if (nearby.isNotEmpty) ...[
+            const SizedBox(height: 12),
+            _RuleRow('Nearby', nearby),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _PgOwnerCard extends StatelessWidget {
+  final ListingModel listing;
+  final String phone;
+  final String whatsApp;
+  final VoidCallback onStartChat;
+
+  const _PgOwnerCard({
+    required this.listing,
+    required this.phone,
+    required this.whatsApp,
+    required this.onStartChat,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final displayPhone = phone.isEmpty ? 'Contact through chat' : phone;
+    return _DetailCard(
+      child: Row(
+        children: [
+          _RequirementAvatar(
+            photoUrl: listing.ownerPhotoUrl,
+            name: listing.ownerName,
+            size: 54,
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  listing.ownerName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.body(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  displayPhone,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.label(color: AppColors.slate500),
+                ),
+              ],
+            ),
+          ),
+          _ContactIconButton(
+            icon: Icons.call_rounded,
+            onTap: phone.isEmpty ? null : () => _launchUri('tel:$phone'),
+          ),
+          _ContactIconButton(icon: Icons.chat_rounded, onTap: onStartChat),
+          _ContactIconButton(
+            icon: Icons.message_rounded,
+            onTap: whatsApp.isEmpty
+                ? null
+                : () => _launchUri('https://wa.me/${_digitsOnly(whatsApp)}'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PgStickyCta extends StatelessWidget {
+  final VoidCallback onBookVisit;
+  final VoidCallback onContactOwner;
+
+  const _PgStickyCta({required this.onBookVisit, required this.onContactOwner});
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 20,
+              offset: const Offset(0, -8),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: OutlinedButton(
+                onPressed: onBookVisit,
+                style: OutlinedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Text('Book Visit'),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: ElevatedButton(
+                onPressed: onContactOwner,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 15),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                ),
+                child: const Text('Contact Owner'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _DetailCard extends StatelessWidget {
+  final Widget child;
+  final EdgeInsetsGeometry padding;
+
+  const _DetailCard({
+    required this.child,
+    this.padding = const EdgeInsets.all(16),
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: padding,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: child,
+    );
+  }
+}
+
+class _SectionHeading extends StatelessWidget {
+  final String text;
+
+  const _SectionHeading(this.text);
+
+  @override
+  Widget build(BuildContext context) {
+    return Text(text, style: AppTheme.headline(fontSize: 20));
+  }
+}
+
+class _VerifiedBadge extends StatelessWidget {
+  final String label;
+
+  const _VerifiedBadge({required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: AppColors.green50,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.verified_rounded,
+            size: 15,
+            color: AppColors.secondary,
+          ),
+          const SizedBox(width: 5),
+          Text(
+            label,
+            style: AppTheme.label(
+              fontWeight: FontWeight.w900,
+              color: AppColors.secondary,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniInfoTile extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final String value;
+
+  const _MiniInfoTile({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 20, color: AppColors.primary),
+          const SizedBox(height: 9),
+          Text(label, style: AppTheme.label(fontSize: 11)),
+          const SizedBox(height: 3),
+          Text(
+            value,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.body(fontSize: 12, fontWeight: FontWeight.w800),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PgSpecChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
+
+  const _PgSpecChip({required this.icon, required this.label});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 16, color: AppColors.primary),
+          const SizedBox(width: 7),
+          Text(label, style: AppTheme.label(fontWeight: FontWeight.w800)),
+        ],
+      ),
+    );
+  }
+}
+
+class _RuleRow extends StatelessWidget {
+  final String label;
+  final String value;
+
+  const _RuleRow(this.label, this.value);
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 9),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: AppTheme.label(color: AppColors.slate500),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Text(
+              value,
+              textAlign: TextAlign.right,
+              style: AppTheme.body(fontWeight: FontWeight.w800),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ReadMoreText extends StatefulWidget {
+  final String text;
+
+  const _ReadMoreText({required this.text});
+
+  @override
+  State<_ReadMoreText> createState() => _ReadMoreTextState();
+}
+
+class _ReadMoreTextState extends State<_ReadMoreText> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return _DetailCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            widget.text,
+            maxLines: _expanded ? null : 4,
+            overflow: _expanded ? TextOverflow.visible : TextOverflow.ellipsis,
+            style: AppTheme.body(
+              fontSize: 15,
+              fontWeight: FontWeight.w500,
+              height: 1.55,
+              color: AppColors.onSurfaceVariant,
+            ),
+          ),
+          if (widget.text.length > 140)
+            TextButton(
+              onPressed: () => setState(() => _expanded = !_expanded),
+              child: Text(_expanded ? 'Read Less' : 'Read More'),
+            ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ContactIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback? onTap;
+
+  const _ContactIconButton({required this.icon, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return IconButton.filledTonal(
+      onPressed: onTap,
+      icon: Icon(icon, size: 18),
+      style: IconButton.styleFrom(
+        backgroundColor: AppColors.blue50,
+        foregroundColor: AppColors.primary,
+        disabledBackgroundColor: AppColors.surfaceContainerLow,
+      ),
+    );
+  }
+}
+
+class _PgParsedDetails {
+  final String propertyType;
+  final String deposit;
+  final String nearby;
+  final String contact;
+  final String whatsApp;
+  final String occupantType;
+  final String smoking;
+  final String visitors;
+  final String curfew;
+  final bool foodIncluded;
+  final bool electricityIncluded;
+  final List<String> amenities;
+  final List<_PgRoomConfig> rooms;
+  final String cleanDescription;
+
+  const _PgParsedDetails({
+    required this.propertyType,
+    required this.deposit,
+    required this.nearby,
+    required this.contact,
+    required this.whatsApp,
+    required this.occupantType,
+    required this.smoking,
+    required this.visitors,
+    required this.curfew,
+    required this.foodIncluded,
+    required this.electricityIncluded,
+    required this.amenities,
+    required this.rooms,
+    required this.cleanDescription,
+  });
+
+  factory _PgParsedDetails.fromListing(ListingModel listing) {
+    final lines = listing.description
+        .split('\n')
+        .map((line) => line.trim())
+        .where((line) => line.isNotEmpty)
+        .toList();
+    final roomLines = lines
+        .where((line) => line.startsWith('- '))
+        .map((line) => line.substring(2))
+        .toList();
+    final rawDescription = lines.isEmpty ? listing.description : lines.first;
+    final hiddenPrefixes = [
+      'Address:',
+      'Nearby:',
+      'Room configurations:',
+      '- ',
+      'Total capacity:',
+      'Vacant beds:',
+      'Beds available:',
+      'Security deposit:',
+      'Maintenance:',
+      'Contact:',
+      'Brokerage:',
+      'Smoking:',
+      'Drinking:',
+      'Pets:',
+      'Visitor restrictions:',
+      'Curfew:',
+      'WhatsApp:',
+      'Video tour selected:',
+    ];
+    final clean = lines
+        .where((line) => !hiddenPrefixes.any(line.startsWith))
+        .join('\n')
+        .trim();
+    final rooms = roomLines.map(_PgRoomConfig.parse).toList();
+
+    return _PgParsedDetails(
+      propertyType: listing.highlights.isEmpty
+          ? 'PG/Hostel'
+          : listing.highlights.first,
+      deposit: _lineValue(lines, 'Security deposit:').replaceFirst('Rs ', '₹'),
+      nearby: _lineValue(lines, 'Nearby:'),
+      contact: _lineValue(lines, 'Contact:'),
+      whatsApp: _lineValue(lines, 'WhatsApp:'),
+      occupantType: _findHighlight(listing.highlights, const [
+        'Student',
+        'Working Professional',
+        'Both',
+      ], fallback: 'Both'),
+      smoking: _lineValue(lines, 'Smoking:').isEmpty
+          ? 'Ask owner'
+          : _lineValue(lines, 'Smoking:'),
+      visitors: _lineValue(lines, 'Visitor restrictions:').isEmpty
+          ? 'Ask owner'
+          : _lineValue(lines, 'Visitor restrictions:'),
+      curfew: _lineValue(lines, 'Curfew:'),
+      foodIncluded: listing.highlights.contains('Food Included'),
+      electricityIncluded: listing.highlights.contains('Electricity Included'),
+      amenities: _amenitiesFromHighlights(listing.highlights),
+      rooms: rooms.isEmpty
+          ? [
+              _PgRoomConfig(
+                roomType: listing.highlights.length > 1
+                    ? listing.highlights[1]
+                    : 'Room',
+                rent: listing.price.toStringAsFixed(0),
+                capacity: '-',
+                vacantBeds: '-',
+                attachedBathroom: 'Ask owner',
+                ac: 'Ask owner',
+                furnished: listing.furnishing ?? 'Ask owner',
+              ),
+            ]
+          : rooms,
+      cleanDescription: clean.isEmpty ? rawDescription : clean,
+    );
+  }
+
+  static String _lineValue(List<String> lines, String prefix) {
+    for (final line in lines) {
+      if (line.startsWith(prefix)) {
+        return line.substring(prefix.length).trim();
+      }
+    }
+    return '';
+  }
+
+  static String _findHighlight(
+    List<String> highlights,
+    List<String> options, {
+    required String fallback,
+  }) {
+    for (final option in options) {
+      if (highlights.contains(option)) return option;
+    }
+    return fallback;
+  }
+
+  static List<String> _amenitiesFromHighlights(List<String> highlights) {
+    const excluded = {
+      'Boys PG',
+      'Girls PG',
+      'Co-ed PG',
+      'Hostel',
+      'Male',
+      'Female',
+      'Any',
+      'Student',
+      'Working Professional',
+      'Both',
+      'Food Included',
+      'Electricity Included',
+    };
+    return highlights
+        .where(
+          (item) => !excluded.contains(item) && !item.contains('beds vacant'),
+        )
+        .toList();
+  }
+}
+
+class _PgRoomConfig {
+  final String roomType;
+  final String rent;
+  final String capacity;
+  final String vacantBeds;
+  final String attachedBathroom;
+  final String ac;
+  final String furnished;
+
+  const _PgRoomConfig({
+    required this.roomType,
+    required this.rent,
+    required this.capacity,
+    required this.vacantBeds,
+    required this.attachedBathroom,
+    required this.ac,
+    required this.furnished,
+  });
+
+  factory _PgRoomConfig.parse(String raw) {
+    final parts = raw.split('->').map((part) => part.trim()).toList();
+    final tail = parts.length > 4
+        ? parts[4].split(',').map((part) => part.trim()).toList()
+        : <String>[];
+    return _PgRoomConfig(
+      roomType: parts.isNotEmpty ? parts[0] : 'Room',
+      rent: parts.length > 1 ? _digitsOnly(parts[1]) : '-',
+      capacity: parts.length > 2
+          ? _digitsOnly(parts[2]).isEmpty
+                ? '-'
+                : _digitsOnly(parts[2])
+          : '-',
+      vacantBeds: parts.length > 3
+          ? _digitsOnly(parts[3]).isEmpty
+                ? '-'
+                : _digitsOnly(parts[3])
+          : '-',
+      ac: tail.isNotEmpty ? tail[0] : 'Ask owner',
+      furnished: tail.length > 1 ? tail[1] : 'Ask owner',
+      attachedBathroom: tail.length > 2 ? tail[2] : 'Ask owner',
+    );
+  }
+}
+
+Future<void> _launchUri(String rawUrl) async {
+  final uri = Uri.parse(rawUrl);
+  if (await canLaunchUrl(uri)) {
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+}
+
+String _digitsOnly(String value) {
+  return value.replaceAll(RegExp(r'[^0-9]'), '');
 }
 
 class _RoomImageHero extends StatelessWidget {
