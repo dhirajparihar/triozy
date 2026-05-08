@@ -250,14 +250,47 @@ class _RequirementListingCard extends StatelessWidget {
             : 320.0;
         final useStackedHeader = cardWidth < 270;
         final fillsHeight = constraints.hasBoundedHeight;
-        final avatarSize = cardWidth < 320 ? 74.0 : 86.0;
+        final isCompactHeight = fillsHeight && constraints.maxHeight <= 380;
+        final avatarSize = isCompactHeight
+            ? (cardWidth < 320 ? 62.0 : 70.0)
+            : (cardWidth < 320 ? 74.0 : 86.0);
+        final topPadding = isCompactHeight
+            ? (isNarrow ? 12.0 : 14.0)
+            : (isNarrow ? 14.0 : 18.0);
+        final titleGap = isCompactHeight ? 10.0 : 14.0;
+        final metaGap = isCompactHeight ? 12.0 : 16.0;
+        final chipSpacing = isCompactHeight ? 6.0 : 8.0;
+        final chipLimit = isCompactHeight ? 3 : 4;
+
+        final infoChips = <Widget>[
+          _InfoChip(
+            icon: Icons.currency_rupee_rounded,
+            label: '$rentLabel budget',
+            compact: isCompactHeight,
+          ),
+          _InfoChip(
+            icon: Icons.person_rounded,
+            label: preference.isEmpty
+                ? 'Needs ${listing.propertyTypeLabel}'
+                : preference,
+            compact: isCompactHeight,
+          ),
+          if (occupancy.isNotEmpty)
+            _InfoChip(
+              icon: Icons.king_bed_rounded,
+              label: occupancy,
+              compact: isCompactHeight,
+            ),
+          const _InfoChip(
+            icon: Icons.extension_rounded,
+            label: '100% match',
+          ),
+        ];
 
         return GestureDetector(
           onTap: onTap,
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              minHeight: fillsHeight ? constraints.maxHeight : 0,
-            ),
+          child: SizedBox(
+            height: fillsHeight ? constraints.maxHeight : null,
             child: Container(
               decoration: BoxDecoration(
                 color: Colors.white,
@@ -276,124 +309,54 @@ class _RequirementListingCard extends StatelessWidget {
               child: Column(
                 mainAxisSize: fillsHeight ? MainAxisSize.max : MainAxisSize.min,
                 children: [
-                  Container(
-                    padding: EdgeInsets.fromLTRB(
-                      isNarrow ? 14 : 18,
-                      isNarrow ? 14 : 18,
-                      isNarrow ? 14 : 18,
-                      isNarrow ? 16 : 18,
-                    ),
-                    decoration: BoxDecoration(
-                      borderRadius: const BorderRadius.vertical(
-                        top: Radius.circular(28),
-                      ),
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          AppColors.blue50,
-                          AppColors.primaryFixed.withValues(alpha: 0.72),
-                        ],
-                      ),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _Badge(
-                          label: listing.purposeLabel,
-                          background: Colors.white.withValues(alpha: 0.94),
-                          foreground: AppColors.primary,
-                        ),
-                        SizedBox(height: useStackedHeader ? 12 : 14),
-                        if (useStackedHeader)
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              _ProfilePhoto(
-                                photoUrl: listing.ownerPhotoUrl,
-                                name: listing.ownerName,
-                                size: avatarSize,
-                              ),
-                              const SizedBox(height: 14),
-                              _RequirementIdentity(
-                                name: _displayName,
-                                location: listing.location,
-                                isNarrow: isNarrow,
-                              ),
-                            ],
-                          )
-                        else
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              _ProfilePhoto(
-                                photoUrl: listing.ownerPhotoUrl,
-                                name: listing.ownerName,
-                                size: avatarSize,
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _RequirementIdentity(
-                                  name: _displayName,
-                                  location: listing.location,
-                                  isNarrow: isNarrow,
-                                ),
-                              ),
-                            ],
-                          ),
-                        const SizedBox(height: 16),
-                        Text(
-                          listing.title,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTheme.body(
-                            fontSize: isNarrow ? 14 : 15,
-                            fontWeight: FontWeight.w700,
-                            color: AppColors.onSurface,
-                            height: 1.35,
+                  if (fillsHeight)
+                    Expanded(
+                      child: ClipRect(
+                        child: SingleChildScrollView(
+                          physics: const NeverScrollableScrollPhysics(),
+                          child: _RequirementCardTop(
+                            listing: listing,
+                            displayName: _displayName,
+                            location: listing.location,
+                            isNarrow: isNarrow,
+                            useStackedHeader: useStackedHeader,
+                            avatarSize: avatarSize,
+                            topPadding: topPadding,
+                            titleGap: titleGap,
+                            metaGap: metaGap,
+                            chipSpacing: chipSpacing,
+                            compact: isCompactHeight,
+                            chips: infoChips.take(chipLimit).toList(),
                           ),
                         ),
-                        const SizedBox(height: 14),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            _InfoChip(
-                              icon: Icons.currency_rupee_rounded,
-                              label: '$rentLabel budget',
-                            ),
-                            const _InfoChip(
-                              icon: Icons.extension_rounded,
-                              label: '100% match',
-                            ),
-                            _InfoChip(
-                              icon: Icons.person_rounded,
-                              label: preference.isEmpty
-                                  ? 'Needs ${listing.propertyTypeLabel}'
-                                  : preference,
-                            ),
-                            if (occupancy.isNotEmpty)
-                              _InfoChip(
-                                icon: Icons.king_bed_rounded,
-                                label: occupancy,
-                              ),
-                          ],
-                        ),
-                      ],
+                      ),
+                    )
+                  else
+                    _RequirementCardTop(
+                      listing: listing,
+                      displayName: _displayName,
+                      location: listing.location,
+                      isNarrow: isNarrow,
+                      useStackedHeader: useStackedHeader,
+                      avatarSize: avatarSize,
+                      topPadding: topPadding,
+                      titleGap: titleGap,
+                      metaGap: metaGap,
+                      chipSpacing: chipSpacing,
+                      compact: isCompactHeight,
+                      chips: infoChips,
                     ),
-                  ),
-                  if (fillsHeight) const Spacer(),
                   Padding(
                     padding: EdgeInsets.fromLTRB(
-                      isNarrow ? 14 : 18,
-                      14,
-                      isNarrow ? 14 : 18,
-                      isNarrow ? 14 : 18,
+                      isNarrow ? 12 : 16,
+                      isCompactHeight ? 10 : 14,
+                      isNarrow ? 12 : 16,
+                      isCompactHeight ? 12 : 16,
                     ),
                     child: Container(
                       padding: EdgeInsets.symmetric(
                         horizontal: isNarrow ? 12 : 14,
-                        vertical: isNarrow ? 12 : 14,
+                        vertical: isCompactHeight ? 10 : 14,
                       ),
                       decoration: BoxDecoration(
                         color: AppColors.surfaceContainerLow,
@@ -411,29 +374,35 @@ class _RequirementListingCard extends StatelessWidget {
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
                                   style: AppTheme.body(
-                                    fontSize: isNarrow ? 13 : 14,
+                                    fontSize: isCompactHeight
+                                        ? 13
+                                        : (isNarrow ? 13 : 14),
                                     fontWeight: FontWeight.w800,
                                     color: AppColors.onSurface,
                                   ),
                                 ),
-                                const SizedBox(height: 3),
-                                Text(
-                                  'Open listing and start the conversation.',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppTheme.body(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: AppColors.slate500,
+                                if (!isCompactHeight) ...[
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    'Open listing and start the conversation.',
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: AppTheme.body(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: AppColors.slate500,
+                                    ),
                                   ),
-                                ),
+                                ],
                               ],
                             ),
                           ),
                           const SizedBox(width: 12),
                           Container(
-                            width: isNarrow ? 42 : 46,
-                            height: isNarrow ? 42 : 46,
+                            width: isCompactHeight ? 40 : (isNarrow ? 42 : 46),
+                            height: isCompactHeight
+                                ? 40
+                                : (isNarrow ? 42 : 46),
                             decoration: const BoxDecoration(
                               color: AppColors.primary,
                               shape: BoxShape.circle,
@@ -463,15 +432,138 @@ class _RequirementListingCard extends StatelessWidget {
   }
 }
 
+class _RequirementCardTop extends StatelessWidget {
+  final ListingModel listing;
+  final String displayName;
+  final String location;
+  final bool isNarrow;
+  final bool useStackedHeader;
+  final double avatarSize;
+  final double topPadding;
+  final double titleGap;
+  final double metaGap;
+  final double chipSpacing;
+  final bool compact;
+  final List<Widget> chips;
+
+  const _RequirementCardTop({
+    required this.listing,
+    required this.displayName,
+    required this.location,
+    required this.isNarrow,
+    required this.useStackedHeader,
+    required this.avatarSize,
+    required this.topPadding,
+    required this.titleGap,
+    required this.metaGap,
+    required this.chipSpacing,
+    required this.compact,
+    required this.chips,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(
+        topPadding,
+        topPadding,
+        topPadding,
+        compact ? 12 : 16,
+      ),
+      decoration: BoxDecoration(
+        borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.blue50,
+            AppColors.primaryFixed.withValues(alpha: 0.72),
+          ],
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _Badge(
+            label: listing.purposeLabel,
+            background: Colors.white.withValues(alpha: 0.94),
+            foreground: AppColors.primary,
+          ),
+          SizedBox(height: compact ? 10 : 14),
+          if (useStackedHeader)
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _ProfilePhoto(
+                  photoUrl: listing.ownerPhotoUrl,
+                  name: listing.ownerName,
+                  size: avatarSize,
+                ),
+                SizedBox(height: compact ? 10 : 14),
+                _RequirementIdentity(
+                  name: displayName,
+                  location: location,
+                  isNarrow: isNarrow,
+                  compact: compact,
+                ),
+              ],
+            )
+          else
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                _ProfilePhoto(
+                  photoUrl: listing.ownerPhotoUrl,
+                  name: listing.ownerName,
+                  size: avatarSize,
+                ),
+                SizedBox(width: compact ? 12 : 16),
+                Expanded(
+                  child: _RequirementIdentity(
+                    name: displayName,
+                    location: location,
+                    isNarrow: isNarrow,
+                    compact: compact,
+                  ),
+                ),
+              ],
+            ),
+          SizedBox(height: metaGap),
+          Text(
+            listing.title,
+            maxLines: compact ? 1 : 2,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.body(
+              fontSize: compact ? 13 : (isNarrow ? 14 : 15),
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurface,
+              height: 1.35,
+            ),
+          ),
+          SizedBox(height: titleGap),
+          Wrap(
+            spacing: chipSpacing,
+            runSpacing: chipSpacing,
+            children: chips,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _RequirementIdentity extends StatelessWidget {
   final String name;
   final String location;
   final bool isNarrow;
+  final bool compact;
 
   const _RequirementIdentity({
     required this.name,
     required this.location,
     required this.isNarrow,
+    this.compact = false,
   });
 
   @override
@@ -485,17 +577,17 @@ class _RequirementIdentity extends StatelessWidget {
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: AppTheme.body(
-            fontSize: isNarrow ? 18 : 21,
+            fontSize: compact ? (isNarrow ? 16 : 18) : (isNarrow ? 18 : 21),
             fontWeight: FontWeight.w800,
             color: AppColors.onSurface,
           ),
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: compact ? 4 : 6),
         Row(
           children: [
-            const Icon(
+            Icon(
               Icons.location_on_rounded,
-              size: 16,
+              size: compact ? 14 : 16,
               color: AppColors.slate500,
             ),
             const SizedBox(width: 4),
@@ -505,7 +597,7 @@ class _RequirementIdentity extends StatelessWidget {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: AppTheme.body(
-                  fontSize: isNarrow ? 13 : 14,
+                  fontSize: compact ? 12 : (isNarrow ? 13 : 14),
                   fontWeight: FontWeight.w700,
                   color: AppColors.slate500,
                 ),
@@ -521,13 +613,21 @@ class _RequirementIdentity extends StatelessWidget {
 class _InfoChip extends StatelessWidget {
   final IconData icon;
   final String label;
+  final bool compact;
 
-  const _InfoChip({required this.icon, required this.label});
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+    this.compact = false,
+  });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: EdgeInsets.symmetric(
+        horizontal: compact ? 8 : 10,
+        vertical: compact ? 6 : 8,
+      ),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.86),
         borderRadius: BorderRadius.circular(999),
@@ -536,16 +636,16 @@ class _InfoChip extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 15, color: AppColors.primary),
-          const SizedBox(width: 6),
+          Icon(icon, size: compact ? 13 : 15, color: AppColors.primary),
+          SizedBox(width: compact ? 4 : 6),
           ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 150),
+            constraints: BoxConstraints(maxWidth: compact ? 116 : 150),
             child: Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTheme.label(
-                fontSize: 11,
+                fontSize: compact ? 10 : 11,
                 fontWeight: FontWeight.w800,
                 color: AppColors.onSurface,
               ),

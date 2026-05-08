@@ -88,6 +88,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     if ((chatProvider.errorMessage ?? '').isNotEmpty) {
                       return _ErrorState(message: chatProvider.errorMessage!);
                     }
+                    if (chatProvider.isLoading && filtered.isEmpty) {
+                      return const Center(
+                        child: CircularProgressIndicator(
+                          color: AppColors.primary,
+                        ),
+                      );
+                    }
                     if (filtered.isEmpty) {
                       return _EmptyState(
                         hasSearch: query.isNotEmpty,
