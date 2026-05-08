@@ -15,11 +15,7 @@ class ListingDetailScreen extends StatefulWidget {
   final String listingId;
   final ListingModel? seed;
 
-  const ListingDetailScreen({
-    super.key,
-    required this.listingId,
-    this.seed,
-  });
+  const ListingDetailScreen({super.key, required this.listingId, this.seed});
 
   @override
   State<ListingDetailScreen> createState() => _ListingDetailScreenState();
@@ -37,7 +33,9 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   }
 
   Future<void> _loadListing() async {
-    final listing = await context.read<DatabaseService>().getListing(widget.listingId);
+    final listing = await context.read<DatabaseService>().getListing(
+      widget.listingId,
+    );
     if (!mounted) {
       return;
     }
@@ -57,31 +55,41 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       return;
     }
     if (currentUser.uid == listing.ownerId) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('This is your listing')),
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('This is your listing')));
+      return;
+    }
+
+    try {
+      final conversationId = await context.read<ChatProvider>().createOrGetChat(
+        otherUserId: listing.ownerId,
+        chatType: ChatType.listing.value,
+        referenceId: listing.id,
+        listingTitle: listing.title,
+        otherUserName: listing.ownerName,
+        otherUserPhotoUrl: listing.ownerPhotoUrl,
+        currentUserName: currentUser.displayName,
+        currentUserPhotoUrl: currentUser.photoURL,
       );
-      return;
-    }
 
-    final conversationId = await context.read<ChatProvider>().createOrGetChat(
-      otherUserId: listing.ownerId,
-      chatType: ChatType.listing.value,
-      referenceId: listing.id,
-      otherUserName: listing.ownerName,
-      otherUserPhotoUrl: listing.ownerPhotoUrl,
-      currentUserName: currentUser.displayName,
-      currentUserPhotoUrl: currentUser.photoURL,
-    );
-
-    if (!mounted) {
-      return;
+      if (!mounted) {
+        return;
+      }
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatDetailScreen(conversationId: conversationId),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not open chat: $error')));
     }
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ChatDetailScreen(conversationId: conversationId),
-      ),
-    );
   }
 
   @override
@@ -112,178 +120,181 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
-                  children: [
-                    ListView(
-                      padding: EdgeInsets.zero,
-                      children: [
-                        SizedBox(
-                          height: 320,
-                          child: PageView(
-                            children: (listing.imageUrls.isEmpty
-                                    ? ['']
-                                    : listing.imageUrls)
-                                .map((imageUrl) {
-                              return imageUrl.isEmpty
-                                  ? Container(
-                                      color: AppColors.surfaceContainerHigh,
-                                      child: const Icon(
-                                        Icons.home_work_rounded,
-                                        size: 54,
-                                        color: AppColors.outline,
-                                      ),
-                                    )
-                                  : CachedNetworkImage(
-                                      imageUrl: imageUrl,
-                                      fit: BoxFit.cover,
-                                      errorWidget: (_, _, _) => Container(
-                                        color: AppColors.surfaceContainerHigh,
-                                      ),
-                                    );
-                            }).toList(),
-                          ),
-                        ),
-                        Container(
-                          transform: Matrix4.translationValues(0, -28, 0),
-                          padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
-                          decoration: const BoxDecoration(
-                            color: AppColors.background,
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
-                          ),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                listing.priceLabel,
-                                style: AppTheme.headline(
-                                  fontSize: 30,
-                                  color: AppColors.primary,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                listing.title,
-                                style: AppTheme.headline(fontSize: 24),
-                              ),
-                              const SizedBox(height: 10),
-                              Row(
-                                children: [
-                                  const Icon(Icons.location_on_outlined, size: 18),
-                                  const SizedBox(width: 6),
-                                  Expanded(
-                                    child: Text(
-                                      listing.location,
-                                      style: AppTheme.body(
-                                        fontSize: 14,
-                                        fontWeight: FontWeight.w500,
-                                        color: AppColors.slate500,
-                                      ),
+        children: [
+          ListView(
+            padding: EdgeInsets.zero,
+            children: [
+              SizedBox(
+                height: 320,
+                child: PageView(
+                  children:
+                      (listing.imageUrls.isEmpty ? [''] : listing.imageUrls)
+                          .map((imageUrl) {
+                            return imageUrl.isEmpty
+                                ? Container(
+                                    color: AppColors.surfaceContainerHigh,
+                                    child: const Icon(
+                                      Icons.home_work_rounded,
+                                      size: 54,
+                                      color: AppColors.outline,
                                     ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 18),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                children: [
-                                  _Pill(label: listing.propertyTypeLabel),
-                                  _Pill(label: listing.purposeLabel),
-                                  _Pill(label: listing.typeLabel),
-                                  if ((listing.genderPreference ?? '').isNotEmpty)
-                                    _Pill(label: listing.genderPreference!),
-                                  if ((listing.condition ?? '').isNotEmpty)
-                                    _Pill(label: listing.condition!),
-                                ],
-                              ),
-                              const SizedBox(height: 24),
-                              _InfoPanel(listing: listing),
-                              const SizedBox(height: 24),
-                              Text('Description', style: AppTheme.headline(fontSize: 20)),
-                              const SizedBox(height: 10),
-                              Text(
-                                listing.description,
-                                style: AppTheme.body(
-                                  fontSize: 15,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.onSurfaceVariant,
-                                  height: 1.6,
-                                ),
-                              ),
-                              const SizedBox(height: 24),
-                              Text('Location preview', style: AppTheme.headline(fontSize: 20)),
-                              const SizedBox(height: 12),
-                              Container(
-                                height: 150,
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(22),
-                                ),
-                                child: Center(
-                                  child: Column(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      const Icon(
-                                        Icons.map_outlined,
-                                        size: 32,
-                                        color: AppColors.primary,
-                                      ),
-                                      const SizedBox(height: 10),
-                                      Text(
-                                        listing.location,
-                                        style: AppTheme.body(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w700,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
+                                  )
+                                : CachedNetworkImage(
+                                    imageUrl: imageUrl,
+                                    fit: BoxFit.cover,
+                                    errorWidget: (_, _, _) => Container(
+                                      color: AppColors.surfaceContainerHigh,
+                                    ),
+                                  );
+                          })
+                          .toList(),
+                ),
+              ),
+              Container(
+                transform: Matrix4.translationValues(0, -28, 0),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
+                decoration: const BoxDecoration(
+                  color: AppColors.background,
+                  borderRadius: BorderRadius.vertical(top: Radius.circular(30)),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      listing.priceLabel,
+                      style: AppTheme.headline(
+                        fontSize: 30,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(listing.title, style: AppTheme.headline(fontSize: 24)),
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const Icon(Icons.location_on_outlined, size: 18),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            listing.location,
+                            style: AppTheme.body(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              color: AppColors.slate500,
+                            ),
                           ),
                         ),
                       ],
                     ),
-                    Positioned(
-                      top: MediaQuery.of(context).padding.top + 10,
-                      left: 12,
-                      child: CircleAvatar(
-                        backgroundColor: Colors.white.withValues(alpha: 0.92),
-                        child: IconButton(
-                          onPressed: () => Navigator.pop(context),
-                          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.onSurface),
-                        ),
+                    const SizedBox(height: 18),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        _Pill(label: listing.propertyTypeLabel),
+                        _Pill(label: listing.purposeLabel),
+                        _Pill(label: listing.typeLabel),
+                        if ((listing.genderPreference ?? '').isNotEmpty)
+                          _Pill(label: listing.genderPreference!),
+                        if ((listing.condition ?? '').isNotEmpty)
+                          _Pill(label: listing.condition!),
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                    _InfoPanel(listing: listing),
+                    const SizedBox(height: 24),
+                    Text('Description', style: AppTheme.headline(fontSize: 20)),
+                    const SizedBox(height: 10),
+                    Text(
+                      listing.description,
+                      style: AppTheme.body(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.onSurfaceVariant,
+                        height: 1.6,
                       ),
                     ),
-                    Positioned(
-                      left: 20,
-                      right: 20,
-                      bottom: 20,
-                      child: SafeArea(
-                        top: false,
-                        child: ElevatedButton(
-                          onPressed: _startChat,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: AppColors.primary,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 16),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(18),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Location preview',
+                      style: AppTheme.headline(fontSize: 20),
+                    ),
+                    const SizedBox(height: 12),
+                    Container(
+                      height: 150,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                      ),
+                      child: Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(
+                              Icons.map_outlined,
+                              size: 32,
+                              color: AppColors.primary,
                             ),
-                          ),
-                          child: Text(
-                            'Contact on chat',
-                            style: AppTheme.body(
-                              fontSize: 15,
-                              fontWeight: FontWeight.w800,
-                              color: Colors.white,
+                            const SizedBox(height: 10),
+                            Text(
+                              listing.location,
+                              style: AppTheme.body(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w700,
+                              ),
                             ),
-                          ),
+                          ],
                         ),
                       ),
                     ),
                   ],
                 ),
+              ),
+            ],
+          ),
+          Positioned(
+            top: MediaQuery.of(context).padding.top + 10,
+            left: 12,
+            child: CircleAvatar(
+              backgroundColor: Colors.white.withValues(alpha: 0.92),
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(
+                  Icons.arrow_back_rounded,
+                  color: AppColors.onSurface,
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: 20,
+            right: 20,
+            bottom: 20,
+            child: SafeArea(
+              top: false,
+              child: ElevatedButton(
+                onPressed: _startChat,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+                child: Text(
+                  'Contact on chat',
+                  style: AppTheme.body(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -300,10 +311,13 @@ class _RequirementDetailScaffold extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final details = listing.requirementDetails!;
-    final gender = (listing.genderPreference ?? details.genderPreference).trim();
+    final gender = (listing.genderPreference ?? details.genderPreference)
+        .trim();
     final occupancy = details.occupancy.trim();
     final lookingFor = details.genderPreference.trim();
-    final rent = details.maxBudget > 0 ? details.maxBudget : listing.price.toInt();
+    final rent = details.maxBudget > 0
+        ? details.maxBudget
+        : listing.price.toInt();
     final highlights = <String>[
       ...listing.highlights,
       ...details.lifestyle,
@@ -370,7 +384,11 @@ class _RequirementDetailScaffold extends StatelessWidget {
           const SizedBox(height: 24),
           Row(
             children: [
-              const Icon(Icons.location_on, color: AppColors.slate500, size: 28),
+              const Icon(
+                Icons.location_on,
+                color: AppColors.slate500,
+                size: 28,
+              ),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(
@@ -411,7 +429,9 @@ class _RequirementDetailScaffold extends StatelessWidget {
                 child: _BasicInfoCard(
                   icon: Icons.manage_search_rounded,
                   label: 'Looking For',
-                  value: lookingFor.isEmpty ? listing.propertyTypeLabel : lookingFor,
+                  value: lookingFor.isEmpty
+                      ? listing.propertyTypeLabel
+                      : lookingFor,
                 ),
               ),
             ],
@@ -594,7 +614,9 @@ class _PreferenceCircle extends StatelessWidget {
         decoration: BoxDecoration(
           color: const Color(0xFFFFF6ED),
           shape: BoxShape.circle,
-          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.18)),
+          border: Border.all(
+            color: AppColors.outlineVariant.withValues(alpha: 0.18),
+          ),
         ),
         child: Icon(icon, size: 38, color: AppColors.primary),
       ),
@@ -626,7 +648,9 @@ class _RequirementContactBar extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border(
-            top: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.4)),
+            top: BorderSide(
+              color: AppColors.outlineVariant.withValues(alpha: 0.4),
+            ),
           ),
         ),
         child: Row(
@@ -711,7 +735,10 @@ class _RequirementAvatar extends StatelessWidget {
                 alignment: Alignment.center,
                 child: Text(
                   initial,
-                  style: AppTheme.headline(fontSize: size * 0.46, color: AppColors.primary),
+                  style: AppTheme.headline(
+                    fontSize: size * 0.46,
+                    color: AppColors.primary,
+                  ),
                 ),
               )
             : CachedNetworkImage(
@@ -793,7 +820,9 @@ class _Pill extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.24)),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.24),
+        ),
       ),
       child: Text(
         label,

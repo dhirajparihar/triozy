@@ -66,23 +66,21 @@ class AuthService {
   }
 
   Future<Map<String, dynamic>?> getUserData(String uid) async {
-    final byId = await _firestore.collection('users').doc(uid).get();
-    if (byId.exists) {
-      return byId.data();
+    final currentUserId = _auth.currentUser?.uid;
+    if (currentUserId == null || currentUserId != uid) {
+      return null;
     }
 
-    final fallback = await _firestore
-        .collection('users')
-        .where('uid', isEqualTo: uid)
-        .limit(1)
-        .get();
-    if (fallback.docs.isNotEmpty) {
-      return fallback.docs.first.data();
-    }
-    return null;
+    final byId = await _firestore.collection('users').doc(uid).get();
+    return byId.data();
   }
 
   Stream<Map<String, dynamic>?> userDataStream(String uid) {
+    final currentUserId = _auth.currentUser?.uid;
+    if (currentUserId == null || currentUserId != uid) {
+      return const Stream<Map<String, dynamic>?>.empty();
+    }
+
     return _firestore.collection('users').doc(uid).snapshots().map((snap) {
       if (snap.exists) {
         return snap.data();
@@ -96,6 +94,7 @@ class AuthService {
     required String name,
     required String occupation,
     required String organizationName,
+    required String phoneNumber,
     String? gender,
   }) async {
     await _firestore.collection('users').doc(uid).set({
@@ -103,6 +102,7 @@ class AuthService {
       'name': name.trim(),
       'occupation': occupation.trim(),
       'organizationName': organizationName.trim(),
+      'phoneNumber': phoneNumber.trim(),
       'gender': (gender ?? '').trim(),
       'isProfileComplete': true,
       'role': FieldValue.delete(),

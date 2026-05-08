@@ -1,10 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/listing_model.dart';
 import '../models/requirement_model.dart';
 
 class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
   Future<void> createListing(ListingModel listing) async {
     await _firestore
@@ -187,15 +189,12 @@ class DatabaseService {
   }
 
   Future<Map<String, dynamic>?> getUserData(String uid) async {
-    final byId = await _firestore.collection('users').doc(uid).get();
-    if (byId.exists) return byId.data();
+    final currentUserId = _auth.currentUser?.uid;
+    if (currentUserId == null || currentUserId != uid) {
+      return null;
+    }
 
-    final fallback = await _firestore
-        .collection('users')
-        .where('uid', isEqualTo: uid)
-        .limit(1)
-        .get();
-    if (fallback.docs.isNotEmpty) return fallback.docs.first.data();
-    return null;
+    final byId = await _firestore.collection('users').doc(uid).get();
+    return byId.data();
   }
 }

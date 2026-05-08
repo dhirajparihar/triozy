@@ -36,20 +36,47 @@ service cloud.firestore {
     function isChatPayloadShapeValid(data) {
       return data.keys().hasOnly([
         'participants',
+        'participantMeta',
         'chatType',
         'referenceId',
+        'listingTitle',
         'lastMessage',
+        'lastMessageType',
         'lastMessageTime',
         'lastSenderId',
         'lastReadAt',
+        'unreadCountByUser',
+        'typingByUser',
         'createdAt',
       ]) &&
           hasValidChatParticipants(data) &&
+          (!('participantMeta' in data) || data.participantMeta is map) &&
           data.chatType in ['listing'] &&
           data.referenceId is string &&
+          (!('listingTitle' in data) || data.listingTitle is string) &&
           data.lastMessage is string &&
+          (!('lastMessageType' in data) || data.lastMessageType in ['text']) &&
           data.lastSenderId is string &&
-          data.lastReadAt is map;
+          data.lastReadAt is map &&
+          (!('unreadCountByUser' in data) || data.unreadCountByUser is map) &&
+          (!('typingByUser' in data) || data.typingByUser is map);
+    }
+
+    function isValidMessagePayload(data) {
+      return data.keys().hasOnly([
+        'clientId',
+        'senderId',
+        'receiverId',
+        'text',
+        'timestamp',
+        'status',
+      ]) &&
+          (!('clientId' in data) || data.clientId is string) &&
+          data.senderId is string &&
+          data.receiverId is string &&
+          data.text is string &&
+          data.timestamp is timestamp &&
+          data.status in ['sent', 'read'];
     }
 
     function normalizedUserId() {
@@ -223,20 +250,20 @@ service cloud.firestore {
         allow read: if isParticipant(chatId);
 
         allow create: if isAuthenticated() &&
+            isValidMessagePayload(request.resource.data) &&
             (request.auth.uid == request.resource.data.senderId || normalizedUserId() == request.resource.data.senderId) &&
             isParticipant(chatId) &&
             request.resource.data.receiverId in
                 get(/databases/$(database)/documents/chats/$(chatId)).data.participants &&
             request.resource.data.receiverId != request.auth.uid &&
-            request.resource.data.receiverId != normalizedUserId() &&
-            request.resource.data.text is string &&
-            request.resource.data.timestamp is timestamp &&
-            request.resource.data.status in ['sent', 'read'];
+            request.resource.data.receiverId != normalizedUserId();
 
         allow update: if isAuthenticated() &&
             (request.auth.uid == resource.data.receiverId || normalizedUserId() == resource.data.receiverId) &&
             isParticipant(chatId) &&
+            isValidMessagePayload(request.resource.data) &&
             request.resource.data.status == 'read' &&
+            request.resource.data.get('clientId', '') == resource.data.get('clientId', '') &&
             request.resource.data.senderId == resource.data.senderId &&
             request.resource.data.receiverId == resource.data.receiverId &&
             request.resource.data.text == resource.data.text &&

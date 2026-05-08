@@ -48,7 +48,9 @@ class FCMService {
   }
 
   Future<void> _setupLocalNotifications() async {
-    const androidSettings = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const androidSettings = AndroidInitializationSettings(
+      '@mipmap/ic_launcher',
+    );
     const iosSettings = DarwinInitializationSettings();
     const settings = InitializationSettings(
       android: androidSettings,
@@ -71,7 +73,8 @@ class FCMService {
 
     await _localNotifications
         .resolvePlatformSpecificImplementation<
-            AndroidFlutterLocalNotificationsPlugin>()
+          AndroidFlutterLocalNotificationsPlugin
+        >()
         ?.createNotificationChannel(channel);
   }
 
@@ -117,30 +120,11 @@ class FCMService {
     }
 
     try {
-      final byIdRef = FirebaseFirestore.instance.collection('users').doc(uid);
-      final byId = await byIdRef.get();
-      if (byId.exists) {
-        await byIdRef.update({
-          'fcmToken': token,
-          'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
-        });
-        return;
-      }
-
-      final fallback = await FirebaseFirestore.instance
-          .collection('users')
-          .where('uid', isEqualTo: uid)
-          .limit(1)
-          .get();
-
-      if (fallback.docs.isEmpty) {
-        return;
-      }
-
-      await fallback.docs.first.reference.update({
+      await FirebaseFirestore.instance.collection('users').doc(uid).set({
+        'uid': uid,
         'fcmToken': token,
         'fcmTokenUpdatedAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
     } catch (e) {
       debugPrint('Failed to persist FCM token: $e');
     }

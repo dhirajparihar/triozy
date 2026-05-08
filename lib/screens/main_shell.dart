@@ -31,7 +31,8 @@ class MainShell extends StatefulWidget {
 }
 
 class _MainShellState extends State<MainShell> {
-  final GlobalKey<HomeScreenState> _homeScreenKey = GlobalKey<HomeScreenState>();
+  final GlobalKey<HomeScreenState> _homeScreenKey =
+      GlobalKey<HomeScreenState>();
   final GlobalKey<SearchResultsScreenState> _exploreKey =
       GlobalKey<SearchResultsScreenState>();
 
@@ -43,14 +44,23 @@ class _MainShellState extends State<MainShell> {
   late final List<Widget> _screens = [
     HomeScreen(
       key: _homeScreenKey,
+      onSearchTapped: () {
+        setState(() => _currentIndex = 1);
+      },
       onExploreTapped: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const SearchResultsScreen(initialQuery: '')));
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const SearchResultsScreen(initialQuery: ''),
+          ),
+        );
       },
       onPropertyTypeSelected: (propertyType) {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => SearchResultsScreen(initialPropertyType: propertyType),
+            builder: (_) =>
+                SearchResultsScreen(initialPropertyType: propertyType),
           ),
         );
       },
@@ -75,14 +85,17 @@ class _MainShellState extends State<MainShell> {
       if (uid != null && uid.isNotEmpty) {
         context.read<ChatProvider>().initialize(uid);
         // Fetch profile name from Firestore as a fallback when displayName is empty
-        AuthService().getUserData(uid).then((data) {
-          if (mounted && data != null) {
-            final name = (data['name'] ?? '').toString().trim();
-            if (name.isNotEmpty) {
-              setState(() => _profileName = name);
-            }
-          }
-        }).catchError((_) {});
+        AuthService()
+            .getUserData(uid)
+            .then((data) {
+              if (mounted && data != null) {
+                final name = (data['name'] ?? '').toString().trim();
+                if (name.isNotEmpty) {
+                  setState(() => _profileName = name);
+                }
+              }
+            })
+            .catchError((_) {});
       }
 
       FCMService().initialize();
@@ -100,7 +113,9 @@ class _MainShellState extends State<MainShell> {
       barrierDismissible: false,
       builder: (dialogContext) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Row(
             children: [
               Icon(Icons.location_off, color: AppColors.primary),
@@ -113,12 +128,15 @@ class _MainShellState extends State<MainShell> {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(dialogContext, _LocationDialogAction.skip),
+              onPressed: () =>
+                  Navigator.pop(dialogContext, _LocationDialogAction.skip),
               child: const Text('Skip'),
             ),
             TextButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext, _LocationDialogAction.openSettings),
+              onPressed: () => Navigator.pop(
+                dialogContext,
+                _LocationDialogAction.openSettings,
+              ),
               child: const Text('Open Settings'),
             ),
           ],
@@ -154,7 +172,8 @@ class _MainShellState extends State<MainShell> {
 
     final now = DateTime.now();
     const exitWindow = Duration(seconds: 2);
-    final shouldExit = _lastBackPressedAt != null &&
+    final shouldExit =
+        _lastBackPressedAt != null &&
         now.difference(_lastBackPressedAt!) <= exitWindow;
 
     if (shouldExit) {
@@ -202,23 +221,28 @@ class _MainShellState extends State<MainShell> {
           children: [
             Padding(
               padding: EdgeInsets.only(
-                top: _currentIndex == 1
-                  ? MediaQuery.of(context).padding.top
-                  : MediaQuery.of(context).padding.top + 76,
+                top: _currentIndex == 0
+                    ? MediaQuery.of(context).padding.top + 76
+                    : MediaQuery.of(context).padding.top,
                 bottom: MediaQuery.of(context).padding.bottom + 76,
               ),
               child: IndexedStack(index: _currentIndex, children: _screens),
             ),
-            if (_currentIndex != 1)
+            if (_currentIndex == 0)
               Positioned(
                 top: 0,
                 left: 0,
                 right: 0,
                 child: TriozyTopAppBar(
                   location: locationProvider.address,
-                  userDisplayName: FirebaseAuth.instance.currentUser?.displayName ?? _profileName ??
+                  userDisplayName:
+                      FirebaseAuth.instance.currentUser?.displayName ??
+                      _profileName ??
                       (FirebaseAuth.instance.currentUser?.email != null
-                          ? FirebaseAuth.instance.currentUser!.email!.split('@').first.replaceAll(RegExp(r'[._]'), ' ')
+                          ? FirebaseAuth.instance.currentUser!.email!
+                                .split('@')
+                                .first
+                                .replaceAll(RegExp(r'[._]'), ' ')
                           : null),
                   avatarUrl: FirebaseAuth.instance.currentUser?.photoURL,
                   showAvatar: _currentIndex != 3,

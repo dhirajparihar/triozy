@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../services/auth_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../utils/validators.dart';
 
 class CompleteProfileScreen extends StatefulWidget {
   const CompleteProfileScreen({super.key});
@@ -16,6 +17,7 @@ class CompleteProfileScreen extends StatefulWidget {
 class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
+  final TextEditingController _phoneController = TextEditingController();
   final TextEditingController _organizationController = TextEditingController();
 
   String _occupation = 'student';
@@ -25,6 +27,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   @override
   void dispose() {
     _nameController.dispose();
+    _phoneController.dispose();
     _organizationController.dispose();
     super.dispose();
   }
@@ -49,15 +52,16 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
         name: _nameController.text.trim(),
         occupation: _occupation,
         organizationName: _organizationController.text.trim(),
+        phoneNumber: _phoneController.text.trim(),
         gender: _gender,
       );
     } catch (e) {
       if (!mounted) {
         return;
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Could not save profile: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not save profile: $e')));
     } finally {
       if (mounted) {
         setState(() => _saving = false);
@@ -102,6 +106,14 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 hint: 'Aarav Sharma',
               ),
               const SizedBox(height: 14),
+              _AppField(
+                controller: _phoneController,
+                label: 'Phone number',
+                hint: '10-digit mobile number',
+                keyboardType: TextInputType.phone,
+                validator: Validators.validatePhoneNumber,
+              ),
+              const SizedBox(height: 14),
               DropdownButtonFormField<String>(
                 initialValue: _occupation,
                 decoration: _inputDecoration('Occupation'),
@@ -123,9 +135,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
               _AppField(
                 controller: _organizationController,
                 label: _organizationLabel,
-                hint: _occupation == 'student'
-                    ? 'IIT Indore'
-                    : 'Infosys',
+                hint: _occupation == 'student' ? 'IIT Indore' : 'Infosys',
               ),
               const SizedBox(height: 14),
               DropdownButtonFormField<String>(
@@ -198,23 +208,30 @@ class _AppField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final String hint;
+  final TextInputType? keyboardType;
+  final String? Function(String?)? validator;
 
   const _AppField({
     required this.controller,
     required this.label,
     required this.hint,
+    this.keyboardType,
+    this.validator,
   });
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
-      validator: (value) {
-        if ((value ?? '').trim().isEmpty) {
-          return 'Required';
-        }
-        return null;
-      },
+      keyboardType: keyboardType,
+      validator:
+          validator ??
+          (value) {
+            if ((value ?? '').trim().isEmpty) {
+              return 'Required';
+            }
+            return null;
+          },
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
