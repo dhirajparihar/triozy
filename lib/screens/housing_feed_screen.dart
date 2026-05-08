@@ -111,7 +111,8 @@ class _HousingTabState extends State<_HousingTab> {
   bool _matchesTab(ListingModel listing) {
     if (widget.includeRoomRequirements) {
       return listing.isRequirementPost ||
-          listing.purpose == ListingPurpose.needRoommate;
+          (listing.purpose == ListingPurpose.needRoommate &&
+              listing.propertyType == PropertyType.flat);
     }
     if (!widget.includeRoomRequirements && listing.isRequirementPost) {
       return false;

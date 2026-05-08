@@ -27,6 +27,8 @@ class PostListingScreen extends StatefulWidget {
 }
 
 class _PostListingScreenState extends State<PostListingScreen> {
+  static const int _maxImageCount = 3;
+
   final _formKey = GlobalKey<FormState>();
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
@@ -59,8 +61,10 @@ class _PostListingScreenState extends State<PostListingScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (widget.initialPropertyType != null || widget.initialPurpose != null) {
         setState(() {
-          _selectedPropertyType = widget.initialPropertyType ?? _selectedPropertyType;
-          _selectedPurpose = widget.initialPurpose ??
+          _selectedPropertyType =
+              widget.initialPropertyType ?? _selectedPropertyType;
+          _selectedPurpose =
+              widget.initialPurpose ??
               (_selectedPropertyType == PropertyType.item
                   ? ListingPurpose.marketplaceSell
                   : _selectedPurpose);
@@ -86,13 +90,25 @@ class _PostListingScreenState extends State<PostListingScreen> {
   }
 
   Future<void> _pickImages() async {
-    final images = await _picker.pickMultiImage(imageQuality: 80);
+    final messenger = ScaffoldMessenger.of(context);
+    final images = await _picker.pickMultiImage(
+      imageQuality: 80,
+      limit: _maxImageCount,
+    );
     if (images.isEmpty) {
       return;
     }
-    setState(() => _pickedImages
-      ..clear()
-      ..addAll(images.take(5)));
+    setState(
+      () => _pickedImages
+        ..clear()
+        ..addAll(images.take(_maxImageCount)),
+    );
+
+    if (images.length > _maxImageCount && mounted) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Only 3 images can be uploaded')),
+      );
+    }
   }
 
   Future<List<String>> _uploadImages(String listingId) async {
@@ -204,8 +220,13 @@ class _PostListingScreenState extends State<PostListingScreen> {
                 onPressed: _pickImages,
                 icon: const Icon(Icons.add_a_photo_outlined),
                 label: Text(
-                  _pickedImages.isEmpty ? 'Upload images' : 'Change images',
-                  style: AppTheme.body(fontSize: 14, fontWeight: FontWeight.w700),
+                  _pickedImages.isEmpty
+                      ? 'Upload up to 3 images'
+                      : 'Change images',
+                  style: AppTheme.body(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
               if (_pickedImages.isNotEmpty) ...[
@@ -286,8 +307,8 @@ class _PostListingScreenState extends State<PostListingScreen> {
                     _selectedPurpose = value == PropertyType.item
                         ? ListingPurpose.marketplaceSell
                         : _selectedPurpose == ListingPurpose.marketplaceSell
-                            ? ListingPurpose.offerProperty
-                            : _selectedPurpose;
+                        ? ListingPurpose.offerProperty
+                        : _selectedPurpose;
                   });
                 },
               ),
@@ -311,16 +332,24 @@ class _PostListingScreenState extends State<PostListingScreen> {
                   items: const ['Any', 'Male', 'Female'].map((value) {
                     return DropdownMenuItem(value: value, child: Text(value));
                   }).toList(),
-                  onChanged: (value) => setState(() => _genderPreference = value),
+                  onChanged: (value) =>
+                      setState(() => _genderPreference = value),
                 ),
                 const SizedBox(height: 12),
                 DropdownButtonFormField<String>(
                   initialValue: _furnishing,
                   decoration: _inputDecoration('Furnishing'),
-                  items: const ['Fully furnished', 'Semi furnished', 'Unfurnished']
-                      .map((value) {
-                    return DropdownMenuItem(value: value, child: Text(value));
-                  }).toList(),
+                  items:
+                      const [
+                        'Fully furnished',
+                        'Semi furnished',
+                        'Unfurnished',
+                      ].map((value) {
+                        return DropdownMenuItem(
+                          value: value,
+                          child: Text(value),
+                        );
+                      }).toList(),
                   onChanged: (value) => setState(() => _furnishing = value),
                 ),
               ] else ...[
@@ -329,8 +358,12 @@ class _PostListingScreenState extends State<PostListingScreen> {
                   decoration: _inputDecoration('Condition'),
                   items: const ['Used - Like New', 'Used - Good', 'Used - Fair']
                       .map((value) {
-                    return DropdownMenuItem(value: value, child: Text(value));
-                  }).toList(),
+                        return DropdownMenuItem(
+                          value: value,
+                          child: Text(value),
+                        );
+                      })
+                      .toList(),
                   onChanged: (value) => setState(() => _condition = value),
                 ),
               ],

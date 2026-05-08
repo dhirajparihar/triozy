@@ -5,6 +5,7 @@ import '../models/listing_model.dart';
 import '../services/database_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import 'flatmate_room_details_screen.dart';
 import 'housing_feed_screen.dart';
 import 'post_listing_screen.dart';
 import 'requirement_form_screen.dart';
@@ -102,10 +103,7 @@ class _HousingChoiceScreen extends StatelessWidget {
                       'Looking for a flatmate while already having a room/flat',
                   onTap: () => _openFlow(
                     context,
-                    screen: const PostListingScreen(
-                      initialPropertyType: PropertyType.flat,
-                      initialPurpose: ListingPurpose.needRoommate,
-                    ),
+                    screen: const FlatmateRoomDetailsScreen(),
                   ),
                 ),
                 const SizedBox(height: 14),

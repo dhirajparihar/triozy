@@ -117,6 +117,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       );
     }
 
+    if (listing.needsRoommate && listing.propertyType == PropertyType.room) {
+      return _RoomPostDetailScaffold(listing: listing, onStartChat: _startChat);
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
@@ -124,32 +128,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
           ListView(
             padding: EdgeInsets.zero,
             children: [
-              SizedBox(
-                height: 320,
-                child: PageView(
-                  children:
-                      (listing.imageUrls.isEmpty ? [''] : listing.imageUrls)
-                          .map((imageUrl) {
-                            return imageUrl.isEmpty
-                                ? Container(
-                                    color: AppColors.surfaceContainerHigh,
-                                    child: const Icon(
-                                      Icons.home_work_rounded,
-                                      size: 54,
-                                      color: AppColors.outline,
-                                    ),
-                                  )
-                                : CachedNetworkImage(
-                                    imageUrl: imageUrl,
-                                    fit: BoxFit.cover,
-                                    errorWidget: (_, _, _) => Container(
-                                      color: AppColors.surfaceContainerHigh,
-                                    ),
-                                  );
-                          })
-                          .toList(),
-                ),
-              ),
+              _GenericImagePager(imageUrls: listing.imageUrls),
               Container(
                 transform: Matrix4.translationValues(0, -28, 0),
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 120),
@@ -294,6 +273,440 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _RoomPostDetailScaffold extends StatelessWidget {
+  final ListingModel listing;
+  final VoidCallback onStartChat;
+
+  const _RoomPostDetailScaffold({
+    required this.listing,
+    required this.onStartChat,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final name = listing.ownerName.trim().isEmpty
+        ? 'Triozy user'
+        : listing.ownerName.trim();
+    final occupancy = _occupancyFromHighlights;
+    final lookingFor = (listing.genderPreference ?? '').trim().isEmpty
+        ? 'Any'
+        : listing.genderPreference!.trim();
+    final amenities = _amenities;
+
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.onSurface,
+        elevation: 0,
+        centerTitle: true,
+        leading: IconButton(
+          onPressed: () => Navigator.pop(context),
+          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 30),
+        ),
+        title: Text('Detail', style: AppTheme.headline(fontSize: 24)),
+        actions: [
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(Icons.more_vert_rounded, size: 30),
+          ),
+        ],
+      ),
+      body: ListView(
+        padding: const EdgeInsets.fromLTRB(20, 34, 20, 28),
+        children: [
+          _RoomImageHero(imageUrls: listing.imageUrls),
+          const SizedBox(height: 34),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.headline(
+                    fontSize: 22,
+                    color: const Color(0xFF3F4145),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: '₹${listing.price.toStringAsFixed(0)}',
+                      style: AppTheme.headline(
+                        fontSize: 24,
+                        color: const Color(0xFF3F4145),
+                      ),
+                    ),
+                    TextSpan(
+                      text: ' pm',
+                      style: AppTheme.body(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF8E8E8E),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+          Row(
+            children: [
+              const Icon(Icons.location_on, color: Color(0xFF8E8E8E), size: 28),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text(
+                  listing.location,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.body(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF8E8E8E),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 66),
+          Text(
+            'Basic Info',
+            style: AppTheme.headline(
+              fontSize: 20,
+              color: const Color(0xFF3F4145),
+            ),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            children: [
+              Expanded(
+                child: _BasicInfoCard(
+                  icon: Icons.transgender_rounded,
+                  label: 'Gender',
+                  value: lookingFor,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _BasicInfoCard(
+                  icon: Icons.bed_rounded,
+                  label: 'Occupancy',
+                  value: occupancy,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: _BasicInfoCard(
+                  icon: Icons.manage_search_rounded,
+                  label: 'Looking For',
+                  value: lookingFor,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 66),
+          Text(
+            'Amenities',
+            style: AppTheme.headline(
+              fontSize: 20,
+              color: const Color(0xFF3F4145),
+            ),
+          ),
+          if (amenities.isNotEmpty) ...[
+            const SizedBox(height: 20),
+            Wrap(
+              spacing: 12,
+              runSpacing: 14,
+              children: amenities
+                  .map((amenity) => _RequirementHighlightChip(label: amenity))
+                  .toList(),
+            ),
+          ],
+          if (listing.description.trim().isNotEmpty) ...[
+            const SizedBox(height: 44),
+            Text(
+              'Description',
+              style: AppTheme.headline(
+                fontSize: 20,
+                color: const Color(0xFF3F4145),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              listing.description.trim(),
+              style: AppTheme.body(
+                fontSize: 16,
+                fontWeight: FontWeight.w500,
+                color: AppColors.onSurfaceVariant,
+                height: 1.55,
+              ),
+            ),
+          ],
+        ],
+      ),
+      bottomNavigationBar: _RequirementContactBar(
+        listing: listing,
+        gender: lookingFor,
+        onStartChat: onStartChat,
+      ),
+    );
+  }
+
+  String get _occupancyFromHighlights {
+    const occupancyValues = {'Single', 'Double', 'Triple'};
+    for (final highlight in listing.highlights) {
+      final cleaned = highlight.trim();
+      if (occupancyValues.contains(cleaned)) {
+        return cleaned;
+      }
+    }
+    return 'Any';
+  }
+
+  List<String> get _amenities {
+    const hidden = {'Single', 'Double', 'Triple', 'Mobile public', 'Chat only'};
+    return listing.highlights
+        .map((item) => item.trim())
+        .where(
+          (item) =>
+              item.isNotEmpty &&
+              !hidden.contains(item) &&
+              !item.startsWith('Looking for '),
+        )
+        .toList();
+  }
+}
+
+class _RoomImageHero extends StatelessWidget {
+  final List<String> imageUrls;
+
+  const _RoomImageHero({required this.imageUrls});
+
+  @override
+  Widget build(BuildContext context) {
+    final hasImages = imageUrls.isNotEmpty;
+
+    return GestureDetector(
+      onTap: hasImages
+          ? () => _openImageViewer(context, imageUrls: imageUrls)
+          : null,
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(18),
+        child: AspectRatio(
+          aspectRatio: 1.55,
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              if (hasImages)
+                CachedNetworkImage(
+                  imageUrl: imageUrls.first,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, _, _) => _fallback(),
+                )
+              else
+                _fallback(),
+              if (hasImages)
+                Container(color: Colors.black.withValues(alpha: 0.52)),
+              if (hasImages)
+                Center(
+                  child: Text(
+                    'Tap to view images',
+                    style: AppTheme.body(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _fallback() {
+    return Container(
+      color: AppColors.surfaceContainerHigh,
+      child: const Center(
+        child: Icon(
+          Icons.home_work_rounded,
+          size: 56,
+          color: AppColors.outline,
+        ),
+      ),
+    );
+  }
+}
+
+class _GenericImagePager extends StatelessWidget {
+  final List<String> imageUrls;
+
+  const _GenericImagePager({required this.imageUrls});
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 320,
+      child: PageView(
+        children: (imageUrls.isEmpty ? [''] : imageUrls).map((imageUrl) {
+          return GestureDetector(
+            onTap: imageUrl.isEmpty
+                ? null
+                : () => _openImageViewer(
+                    context,
+                    imageUrls: imageUrls,
+                    initialIndex: imageUrls.indexOf(imageUrl),
+                  ),
+            child: imageUrl.isEmpty
+                ? Container(
+                    color: AppColors.surfaceContainerHigh,
+                    child: const Icon(
+                      Icons.home_work_rounded,
+                      size: 54,
+                      color: AppColors.outline,
+                    ),
+                  )
+                : CachedNetworkImage(
+                    imageUrl: imageUrl,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, _, _) =>
+                        Container(color: AppColors.surfaceContainerHigh),
+                  ),
+          );
+        }).toList(),
+      ),
+    );
+  }
+}
+
+void _openImageViewer(
+  BuildContext context, {
+  required List<String> imageUrls,
+  int initialIndex = 0,
+}) {
+  if (imageUrls.isEmpty) {
+    return;
+  }
+  Navigator.push(
+    context,
+    MaterialPageRoute(
+      builder: (_) => _FullscreenImageViewer(
+        imageUrls: imageUrls.take(3).toList(),
+        initialIndex: initialIndex.clamp(0, imageUrls.length - 1),
+      ),
+    ),
+  );
+}
+
+class _FullscreenImageViewer extends StatefulWidget {
+  final List<String> imageUrls;
+  final int initialIndex;
+
+  const _FullscreenImageViewer({
+    required this.imageUrls,
+    required this.initialIndex,
+  });
+
+  @override
+  State<_FullscreenImageViewer> createState() => _FullscreenImageViewerState();
+}
+
+class _FullscreenImageViewerState extends State<_FullscreenImageViewer> {
+  late final PageController _controller;
+  late int _index;
+
+  @override
+  void initState() {
+    super.initState();
+    _index = widget.initialIndex;
+    _controller = PageController(initialPage: widget.initialIndex);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            PageView.builder(
+              controller: _controller,
+              itemCount: widget.imageUrls.length,
+              onPageChanged: (index) => setState(() => _index = index),
+              itemBuilder: (context, index) {
+                return InteractiveViewer(
+                  minScale: 1,
+                  maxScale: 4,
+                  child: Center(
+                    child: CachedNetworkImage(
+                      imageUrl: widget.imageUrls[index],
+                      fit: BoxFit.contain,
+                      errorWidget: (_, _, _) => const Icon(
+                        Icons.broken_image_rounded,
+                        color: Colors.white,
+                        size: 54,
+                      ),
+                    ),
+                  ),
+                );
+              },
+            ),
+            Positioned(
+              top: 10,
+              left: 8,
+              child: IconButton(
+                onPressed: () => Navigator.pop(context),
+                icon: const Icon(Icons.close_rounded),
+                color: Colors.white,
+                iconSize: 32,
+                tooltip: 'Close',
+              ),
+            ),
+            Positioned(
+              top: 18,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.black.withValues(alpha: 0.45),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Text(
+                    '${_index + 1}/${widget.imageUrls.length}',
+                    style: AppTheme.body(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
