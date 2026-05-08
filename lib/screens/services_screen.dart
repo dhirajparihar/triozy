@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 
-import '../models/listing_model.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'housing_entry_screen.dart';
-import 'search_results_screen.dart';
+import 'marketplace_screen.dart';
 
 class ServicesScreen extends StatelessWidget {
   const ServicesScreen({super.key});
@@ -31,9 +30,7 @@ class ServicesScreen extends StatelessWidget {
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (_) => const SearchResultsScreen(
-              initialPropertyType: PropertyType.item,
-            ),
+            builder: (_) => const MarketplaceScreen(),
           ),
         ),
       ),

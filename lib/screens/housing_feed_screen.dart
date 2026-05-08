@@ -10,12 +10,16 @@ import '../widgets/listing_card.dart';
 import 'listing_detail_screen.dart';
 
 class HousingFeedScreen extends StatelessWidget {
-  const HousingFeedScreen({super.key});
+  final int initialTabIndex;
+
+  const HousingFeedScreen({super.key, this.initialTabIndex = 0})
+    : assert(initialTabIndex >= 0 && initialTabIndex < 3);
 
   @override
   Widget build(BuildContext context) {
     return DefaultTabController(
       length: 3,
+      initialIndex: initialTabIndex,
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(

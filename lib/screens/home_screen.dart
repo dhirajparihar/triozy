@@ -120,25 +120,37 @@ class HomeScreenState extends State<HomeScreen> {
           if (_loading)
             const _HomeLoadingState()
           else
-            SizedBox(
-              height: 330,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: _featured.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 16),
-                itemBuilder: (context, index) {
-                  final listing = _featured[index];
-                  return SizedBox(
-                    width: 290,
-                    child: ListingCard(
-                      listing: listing,
-                      onTap: () => _openListing(listing),
-                      onSaveTap: () => _toggleSave(listing.id),
-                      isSaved: _savedIds.contains(listing.id),
-                    ),
-                  );
-                },
-              ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final availableWidth = constraints.maxWidth;
+                final cardWidth = availableWidth < 480
+                    ? availableWidth - 8
+                    : availableWidth < 900
+                    ? 320.0
+                    : 360.0;
+                final cardHeight = availableWidth < 480 ? 348.0 : 372.0;
+
+                return SizedBox(
+                  height: cardHeight,
+                  child: ListView.separated(
+                    scrollDirection: Axis.horizontal,
+                    itemCount: _featured.length,
+                    separatorBuilder: (_, _) => const SizedBox(width: 16),
+                    itemBuilder: (context, index) {
+                      final listing = _featured[index];
+                      return SizedBox(
+                        width: cardWidth,
+                        child: ListingCard(
+                          listing: listing,
+                          onTap: () => _openListing(listing),
+                          onSaveTap: () => _toggleSave(listing.id),
+                          isSaved: _savedIds.contains(listing.id),
+                        ),
+                      );
+                    },
+                  ),
+                );
+              },
             ),
           const SizedBox(height: 28),
           const _LivingStrip(),
@@ -233,10 +245,26 @@ class _QuickCategoryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final categories = [
-      (PropertyType.room, Icons.bed_rounded),
-      (PropertyType.flat, Icons.groups_rounded),
-      (PropertyType.pg, Icons.apartment_rounded),
-      (PropertyType.item, Icons.chair_alt_rounded),
+      (
+        propertyType: PropertyType.room,
+        icon: Icons.bed_rounded,
+        label: 'Rooms',
+      ),
+      (
+        propertyType: PropertyType.flat,
+        icon: Icons.groups_rounded,
+        label: 'Flatmates',
+      ),
+      (
+        propertyType: PropertyType.pg,
+        icon: Icons.apartment_rounded,
+        label: 'PGs',
+      ),
+      (
+        propertyType: PropertyType.item,
+        icon: Icons.shopping_bag_rounded,
+        label: 'Marketplace',
+      ),
     ];
 
     return SizedBox(
@@ -250,7 +278,7 @@ class _QuickCategoryRow extends StatelessWidget {
             child: Padding(
               padding: EdgeInsets.only(right: isLast ? 0 : 10),
               child: GestureDetector(
-                onTap: () => onPropertyTypeSelected?.call(entry.$1),
+                onTap: () => onPropertyTypeSelected?.call(entry.propertyType),
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
@@ -277,7 +305,7 @@ class _QuickCategoryRow extends StatelessWidget {
                             borderRadius: BorderRadius.circular(14),
                           ),
                           child: Icon(
-                            entry.$2,
+                            entry.icon,
                             color: AppColors.primary,
                             size: 20,
                           ),
@@ -286,7 +314,7 @@ class _QuickCategoryRow extends StatelessWidget {
                     ),
                     const SizedBox(height: 10),
                     Text(
-                      entry.$1.label,
+                      entry.label,
                       textAlign: TextAlign.center,
                       style: AppTheme.body(
                         fontSize: 13,

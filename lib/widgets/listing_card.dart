@@ -243,142 +243,217 @@ class _RequirementListingCard extends StatelessWidget {
         .replaceFirst('Up to ', '')
         .replaceFirst('Rs ', '');
 
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: AppColors.outlineVariant.withValues(alpha: 0.28),
-          ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.05),
-              blurRadius: 14,
-              offset: const Offset(0, 6),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final cardWidth = constraints.maxWidth.isFinite
+            ? constraints.maxWidth
+            : 320.0;
+        final useStackedHeader = cardWidth < 270;
+        final fillsHeight = constraints.hasBoundedHeight;
+        final avatarSize = cardWidth < 320 ? 74.0 : 86.0;
+
+        return GestureDetector(
+          onTap: onTap,
+          child: ConstrainedBox(
+            constraints: BoxConstraints(
+              minHeight: fillsHeight ? constraints.maxHeight : 0,
             ),
-          ],
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Padding(
-              padding: EdgeInsets.fromLTRB(
-                isNarrow ? 10 : 12,
-                isNarrow ? 12 : 14,
-                isNarrow ? 10 : 12,
-                isNarrow ? 12 : 14,
-              ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  _ProfilePhoto(
-                    photoUrl: listing.ownerPhotoUrl,
-                    name: listing.ownerName,
-                    size: isNarrow ? 104 : 128,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(28),
+                border: Border.all(
+                  color: AppColors.outlineVariant.withValues(alpha: 0.22),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.07),
+                    blurRadius: 28,
+                    offset: const Offset(0, 14),
                   ),
-                  SizedBox(width: isNarrow ? 12 : 16),
-                  Expanded(
+                ],
+              ),
+              child: Column(
+                mainAxisSize: fillsHeight ? MainAxisSize.max : MainAxisSize.min,
+                children: [
+                  Container(
+                    padding: EdgeInsets.fromLTRB(
+                      isNarrow ? 14 : 18,
+                      isNarrow ? 14 : 18,
+                      isNarrow ? 14 : 18,
+                      isNarrow ? 16 : 18,
+                    ),
+                    decoration: BoxDecoration(
+                      borderRadius: const BorderRadius.vertical(
+                        top: Radius.circular(28),
+                      ),
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          AppColors.blue50,
+                          AppColors.primaryFixed.withValues(alpha: 0.72),
+                        ],
+                      ),
+                    ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
                       children: [
+                        _Badge(
+                          label: listing.purposeLabel,
+                          background: Colors.white.withValues(alpha: 0.94),
+                          foreground: AppColors.primary,
+                        ),
+                        SizedBox(height: useStackedHeader ? 12 : 14),
+                        if (useStackedHeader)
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              _ProfilePhoto(
+                                photoUrl: listing.ownerPhotoUrl,
+                                name: listing.ownerName,
+                                size: avatarSize,
+                              ),
+                              const SizedBox(height: 14),
+                              _RequirementIdentity(
+                                name: _displayName,
+                                location: listing.location,
+                                isNarrow: isNarrow,
+                              ),
+                            ],
+                          )
+                        else
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              _ProfilePhoto(
+                                photoUrl: listing.ownerPhotoUrl,
+                                name: listing.ownerName,
+                                size: avatarSize,
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _RequirementIdentity(
+                                  name: _displayName,
+                                  location: listing.location,
+                                  isNarrow: isNarrow,
+                                ),
+                              ),
+                            ],
+                          ),
+                        const SizedBox(height: 16),
                         Text(
-                          _displayName,
-                          maxLines: 1,
+                          listing.title,
+                          maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                           style: AppTheme.body(
-                            fontSize: isNarrow ? 18 : 20,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.onSurface,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                        _MatchInfoRow(
-                          icon: Icons.location_on,
-                          text: listing.location,
-                          fontSize: isNarrow ? 14 : 15,
-                        ),
-                        const SizedBox(height: 6),
-                        _RentMatchRow(
-                          rentText: '$rentLabel Rent',
-                          matchText: '100% Match',
-                          fontSize: isNarrow ? 14 : 15,
-                        ),
-                        const SizedBox(height: 6),
-                        _MatchInfoRow(
-                          icon: Icons.person_rounded,
-                          text: preference.isEmpty
-                              ? 'Looking for ${listing.propertyTypeLabel}'
-                              : 'Looking for $preference',
-                          fontSize: isNarrow ? 14 : 15,
-                        ),
-                        if (occupancy.isNotEmpty) ...[
-                          const SizedBox(height: 6),
-                          _MatchInfoRow(
-                            icon: Icons.king_bed_rounded,
-                            text: occupancy,
                             fontSize: isNarrow ? 14 : 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.onSurface,
+                            height: 1.35,
                           ),
-                        ],
+                        ),
+                        const SizedBox(height: 14),
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            _InfoChip(
+                              icon: Icons.currency_rupee_rounded,
+                              label: '$rentLabel budget',
+                            ),
+                            const _InfoChip(
+                              icon: Icons.extension_rounded,
+                              label: '100% match',
+                            ),
+                            _InfoChip(
+                              icon: Icons.person_rounded,
+                              label: preference.isEmpty
+                                  ? 'Needs ${listing.propertyTypeLabel}'
+                                  : preference,
+                            ),
+                            if (occupancy.isNotEmpty)
+                              _InfoChip(
+                                icon: Icons.king_bed_rounded,
+                                label: occupancy,
+                              ),
+                          ],
+                        ),
                       ],
                     ),
                   ),
-                ],
-              ),
-            ),
-            const Divider(height: 1, color: AppColors.outlineVariant),
-            Padding(
-              padding: EdgeInsets.symmetric(
-                horizontal: isNarrow ? 10 : 12,
-                vertical: isNarrow ? 10 : 12,
-              ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      'Tap to view details',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTheme.body(
-                        fontSize: isNarrow ? 13 : 14,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.slate500,
-                      ),
+                  if (fillsHeight) const Spacer(),
+                  Padding(
+                    padding: EdgeInsets.fromLTRB(
+                      isNarrow ? 14 : 18,
+                      14,
+                      isNarrow ? 14 : 18,
+                      isNarrow ? 14 : 18,
                     ),
-                  ),
-                  GestureDetector(
-                    onTap: onTap,
                     child: Container(
-                      width: isNarrow ? 38 : 44,
-                      height: isNarrow ? 38 : 44,
-                      decoration: const BoxDecoration(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: isNarrow ? 12 : 14,
+                        vertical: isNarrow ? 12 : 14,
+                      ),
+                      decoration: BoxDecoration(
                         color: AppColors.surfaceContainerLow,
-                        shape: BoxShape.circle,
+                        borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Icon(
-                        Icons.chat_bubble_rounded,
-                        color: AppColors.slate400,
-                        size: isNarrow ? 18 : 20,
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'View profile details',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTheme.body(
+                                    fontSize: isNarrow ? 13 : 14,
+                                    fontWeight: FontWeight.w800,
+                                    color: AppColors.onSurface,
+                                  ),
+                                ),
+                                const SizedBox(height: 3),
+                                Text(
+                                  'Open listing and start the conversation.',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTheme.body(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.slate500,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Container(
+                            width: isNarrow ? 42 : 46,
+                            height: isNarrow ? 42 : 46,
+                            decoration: const BoxDecoration(
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(
+                              Icons.arrow_forward_rounded,
+                              color: Colors.white,
+                              size: 20,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    'View',
-                    style: AppTheme.body(
-                      fontSize: isNarrow ? 14 : 15,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.primary,
                     ),
                   ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -388,103 +463,96 @@ class _RequirementListingCard extends StatelessWidget {
   }
 }
 
-class _MatchInfoRow extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final double fontSize;
+class _RequirementIdentity extends StatelessWidget {
+  final String name;
+  final String location;
+  final bool isNarrow;
 
-  const _MatchInfoRow({
-    required this.icon,
-    required this.text,
-    required this.fontSize,
+  const _RequirementIdentity({
+    required this.name,
+    required this.location,
+    required this.isNarrow,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Icon(icon, size: fontSize + 5, color: AppColors.slate500),
-        const SizedBox(width: 7),
-        Expanded(
-          child: Text(
-            text,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppTheme.body(
-              fontSize: fontSize,
-              fontWeight: FontWeight.w600,
+        Text(
+          name,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTheme.body(
+            fontSize: isNarrow ? 18 : 21,
+            fontWeight: FontWeight.w800,
+            color: AppColors.onSurface,
+          ),
+        ),
+        const SizedBox(height: 6),
+        Row(
+          children: [
+            const Icon(
+              Icons.location_on_rounded,
+              size: 16,
               color: AppColors.slate500,
             ),
-          ),
+            const SizedBox(width: 4),
+            Expanded(
+              child: Text(
+                location,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTheme.body(
+                  fontSize: isNarrow ? 13 : 14,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.slate500,
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
   }
 }
 
-class _RentMatchRow extends StatelessWidget {
-  final String rentText;
-  final String matchText;
-  final double fontSize;
+class _InfoChip extends StatelessWidget {
+  final IconData icon;
+  final String label;
 
-  const _RentMatchRow({
-    required this.rentText,
-    required this.matchText,
-    required this.fontSize,
-  });
+  const _InfoChip({required this.icon, required this.label});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Icon(
-          Icons.currency_rupee_rounded,
-          size: fontSize + 5,
-          color: AppColors.slate500,
-        ),
-        const SizedBox(width: 5),
-        Flexible(
-          child: Text(
-            rentText,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppTheme.body(
-              fontSize: fontSize,
-              fontWeight: FontWeight.w600,
-              color: AppColors.slate500,
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.86),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: AppColors.primary.withValues(alpha: 0.10)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 15, color: AppColors.primary),
+          const SizedBox(width: 6),
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 150),
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.label(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: AppColors.onSurface,
+              ),
             ),
           ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10),
-          child: Text(
-            '|',
-            style: AppTheme.body(
-              fontSize: fontSize,
-              fontWeight: FontWeight.w800,
-              color: AppColors.slate500,
-            ),
-          ),
-        ),
-        Icon(
-          Icons.extension_rounded,
-          size: fontSize + 5,
-          color: AppColors.slate500,
-        ),
-        const SizedBox(width: 5),
-        Flexible(
-          child: Text(
-            matchText,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: AppTheme.body(
-              fontSize: fontSize,
-              fontWeight: FontWeight.w600,
-              color: AppColors.slate500,
-            ),
-          ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
