@@ -26,20 +26,43 @@ class HousingFeedScreen extends StatelessWidget {
           backgroundColor: Colors.white,
           foregroundColor: AppColors.onSurface,
           elevation: 0,
-          title: const Text('Housing'),
-          bottom: TabBar(
-            indicatorColor: AppColors.primary,
-            labelColor: AppColors.primary,
-            unselectedLabelColor: AppColors.onSurfaceVariant,
-            labelStyle: AppTheme.body(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
+          toolbarHeight: 48,
+          titleSpacing: 4,
+          title: Text(
+            'Housing',
+            style: AppTheme.headline(fontSize: 23, letterSpacing: 0),
+          ),
+          bottom: PreferredSize(
+            preferredSize: const Size.fromHeight(48),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TabBar(
+                  indicator: const UnderlineTabIndicator(
+                    borderSide: BorderSide(color: AppColors.primary, width: 4),
+                    borderRadius: BorderRadius.vertical(
+                      top: Radius.circular(4),
+                    ),
+                  ),
+                  indicatorSize: TabBarIndicatorSize.label,
+                  labelColor: AppColors.onSurface,
+                  unselectedLabelColor: AppColors.slate500,
+                  labelStyle: AppTheme.body(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w900,
+                  ),
+                  unselectedLabelStyle: AppTheme.body(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                  tabs: const [
+                    Tab(text: 'Rooms'),
+                    Tab(text: 'Flatmates'),
+                    Tab(text: 'PGs'),
+                  ],
+                ),
+              ],
             ),
-            tabs: const [
-              Tab(text: 'Rooms'),
-              Tab(text: 'Flatmates'),
-              Tab(text: 'PGs'),
-            ],
           ),
         ),
         body: const TabBarView(

@@ -15,11 +15,12 @@ class HousingEntryScreen extends StatelessWidget {
 
   static Future<Route<void>> buildRoute() async {
     final user = FirebaseAuth.instance.currentUser;
-    final hasPostedListing =
-        user != null && await DatabaseService().hasUserPostedListing(user.uid);
+    final hasPostedHousingListing =
+        user != null &&
+        await DatabaseService().hasUserPostedHousingListing(user.uid);
 
     return MaterialPageRoute<void>(
-      builder: (_) => hasPostedListing
+      builder: (_) => hasPostedHousingListing
           ? const HousingFeedScreen()
           : const _HousingChoiceScreen(),
     );
