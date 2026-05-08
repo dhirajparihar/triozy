@@ -222,7 +222,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       label: 'Occupation',
                       icon: Icons.work_outline_rounded,
                       value: _occupation,
-                      items: const ['Student', 'Professional'],
+                      items: const [
+                        DropdownMenuItem(
+                          value: 'student',
+                          child: Text('Student'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'professional',
+                          child: Text('Professional'),
+                        ),
+                      ],
                       onChanged: (val) => setState(() => _occupation = val),
                     ),
                     const SizedBox(height: 20),
@@ -237,10 +246,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       icon: Icons.person_search_outlined,
                       value: _gender,
                       items: const [
-                        'Male',
-                        'Female',
-                        'Other',
-                        'Prefer not to say',
+                        DropdownMenuItem(value: 'Male', child: Text('Male')),
+                        DropdownMenuItem(
+                          value: 'Female',
+                          child: Text('Female'),
+                        ),
+                        DropdownMenuItem(value: 'Other', child: Text('Other')),
+                        DropdownMenuItem(
+                          value: 'Prefer not to say',
+                          child: Text('Prefer not to say'),
+                        ),
                       ],
                       onChanged: (val) => setState(() => _gender = val),
                     ),
@@ -379,11 +394,14 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required String label,
     required IconData icon,
     required String? value,
-    required List<String> items,
+    required List<DropdownMenuItem<String>> items,
     required void Function(String?) onChanged,
   }) {
+    // Check if the value exists in the provided items
+    final hasValue = value != null && items.any((item) => item.value == value);
+
     return DropdownButtonFormField<String>(
-      initialValue: (value != null && items.contains(value)) ? value : null,
+      initialValue: hasValue ? value : null,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: AppColors.primary),
@@ -403,9 +421,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           borderSide: const BorderSide(color: AppColors.primary, width: 2),
         ),
       ),
-      items: items.map((item) {
-        return DropdownMenuItem(value: item, child: Text(item));
-      }).toList(),
+      items: items,
       onChanged: onChanged,
     );
   }

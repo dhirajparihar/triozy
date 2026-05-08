@@ -11,11 +11,13 @@ import 'listing_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onExploreTapped;
+  final VoidCallback? onSearchTapped;
   final ValueChanged<PropertyType>? onPropertyTypeSelected;
 
   const HomeScreen({
     super.key,
     this.onExploreTapped,
+    this.onSearchTapped,
     this.onPropertyTypeSelected,
   });
 
@@ -64,9 +66,9 @@ class HomeScreenState extends State<HomeScreen> {
   Future<void> _toggleSave(String listingId) async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sign in to save listings')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Sign in to save listings')));
       return;
     }
 
@@ -87,7 +89,8 @@ class HomeScreenState extends State<HomeScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ListingDetailScreen(listingId: listing.id, seed: listing),
+        builder: (_) =>
+            ListingDetailScreen(listingId: listing.id, seed: listing),
       ),
     );
   }
@@ -101,10 +104,12 @@ class HomeScreenState extends State<HomeScreen> {
         padding: const EdgeInsets.fromLTRB(20, 12, 20, 110),
         children: [
           _HeroSection(
-            onSearchTap: widget.onExploreTapped,
+            onSearchTap: widget.onSearchTapped ?? widget.onExploreTapped,
           ),
           const SizedBox(height: 24),
-          _QuickCategoryRow(onPropertyTypeSelected: widget.onPropertyTypeSelected),
+          _QuickCategoryRow(
+            onPropertyTypeSelected: widget.onPropertyTypeSelected,
+          ),
           const SizedBox(height: 28),
           _SectionHeader(
             title: 'Featured for your move',
@@ -134,7 +139,7 @@ class HomeScreenState extends State<HomeScreen> {
                   );
                 },
               ),
-          ),
+            ),
           const SizedBox(height: 28),
           const _LivingStrip(),
         ],
@@ -159,7 +164,9 @@ class _HeroSection extends StatelessWidget {
           colors: [Color(0xFFF6F9FF), Color(0xFFEAF1FF)],
         ),
         borderRadius: BorderRadius.circular(32),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.18),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -269,7 +276,11 @@ class _QuickCategoryRow extends StatelessWidget {
                             color: AppColors.blue50,
                             borderRadius: BorderRadius.circular(14),
                           ),
-                          child: Icon(entry.$2, color: AppColors.primary, size: 20),
+                          child: Icon(
+                            entry.$2,
+                            color: AppColors.primary,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),
@@ -277,7 +288,10 @@ class _QuickCategoryRow extends StatelessWidget {
                     Text(
                       entry.$1.label,
                       textAlign: TextAlign.center,
-                      style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w700),
+                      style: AppTheme.body(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                      ),
                     ),
                   ],
                 ),
@@ -306,7 +320,9 @@ class _LivingStrip extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.18)),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.18),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -321,12 +337,19 @@ class _LivingStrip extends StatelessWidget {
               padding: const EdgeInsets.only(bottom: 10),
               child: Row(
                 children: [
-                  const Icon(Icons.check_circle_rounded, color: AppColors.primary, size: 18),
+                  const Icon(
+                    Icons.check_circle_rounded,
+                    color: AppColors.primary,
+                    size: 18,
+                  ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: Text(
                       item,
-                      style: AppTheme.body(fontSize: 14, fontWeight: FontWeight.w600),
+                      style: AppTheme.body(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                   ),
                 ],

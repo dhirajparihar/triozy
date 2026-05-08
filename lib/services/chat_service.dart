@@ -7,14 +7,12 @@ class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  String _normalizeUid(String raw) {
-    final value = raw.trim();
-    if (value.isEmpty || !value.contains('_')) {
-      return value;
+  String _currentUserIdOrThrow() {
+    final currentUserId = normalizeChatUid(_auth.currentUser?.uid ?? '');
+    if (currentUserId.isEmpty) {
+      throw Exception('User not authenticated');
     }
-    final tail = value.split('_').last.trim();
-    final looksLikeUid = RegExp(r'^[A-Za-z0-9]{20,}$').hasMatch(tail);
-    return looksLikeUid ? tail : value;
+    return currentUserId;
   }
 
   String _generateChatId(
@@ -32,17 +30,67 @@ class ChatService {
     required String otherUserId,
     required ChatType chatType,
     required String referenceId,
+    required String listingTitle,
+    required String otherUserName,
+    required String otherUserPhotoUrl,
+    required String currentUserName,
+    required String currentUserPhotoUrl,
   }) {
     final now = FieldValue.serverTimestamp();
     return {
       'participants': [currentUserId, otherUserId],
+      'participantMeta': {
+        currentUserId: {
+          'name': currentUserName.trim(),
+          'photoUrl': currentUserPhotoUrl.trim(),
+        },
+        otherUserId: {
+          'name': otherUserName.trim(),
+          'photoUrl': otherUserPhotoUrl.trim(),
+        },
+      },
       'chatType': chatType.value,
       'referenceId': referenceId,
+      'listingTitle': listingTitle.trim(),
       'lastMessage': '',
+      'lastMessageType': 'text',
       'lastMessageTime': now,
       'lastSenderId': '',
-      'lastReadAt': {currentUserId: now},
+      'lastReadAt': {currentUserId: now, otherUserId: now},
+      'unreadCountByUser': {currentUserId: 0, otherUserId: 0},
+      'typingByUser': {currentUserId: false, otherUserId: false},
       'createdAt': now,
+    };
+  }
+
+  Map<String, dynamic> _conversationMergePayload({
+    required String currentUserId,
+    required String otherUserId,
+    required ChatType chatType,
+    required String referenceId,
+    required String listingTitle,
+    required String otherUserName,
+    required String otherUserPhotoUrl,
+    required String currentUserName,
+    required String currentUserPhotoUrl,
+  }) {
+    return {
+      'participants': [currentUserId, otherUserId],
+      'participantMeta': {
+        currentUserId: {
+          'name': currentUserName.trim(),
+          'photoUrl': currentUserPhotoUrl.trim(),
+        },
+        otherUserId: {
+          'name': otherUserName.trim(),
+          'photoUrl': otherUserPhotoUrl.trim(),
+        },
+      },
+      'chatType': chatType.value,
+      'referenceId': referenceId,
+      'listingTitle': listingTitle.trim(),
+      'unreadCountByUser': {currentUserId: 0, otherUserId: 0},
+      'typingByUser': {currentUserId: false, otherUserId: false},
     };
   }
 
@@ -50,6 +98,7 @@ class ChatService {
     required String otherUserId,
     required ChatType chatType,
     required String referenceId,
+    required String listingTitle,
     String? otherUserName,
     String? otherUserPhotoUrl,
     String? otherUserLocation,
@@ -57,9 +106,8 @@ class ChatService {
     String? currentUserPhotoUrl,
     String? currentUserLocation,
   }) async {
-    final currentUserId = _normalizeUid(_auth.currentUser?.uid ?? '');
-    if (currentUserId.isEmpty) throw Exception('User not authenticated');
-    final normalizedOtherUserId = _normalizeUid(otherUserId);
+    final currentUserId = _currentUserIdOrThrow();
+    final normalizedOtherUserId = normalizeChatUid(otherUserId);
     if (normalizedOtherUserId.isEmpty) {
       throw Exception('Invalid recipient');
     }
@@ -71,34 +119,57 @@ class ChatService {
       referenceId,
     );
     final ref = _firestore.collection('chats').doc(chatId);
-    final snapshot = await ref.get();
-    if (snapshot.exists) {
-      return chatId;
+
+    try {
+      await ref.set(
+        _conversationPayload(
+          currentUserId: currentUserId,
+          otherUserId: normalizedOtherUserId,
+          chatType: chatType,
+          referenceId: referenceId,
+          listingTitle: listingTitle,
+          otherUserName: otherUserName ?? 'User',
+          otherUserPhotoUrl: otherUserPhotoUrl ?? '',
+          currentUserName: currentUserName ?? 'You',
+          currentUserPhotoUrl: currentUserPhotoUrl ?? '',
+        ),
+      );
+    } on FirebaseException catch (error) {
+      if (error.code != 'permission-denied') {
+        rethrow;
+      }
+      await ref.set(
+        _conversationMergePayload(
+          currentUserId: currentUserId,
+          otherUserId: normalizedOtherUserId,
+          chatType: chatType,
+          referenceId: referenceId,
+          listingTitle: listingTitle,
+          otherUserName: otherUserName ?? 'User',
+          otherUserPhotoUrl: otherUserPhotoUrl ?? '',
+          currentUserName: currentUserName ?? 'You',
+          currentUserPhotoUrl: currentUserPhotoUrl ?? '',
+        ),
+        SetOptions(merge: true),
+      );
     }
 
-    await ref.set(
-      _conversationPayload(
-        currentUserId: currentUserId,
-        otherUserId: normalizedOtherUserId,
-        chatType: chatType,
-        referenceId: referenceId,
-      ),
-    );
     return chatId;
   }
 
-  Future<void> sendMessage(String conversationId, String text) async {
-    final currentUserIdRaw = _auth.currentUser?.uid;
-    if (currentUserIdRaw == null) throw Exception('User not authenticated');
-
-    final currentUserId = _normalizeUid(currentUserIdRaw);
+  Future<void> sendMessage(
+    String conversationId,
+    String text, {
+    required String clientId,
+  }) async {
+    final currentUserId = _currentUserIdOrThrow();
     final normalizedText = text.trim();
     if (normalizedText.isEmpty) {
       throw Exception('Message cannot be empty');
     }
 
     final conversationRef = _firestore.collection('chats').doc(conversationId);
-    final messageRef = conversationRef.collection('messages').doc();
+    final messageRef = conversationRef.collection('messages').doc(clientId);
 
     await _firestore.runTransaction((txn) async {
       final convDoc = await txn.get(conversationRef);
@@ -108,7 +179,7 @@ class ChatService {
 
       final participants = List<String>.from(
         convDoc.data()?['participants'] ?? const <String>[],
-      ).map(_normalizeUid).toList();
+      ).map(normalizeChatUid).toList();
       if (!participants.contains(currentUserId)) {
         throw Exception('Not a participant of this conversation');
       }
@@ -120,6 +191,7 @@ class ChatService {
       final now = FieldValue.serverTimestamp();
 
       txn.set(messageRef, {
+        'clientId': clientId,
         'senderId': currentUserId,
         'receiverId': receiverId,
         'text': normalizedText,
@@ -128,24 +200,28 @@ class ChatService {
       });
       txn.update(conversationRef, {
         'lastMessage': normalizedText,
+        'lastMessageType': 'text',
         'lastMessageTime': now,
         'lastSenderId': currentUserId,
         'lastReadAt.$currentUserId': now,
+        'unreadCountByUser.$currentUserId': 0,
+        'unreadCountByUser.$receiverId': FieldValue.increment(1),
+        'typingByUser.$currentUserId': false,
       });
     });
   }
 
   Stream<List<ConversationModel>> streamConversations(String userId) {
-    final normalizedUserId = _normalizeUid(userId);
+    final normalizedUserId = normalizeChatUid(userId);
     return _firestore
         .collection('chats')
         .where('participants', arrayContains: normalizedUserId)
         .orderBy('lastMessageTime', descending: true)
+        .limit(40)
         .snapshots()
         .map((snapshot) {
           final conversations = snapshot.docs
               .map((doc) => ConversationModel.fromMap(doc.data(), doc.id))
-              .where((conv) => conv.lastMessage.trim().isNotEmpty)
               .toList();
           conversations.sort(
             (a, b) => b.lastMessageTime.compareTo(a.lastMessageTime),
@@ -159,44 +235,34 @@ class ChatService {
         .collection('chats')
         .doc(conversationId)
         .collection('messages')
-        .orderBy('timestamp', descending: true)
-        .limit(200)
+        .orderBy('timestamp', descending: false)
+        .limit(120)
         .snapshots()
         .map((snapshot) {
-          final messages = snapshot.docs
+          return snapshot.docs
               .map((doc) => MessageModel.fromMap(doc.data(), doc.id))
               .toList();
-          return messages.reversed.toList();
         });
   }
 
   Future<void> markConversationAsRead(String conversationId) async {
-    final currentUserIdRaw = _auth.currentUser?.uid;
-    if (currentUserIdRaw == null) throw Exception('User not authenticated');
-    final currentUserId = _normalizeUid(currentUserIdRaw);
+    final currentUserId = _currentUserIdOrThrow();
     final now = FieldValue.serverTimestamp();
-
-    final snapshot = await _firestore
-        .collection('chats')
-        .doc(conversationId)
-        .collection('messages')
-        .where('status', isEqualTo: 'sent')
-        .limit(500)
-        .get();
-
-    if (snapshot.docs.isNotEmpty) {
-      final batch = _firestore.batch();
-      for (final doc in snapshot.docs) {
-        final receiverRaw = (doc.data()['receiverId'] ?? '').toString().trim();
-        if (receiverRaw == currentUserId) {
-          batch.update(doc.reference, {'status': 'read'});
-        }
-      }
-      await batch.commit();
-    }
 
     await _firestore.collection('chats').doc(conversationId).update({
       'lastReadAt.$currentUserId': now,
+      'unreadCountByUser.$currentUserId': 0,
+      'typingByUser.$currentUserId': false,
+    });
+  }
+
+  Future<void> setTypingStatus(
+    String conversationId, {
+    required bool isTyping,
+  }) async {
+    final currentUserId = _currentUserIdOrThrow();
+    await _firestore.collection('chats').doc(conversationId).update({
+      'typingByUser.$currentUserId': isTyping,
     });
   }
 }
