@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
+import '../models/listing_model.dart';
 import '../providers/chat_provider.dart';
 import '../providers/location_provider.dart';
 import '../services/fcm_service.dart';
@@ -13,7 +14,8 @@ import '../widgets/bottom_nav_bar.dart';
 import '../widgets/top_app_bar.dart';
 import 'chat_list_screen.dart';
 import 'home_screen.dart';
-import 'post_listing_screen.dart';
+import 'housing_feed_screen.dart';
+import 'marketplace_screen.dart';
 import 'search_results_screen.dart';
 import 'services_screen.dart';
 import 'user_profile_screen.dart';
@@ -33,8 +35,6 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   final GlobalKey<HomeScreenState> _homeScreenKey =
       GlobalKey<HomeScreenState>();
-  final GlobalKey<SearchResultsScreenState> _exploreKey =
-      GlobalKey<SearchResultsScreenState>();
 
   int _currentIndex = 0;
   DateTime? _lastBackPressedAt;
@@ -56,13 +56,40 @@ class _MainShellState extends State<MainShell> {
         );
       },
       onPropertyTypeSelected: (propertyType) {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) =>
-                SearchResultsScreen(initialPropertyType: propertyType),
-          ),
-        );
+        switch (propertyType) {
+          case PropertyType.room:
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const HousingFeedScreen(initialTabIndex: 0),
+              ),
+            );
+            break;
+          case PropertyType.flat:
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const HousingFeedScreen(initialTabIndex: 1),
+              ),
+            );
+            break;
+          case PropertyType.pg:
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const HousingFeedScreen(initialTabIndex: 2),
+              ),
+            );
+            break;
+          case PropertyType.item:
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => const MarketplaceScreen(),
+              ),
+            );
+            break;
+        }
       },
     ),
     const ServicesScreen(),
@@ -192,17 +219,6 @@ class _MainShellState extends State<MainShell> {
       );
   }
 
-  Future<void> _openPostListing() async {
-    final result = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(builder: (_) => const PostListingScreen()),
-    );
-    if (result == true && mounted) {
-      _homeScreenKey.currentState?.refreshFromShell();
-      _exploreKey.currentState?.focusAndSearch('');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final locationProvider = context.watch<LocationProvider>();
@@ -263,17 +279,6 @@ class _MainShellState extends State<MainShell> {
                 onTap: (index) => setState(() => _currentIndex = index),
               ),
             ),
-            if (_currentIndex <= 1)
-              Positioned(
-                right: 24,
-                bottom: MediaQuery.of(context).padding.bottom + 92,
-                child: FloatingActionButton(
-                  onPressed: _openPostListing,
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  child: const Icon(Icons.add_rounded),
-                ),
-              ),
           ],
         ),
       ),

@@ -8,15 +8,30 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/listing_card.dart';
 import 'listing_detail_screen.dart';
+import 'post_listing_screen.dart';
 
 class SearchResultsScreen extends StatefulWidget {
   final PropertyType? initialPropertyType;
   final String? initialQuery;
+  final ListingType? lockedType;
+  final String title;
+  final String? subtitle;
+  final String? searchHint;
+  final bool showCreateListingButton;
+  final PropertyType? createListingPropertyType;
+  final ListingPurpose? createListingPurpose;
 
   const SearchResultsScreen({
     super.key,
     this.initialPropertyType,
     this.initialQuery,
+    this.lockedType,
+    this.title = 'Explore',
+    this.subtitle,
+    this.searchHint,
+    this.showCreateListingButton = false,
+    this.createListingPropertyType,
+    this.createListingPurpose,
   });
 
   @override
@@ -38,6 +53,9 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
   @override
   void initState() {
     super.initState();
+    if (widget.lockedType != null) {
+      _selectedType = widget.lockedType!;
+    }
     if (widget.initialPropertyType != null) {
       _selectedPropertyType = widget.initialPropertyType;
       _selectedType = widget.initialPropertyType!.listingType;
@@ -150,77 +168,139 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
     );
   }
 
+  Future<void> _openPostListing() async {
+    final result = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PostListingScreen(
+          initialPropertyType: widget.createListingPropertyType,
+          initialPurpose: widget.createListingPurpose,
+        ),
+      ),
+    );
+    if (result == true && mounted) {
+      _loadListings();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Padding(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Explore', style: AppTheme.headline(fontSize: 28)),
-              const SizedBox(height: 16),
-              _buildSearchBar(),
-              const SizedBox(height: 14),
-              _buildTypeTabs(),
-              const SizedBox(height: 12),
-              _buildFilterRow(),
-            ],
-          ),
-        ),
-        Expanded(
-          child: RefreshIndicator(
-            onRefresh: _loadListings,
-            color: AppColors.primary,
-            child: ListView(
-              padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
+    final subtitle = widget.subtitle?.trim() ?? '';
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      floatingActionButton: widget.showCreateListingButton
+          ? FloatingActionButton.extended(
+              onPressed: _openPostListing,
+              backgroundColor: AppColors.primary,
+              foregroundColor: Colors.white,
+              icon: const Icon(Icons.add_rounded),
+              label: Text(
+                'List item',
+                style: AppTheme.body(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w800,
+                  color: Colors.white,
+                ),
+              ),
+            )
+          : null,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 12, 20, 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(widget.title, style: AppTheme.headline(fontSize: 28)),
+                  if (subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 6),
                     Text(
-                      '${_results.length} listings',
+                      subtitle,
                       style: AppTheme.body(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.slate500,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.onSurfaceVariant,
+                        height: 1.5,
                       ),
-                    ),
-                    _SortMenu(
-                      currentValue: _sortBy,
-                      onSelected: (value) {
-                        setState(() {
-                          _sortBy = value;
-                          _results = _sortResults(_results);
-                        });
-                      },
                     ),
                   ],
-                ),
-                const SizedBox(height: 16),
-                if (_loading)
-                  const _ExploreLoadingState()
-                else if (_results.isEmpty)
-                  const _EmptyState()
-                else
-                  ..._results.map((listing) {
-                    return Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: ListingCard(
-                        listing: listing,
-                        compact: true,
-                        onTap: () => _openListing(listing),
-                        onSaveTap: () => _toggleSave(listing.id),
-                        isSaved: _savedIds.contains(listing.id),
-                      ),
-                    );
-                  }),
-              ],
+                  const SizedBox(height: 16),
+                  _buildSearchBar(),
+                  if (widget.lockedType == null) ...[
+                    const SizedBox(height: 14),
+                    _buildTypeTabs(),
+                  ],
+                  const SizedBox(height: 12),
+                  _buildFilterRow(),
+                ],
+              ),
             ),
-          ),
+            Expanded(
+              child: RefreshIndicator(
+                onRefresh: _loadListings,
+                color: AppColors.primary,
+                child: ListView(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 110),
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          '${_results.length} listings',
+                          style: AppTheme.body(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w600,
+                            color: AppColors.slate500,
+                          ),
+                        ),
+                        _SortMenu(
+                          currentValue: _sortBy,
+                          onSelected: (value) {
+                            setState(() {
+                              _sortBy = value;
+                              _results = _sortResults(_results);
+                            });
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    if (_loading)
+                      const _ExploreLoadingState()
+                    else if (_results.isEmpty)
+                      _EmptyState(
+                        title: _selectedType == ListingType.marketplace
+                            ? 'No marketplace items yet'
+                            : 'No listings found',
+                        subtitle: _selectedType == ListingType.marketplace
+                            ? 'Used furniture, appliances, and move-in essentials will appear here once people list them.'
+                            : 'Try another area, category, or budget.',
+                        icon: _selectedType == ListingType.marketplace
+                            ? Icons.shopping_bag_outlined
+                            : Icons.inbox_outlined,
+                      )
+                    else
+                      ..._results.map((listing) {
+                        return Padding(
+                          padding: const EdgeInsets.only(bottom: 16),
+                          child: ListingCard(
+                            listing: listing,
+                            compact: true,
+                            onTap: () => _openListing(listing),
+                            onSaveTap: () => _toggleSave(listing.id),
+                            isSaved: _savedIds.contains(listing.id),
+                          ),
+                        );
+                      }),
+                  ],
+                ),
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
@@ -241,7 +321,9 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
         controller: _searchController,
         focusNode: _searchFocusNode,
         decoration: InputDecoration(
-          hintText: 'Search by title, area, college, company or item',
+          hintText:
+              widget.searchHint ??
+              'Search by title, area, college, company or item',
           prefixIcon: const Icon(Icons.search_rounded),
           suffixIcon: _searchController.text.isEmpty
               ? null
@@ -314,34 +396,42 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
     final propertyTypes = PropertyType.values
         .where((propertyType) => propertyType.listingType == _selectedType)
         .toList();
+    final showPropertyTypeFilters = widget.lockedType == null
+        ? propertyTypes.isNotEmpty
+        : propertyTypes.length > 1;
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: Row(
         children: [
-          ...propertyTypes.map((propertyType) {
-            final selected = _selectedPropertyType == propertyType;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: FilterChip(
-                selected: selected,
-                label: Text(propertyType.label),
-                onSelected: (_) {
-                  setState(() {
-                    _selectedPropertyType = selected ? null : propertyType;
-                  });
-                  _loadListings();
-                },
-                selectedColor: AppColors.blue50,
-                labelStyle: AppTheme.label(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: selected ? AppColors.primary : AppColors.onSurfaceVariant,
+          if (showPropertyTypeFilters)
+            ...propertyTypes.map((propertyType) {
+              final selected = _selectedPropertyType == propertyType;
+              return Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: FilterChip(
+                  selected: selected,
+                  label: Text(propertyType.label),
+                  onSelected: (_) {
+                    setState(() {
+                      _selectedPropertyType = selected ? null : propertyType;
+                    });
+                    _loadListings();
+                  },
+                  selectedColor: AppColors.blue50,
+                  labelStyle: AppTheme.label(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: selected
+                        ? AppColors.primary
+                        : AppColors.onSurfaceVariant,
+                  ),
+                  side: BorderSide(
+                    color: AppColors.outlineVariant.withValues(alpha: 0.25),
+                  ),
                 ),
-                side: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.25)),
-              ),
-            );
-          }),
+              );
+            }),
           Padding(
             padding: const EdgeInsets.only(right: 8),
             child: FilterChip(
@@ -481,7 +571,15 @@ class _ExploreLoadingState extends StatelessWidget {
 }
 
 class _EmptyState extends StatelessWidget {
-  const _EmptyState();
+  final String title;
+  final String subtitle;
+  final IconData icon;
+
+  const _EmptyState({
+    this.title = 'No listings found',
+    this.subtitle = 'Try another area, category, or budget.',
+    this.icon = Icons.inbox_outlined,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -493,12 +591,12 @@ class _EmptyState extends StatelessWidget {
       ),
       child: Column(
         children: [
-          const Icon(Icons.inbox_outlined, size: 40, color: AppColors.slate400),
+          Icon(icon, size: 40, color: AppColors.slate400),
           const SizedBox(height: 12),
-          Text('No listings found', style: AppTheme.headline(fontSize: 20)),
+          Text(title, style: AppTheme.headline(fontSize: 20)),
           const SizedBox(height: 8),
           Text(
-            'Try another area, category, or budget.',
+            subtitle,
             textAlign: TextAlign.center,
             style: AppTheme.body(
               fontSize: 14,
