@@ -129,6 +129,16 @@ class DatabaseService {
     return snapshot.docs.isNotEmpty;
   }
 
+  Future<bool> hasUserPostedHousingListing(String userId) async {
+    final snapshot = await _firestore
+        .collection('listings')
+        .where('ownerId', isEqualTo: userId)
+        .where('type', isEqualTo: ListingType.housing.value)
+        .limit(1)
+        .get();
+    return snapshot.docs.isNotEmpty;
+  }
+
   Stream<List<ListingModel>> streamUserListings(String userId) {
     return _firestore
         .collection('listings')

@@ -1,13 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
-import '../models/listing_model.dart';
 import '../services/database_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'flatmate_room_details_screen.dart';
 import 'housing_feed_screen.dart';
-import 'post_listing_screen.dart';
+import 'pg_listing_form_screen.dart';
 import 'requirement_form_screen.dart';
 
 class HousingEntryScreen extends StatelessWidget {
@@ -15,11 +14,12 @@ class HousingEntryScreen extends StatelessWidget {
 
   static Future<Route<void>> buildRoute() async {
     final user = FirebaseAuth.instance.currentUser;
-    final hasPostedListing =
-        user != null && await DatabaseService().hasUserPostedListing(user.uid);
+    final hasPostedHousingListing =
+        user != null &&
+        await DatabaseService().hasUserPostedHousingListing(user.uid);
 
     return MaterialPageRoute<void>(
-      builder: (_) => hasPostedListing
+      builder: (_) => hasPostedHousingListing
           ? const HousingFeedScreen()
           : const _HousingChoiceScreen(),
     );
@@ -111,13 +111,8 @@ class _HousingChoiceScreen extends StatelessWidget {
                   icon: Icons.apartment_rounded,
                   title: 'List PG',
                   subtitle: 'For PG owners to list their property',
-                  onTap: () => _openFlow(
-                    context,
-                    screen: const PostListingScreen(
-                      initialPropertyType: PropertyType.pg,
-                      initialPurpose: ListingPurpose.offerProperty,
-                    ),
-                  ),
+                  onTap: () =>
+                      _openFlow(context, screen: const PgListingFormScreen()),
                 ),
               ],
             ),
