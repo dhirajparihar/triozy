@@ -18,9 +18,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _phoneController = TextEditingController();
-  final TextEditingController _organizationController = TextEditingController();
 
-  String _occupation = 'student';
   String? _gender;
   bool _saving = false;
 
@@ -28,12 +26,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   void dispose() {
     _nameController.dispose();
     _phoneController.dispose();
-    _organizationController.dispose();
     super.dispose();
   }
-
-  String get _organizationLabel =>
-      _occupation == 'student' ? 'College / School name' : 'Company name';
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) {
@@ -50,8 +44,8 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
       await context.read<AuthService>().completeUserProfile(
         uid: user.uid,
         name: _nameController.text.trim(),
-        occupation: _occupation,
-        organizationName: _organizationController.text.trim(),
+        occupation: '',
+        organizationName: '',
         phoneNumber: _phoneController.text.trim(),
         gender: _gender,
       );
@@ -112,30 +106,6 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 hint: '10-digit mobile number',
                 keyboardType: TextInputType.phone,
                 validator: Validators.validatePhoneNumber,
-              ),
-              const SizedBox(height: 14),
-              DropdownButtonFormField<String>(
-                initialValue: _occupation,
-                decoration: _inputDecoration('Occupation'),
-                items: const [
-                  DropdownMenuItem(value: 'student', child: Text('Student')),
-                  DropdownMenuItem(
-                    value: 'professional',
-                    child: Text('Professional'),
-                  ),
-                ],
-                onChanged: (value) {
-                  if (value == null) {
-                    return;
-                  }
-                  setState(() => _occupation = value);
-                },
-              ),
-              const SizedBox(height: 14),
-              _AppField(
-                controller: _organizationController,
-                label: _organizationLabel,
-                hint: _occupation == 'student' ? 'IIT Indore' : 'Infosys',
               ),
               const SizedBox(height: 14),
               DropdownButtonFormField<String>(
