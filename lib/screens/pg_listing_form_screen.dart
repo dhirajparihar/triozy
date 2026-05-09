@@ -1,9 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:typed_data';
 
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -14,6 +14,7 @@ import '../services/cloudinary_service.dart';
 import '../services/database_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../utils/validators.dart';
 
 class PgListingFormScreen extends StatefulWidget {
   const PgListingFormScreen({super.key});
@@ -27,32 +28,25 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   static const int _maxImagesPerGroup = 4;
   static const int _maxImageBytes = 10 * 1024 * 1024;
 
-  final PageController _pageController = PageController();
   final ImagePicker _picker = ImagePicker();
 
   final _propertyName = TextEditingController();
   final _ownerName = TextEditingController();
   final _contactNumber = TextEditingController();
-  final _whatsAppNumber = TextEditingController();
-  final _fullAddress = TextEditingController();
   final _city = TextEditingController();
   final _area = TextEditingController();
   final _nearby = TextEditingController();
-  final _landmark = TextEditingController();
   final _securityDeposit = TextEditingController();
-  final _maintenance = TextEditingController();
-  final _visitorRestrictions = TextEditingController();
-  final _curfewTiming = TextEditingController();
   final _description = TextEditingController();
   final _bedsAvailable = TextEditingController();
 
   final List<XFile> _propertyImages = [];
-  final List<XFile> _roomImages = [];
-  final List<XFile> _washroomImages = [];
-  XFile? _videoTour;
+  final List<_RoomConfiguration> _roomConfigurations = [];
+  final Set<String> _amenities = {'WiFi', 'CCTV'};
+  final List<String> _requiredErrors = [];
+
   Timer? _draftTimer;
 
-  int _step = 0;
   bool _submitting = false;
   bool _immediateMoveIn = true;
   DateTime? _availableFrom;
@@ -62,14 +56,6 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   String _occupantType = 'Both';
   bool _electricityIncluded = true;
   bool _foodIncluded = true;
-  bool _brokerage = false;
-  bool _smokingAllowed = false;
-  bool _drinkingAllowed = false;
-  bool _petsAllowed = false;
-  final Set<String> _amenities = {'WiFi', 'CCTV'};
-  final List<_RoomConfiguration> _roomConfigurations = [];
-
-  final List<String> _requiredErrors = [];
 
   static const List<String> _propertyTypes = [
     'Boys PG',
@@ -117,12 +103,12 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
       controller.addListener(_scheduleDraftSave);
     }
     _loadDraft();
+    _prefillFromProfile();
   }
 
   @override
   void dispose() {
     _draftTimer?.cancel();
-    _pageController.dispose();
     for (final config in _roomConfigurations) {
       config.dispose();
     }
@@ -136,16 +122,10 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
     _propertyName,
     _ownerName,
     _contactNumber,
-    _whatsAppNumber,
-    _fullAddress,
     _city,
     _area,
     _nearby,
-    _landmark,
     _securityDeposit,
-    _maintenance,
-    _visitorRestrictions,
-    _curfewTiming,
     _description,
     _bedsAvailable,
   ];
@@ -220,24 +200,17 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
     if (!(prefs.getBool('${_draftPrefix}exists') ?? false)) {
       return;
     }
+
     _propertyName.text = prefs.getString('${_draftPrefix}propertyName') ?? '';
     _ownerName.text = prefs.getString('${_draftPrefix}ownerName') ?? '';
     _contactNumber.text = prefs.getString('${_draftPrefix}contactNumber') ?? '';
-    _whatsAppNumber.text = prefs.getString('${_draftPrefix}whatsApp') ?? '';
-    _fullAddress.text = prefs.getString('${_draftPrefix}address') ?? '';
     _city.text = prefs.getString('${_draftPrefix}city') ?? '';
     _area.text = prefs.getString('${_draftPrefix}area') ?? '';
     _nearby.text = prefs.getString('${_draftPrefix}nearby') ?? '';
-    _landmark.text = prefs.getString('${_draftPrefix}landmark') ?? '';
     _securityDeposit.text = prefs.getString('${_draftPrefix}deposit') ?? '';
-    _maintenance.text = prefs.getString('${_draftPrefix}maintenance') ?? '';
-    _visitorRestrictions.text =
-        prefs.getString('${_draftPrefix}visitors') ?? '';
-    _curfewTiming.text = prefs.getString('${_draftPrefix}curfew') ?? '';
     _description.text = prefs.getString('${_draftPrefix}description') ?? '';
     _bedsAvailable.text = prefs.getString('${_draftPrefix}bedsAvailable') ?? '';
 
-    if (!mounted) return;
     final rawConfigs = prefs.getStringList('${_draftPrefix}roomConfigurations');
     if (rawConfigs != null && rawConfigs.isNotEmpty) {
       _replaceRoomConfigurations(
@@ -256,6 +229,11 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
         }).toList(),
       );
     }
+
+    if (!mounted) {
+      return;
+    }
+
     setState(() {
       _propertyType =
           prefs.getString('${_draftPrefix}propertyType') ?? _propertyType;
@@ -266,10 +244,6 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
       _electricityIncluded =
           prefs.getBool('${_draftPrefix}electricityIncluded') ?? true;
       _foodIncluded = prefs.getBool('${_draftPrefix}foodIncluded') ?? true;
-      _brokerage = prefs.getBool('${_draftPrefix}brokerage') ?? false;
-      _smokingAllowed = prefs.getBool('${_draftPrefix}smoking') ?? false;
-      _drinkingAllowed = prefs.getBool('${_draftPrefix}drinking') ?? false;
-      _petsAllowed = prefs.getBool('${_draftPrefix}pets') ?? false;
       _immediateMoveIn = prefs.getBool('${_draftPrefix}immediate') ?? true;
       _amenities
         ..clear()
@@ -279,22 +253,42 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
     });
   }
 
+  Future<void> _prefillFromProfile() async {
+    final user = FirebaseAuth.instance.currentUser;
+    if (user == null) {
+      return;
+    }
+
+    final data = await context.read<DatabaseService>().getUserData(user.uid);
+    if (!mounted) {
+      return;
+    }
+
+    final savedName = (data?['name'] ?? user.displayName ?? '')
+        .toString()
+        .trim();
+    final savedPhone = (data?['phoneNumber'] ?? '').toString().trim();
+
+    setState(() {
+      if (_ownerName.text.trim().isEmpty && savedName.isNotEmpty) {
+        _ownerName.text = savedName;
+      }
+      if (_contactNumber.text.trim().isEmpty && savedPhone.isNotEmpty) {
+        _contactNumber.text = savedPhone;
+      }
+    });
+  }
+
   Future<void> _saveDraft() async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('${_draftPrefix}exists', true);
     await prefs.setString('${_draftPrefix}propertyName', _propertyName.text);
     await prefs.setString('${_draftPrefix}ownerName', _ownerName.text);
     await prefs.setString('${_draftPrefix}contactNumber', _contactNumber.text);
-    await prefs.setString('${_draftPrefix}whatsApp', _whatsAppNumber.text);
-    await prefs.setString('${_draftPrefix}address', _fullAddress.text);
     await prefs.setString('${_draftPrefix}city', _city.text);
     await prefs.setString('${_draftPrefix}area', _area.text);
     await prefs.setString('${_draftPrefix}nearby', _nearby.text);
-    await prefs.setString('${_draftPrefix}landmark', _landmark.text);
     await prefs.setString('${_draftPrefix}deposit', _securityDeposit.text);
-    await prefs.setString('${_draftPrefix}maintenance', _maintenance.text);
-    await prefs.setString('${_draftPrefix}visitors', _visitorRestrictions.text);
-    await prefs.setString('${_draftPrefix}curfew', _curfewTiming.text);
     await prefs.setString('${_draftPrefix}description', _description.text);
     await prefs.setString('${_draftPrefix}bedsAvailable', _bedsAvailable.text);
     await prefs.setString('${_draftPrefix}propertyType', _propertyType);
@@ -309,10 +303,6 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
       _electricityIncluded,
     );
     await prefs.setBool('${_draftPrefix}foodIncluded', _foodIncluded);
-    await prefs.setBool('${_draftPrefix}brokerage', _brokerage);
-    await prefs.setBool('${_draftPrefix}smoking', _smokingAllowed);
-    await prefs.setBool('${_draftPrefix}drinking', _drinkingAllowed);
-    await prefs.setBool('${_draftPrefix}pets', _petsAllowed);
     await prefs.setBool('${_draftPrefix}immediate', _immediateMoveIn);
     await prefs.setStringList('${_draftPrefix}amenities', _amenities.toList());
   }
@@ -326,16 +316,6 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
     }
   }
 
-  void _goToStep(int step) {
-    final next = step.clamp(0, 3);
-    setState(() => _step = next);
-    _pageController.animateToPage(
-      next,
-      duration: const Duration(milliseconds: 260),
-      curve: Curves.easeOutCubic,
-    );
-  }
-
   Future<void> _pickImages(List<XFile> target) async {
     final messenger = ScaffoldMessenger.of(context);
     final remaining = _maxImagesPerGroup - target.length;
@@ -345,11 +325,14 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
       );
       return;
     }
+
     final images = await _picker.pickMultiImage(
       imageQuality: 82,
       limit: remaining,
     );
-    if (images.isEmpty) return;
+    if (images.isEmpty) {
+      return;
+    }
 
     final accepted = <XFile>[];
     var rejectedOversize = false;
@@ -361,8 +344,14 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
       }
       accepted.add(image);
     }
-    if (!mounted) return;
+
+    if (!mounted) {
+      return;
+    }
+
     setState(() => target.addAll(accepted));
+    _saveDraft();
+
     if (rejectedOversize) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Each image must be 10 MB or smaller')),
@@ -370,20 +359,14 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
     }
   }
 
-  Future<void> _pickVideo() async {
-    final video = await _picker.pickVideo(source: ImageSource.gallery);
-    if (video == null || !mounted) return;
-    setState(() => _videoTour = video);
-    _saveDraft();
-  }
-
   Future<List<String>> _uploadImages(String id) async {
-    final allImages = [..._propertyImages, ..._roomImages, ..._washroomImages];
-    if (allImages.isEmpty) return [];
+    if (_propertyImages.isEmpty) {
+      return [];
+    }
 
     final cloudinary = context.read<CloudinaryService>();
     final urls = <String>[];
-    for (final image in allImages) {
+    for (final image in _propertyImages) {
       final bytes = await image.readAsBytes();
       urls.add(
         await cloudinary.uploadImage(
@@ -398,41 +381,68 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
 
   bool _validateAll() {
     final errors = <String>[];
+
     void need(TextEditingController controller, String label) {
-      if (controller.text.trim().isEmpty) errors.add(label);
+      if (controller.text.trim().isEmpty) {
+        errors.add(label);
+      }
     }
 
     need(_propertyName, 'Property Name');
-    need(_ownerName, 'Owner/Manager Name');
     need(_contactNumber, 'Contact Number');
-    need(_fullAddress, 'Full Address');
     need(_city, 'City');
     need(_area, 'Area/Locality');
+    need(_description, 'Description');
     need(_securityDeposit, 'Security Deposit');
     need(_bedsAvailable, 'Beds Currently Available');
-    need(_description, 'Short Description');
 
-    if (int.tryParse(_bedsAvailable.text.trim()) == null) {
+    if (Validators.validatePhoneNumber(_contactNumber.text) != null) {
+      errors.add('Valid Contact Number');
+    }
+    if (_description.text.trim().length < 24) {
+      errors.add('Detailed Description');
+    }
+    if (double.tryParse(_securityDeposit.text.trim()) == null) {
+      errors.add('Valid Security Deposit');
+    }
+
+    final bedsAvailable = int.tryParse(_bedsAvailable.text.trim());
+    if (bedsAvailable == null || bedsAvailable < 0) {
       errors.add('Valid Beds Currently Available');
     }
+
     for (var index = 0; index < _roomConfigurations.length; index++) {
       final config = _roomConfigurations[index];
       final label = 'Room ${index + 1}';
-      if (double.tryParse(config.rent.text.trim()) == null) {
+      final rent = double.tryParse(config.rent.text.trim());
+      final capacity = int.tryParse(config.capacity.text.trim());
+      final vacantBeds = int.tryParse(config.vacantBeds.text.trim());
+
+      if (rent == null || rent <= 0) {
         errors.add('$label rent');
       }
-      if (int.tryParse(config.capacity.text.trim()) == null) {
+      if (capacity == null || capacity <= 0) {
         errors.add('$label capacity');
       }
-      if (int.tryParse(config.vacantBeds.text.trim()) == null) {
+      if (vacantBeds == null || vacantBeds < 0) {
         errors.add('$label vacant beds');
+      } else if (capacity != null && vacantBeds > capacity) {
+        errors.add('$label vacant beds <= capacity');
       }
+    }
+
+    if (_propertyImages.isEmpty) {
+      errors.add('At least 1 photo');
+    }
+
+    if (!_immediateMoveIn && _availableFrom == null) {
+      errors.add('Available From Date');
     }
 
     setState(() {
       _requiredErrors
         ..clear()
-        ..addAll(errors);
+        ..addAll(errors.toSet());
     });
 
     if (errors.isNotEmpty) {
@@ -447,7 +457,9 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   }
 
   Future<void> _publish() async {
-    if (!_validateAll()) return;
+    if (!_validateAll()) {
+      return;
+    }
 
     final user = FirebaseAuth.instance.currentUser;
     final messenger = ScaffoldMessenger.of(context);
@@ -474,7 +486,6 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
       final locationParts = [
         _area.text.trim(),
         _city.text.trim(),
-        _landmark.text.trim(),
       ].where((part) => part.isNotEmpty).toList();
       final roomSummaries = _roomConfigurations
           .map((config) => config.summary)
@@ -484,7 +495,9 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
           .map((config) => double.tryParse(config.rent.text.trim()) ?? 0)
           .where((rent) => rent > 0)
           .fold<double?>(null, (lowest, rent) {
-            if (lowest == null || rent < lowest) return rent;
+            if (lowest == null || rent < lowest) {
+              return rent;
+            }
             return lowest;
           });
       final totalCapacity = _roomConfigurations.fold<int>(0, (sum, config) {
@@ -503,10 +516,10 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
         if (_electricityIncluded) 'Electricity Included',
         ..._amenities,
       ].take(12).toList();
+
       final description = [
         _description.text.trim(),
         '',
-        'Address: ${_fullAddress.text.trim()}',
         if (_nearby.text.trim().isNotEmpty) 'Nearby: ${_nearby.text.trim()}',
         'Room configurations:',
         ...roomSummaries.map((summary) => '- $summary'),
@@ -514,20 +527,7 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
         if (totalVacantBeds > 0) 'Vacant beds: $totalVacantBeds',
         'Beds available: ${_bedsAvailable.text.trim()}',
         'Security deposit: Rs ${_securityDeposit.text.trim()}',
-        if (_maintenance.text.trim().isNotEmpty)
-          'Maintenance: Rs ${_maintenance.text.trim()}',
         'Contact: ${_contactNumber.text.trim()}',
-        'Brokerage: ${_brokerage ? 'Yes' : 'No'}',
-        'Smoking: ${_smokingAllowed ? 'Allowed' : 'Not allowed'}',
-        'Drinking: ${_drinkingAllowed ? 'Allowed' : 'Not allowed'}',
-        'Pets: ${_petsAllowed ? 'Allowed' : 'Not allowed'}',
-        if (_visitorRestrictions.text.trim().isNotEmpty)
-          'Visitor restrictions: ${_visitorRestrictions.text.trim()}',
-        if (_curfewTiming.text.trim().isNotEmpty)
-          'Curfew: ${_curfewTiming.text.trim()}',
-        if (_whatsAppNumber.text.trim().isNotEmpty)
-          'WhatsApp: ${_whatsAppNumber.text.trim()}',
-        if (_videoTour != null) 'Video tour selected: ${_videoTour!.name}',
       ].join('\n');
 
       final listing = ListingModel(
@@ -562,16 +562,23 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
 
       await db.createListing(listing);
       await _clearDraft();
-      if (!mounted) return;
+
+      if (!mounted) {
+        return;
+      }
       messenger.showSnackBar(const SnackBar(content: Text('PG published')));
       navigator.pop(true);
     } catch (error) {
-      if (!mounted) return;
+      if (!mounted) {
+        return;
+      }
       messenger.showSnackBar(
         SnackBar(content: Text('Could not publish: $error')),
       );
     } finally {
-      if (mounted) setState(() => _submitting = false);
+      if (mounted) {
+        setState(() => _submitting = false);
+      }
     }
   }
 
@@ -583,7 +590,9 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
       firstDate: now,
       lastDate: now.add(const Duration(days: 365)),
     );
-    if (picked == null || !mounted) return;
+    if (picked == null || !mounted) {
+      return;
+    }
     setState(() {
       _availableFrom = picked;
       _immediateMoveIn = false;
@@ -596,9 +605,8 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
     return Scaffold(
       backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: AppColors.background,
+        backgroundColor: Colors.white,
         foregroundColor: AppColors.onSurface,
-        elevation: 0,
         title: const Text('List PG / Hostel'),
         actions: [
           TextButton(
@@ -613,397 +621,312 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          _ProgressHeader(step: _step),
-          if (_requiredErrors.isNotEmpty)
-            _ValidationBanner(errors: _requiredErrors),
-          Expanded(
-            child: PageView(
-              controller: _pageController,
-              physics: const NeverScrollableScrollPhysics(),
-              onPageChanged: (value) => setState(() => _step = value),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Post your PG listing',
+              style: AppTheme.headline(fontSize: 28),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Use the same simple flow as the other listing forms: add photos, key details, room options, and publish.',
+              style: AppTheme.body(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppColors.onSurfaceVariant,
+                height: 1.6,
+              ),
+            ),
+            if (_requiredErrors.isNotEmpty) ...[
+              const SizedBox(height: 16),
+              _ValidationBanner(errors: _requiredErrors),
+            ],
+            const SizedBox(height: 22),
+            _sectionTitle('Photos'),
+            const SizedBox(height: 12),
+            _SectionCard(
+              title: 'Listing Photos',
+              icon: Icons.photo_library_rounded,
               children: [
-                _StepPage(
-                  children: [
-                    _SectionCard(
-                      title: 'Property Basics',
-                      icon: Icons.apartment_rounded,
-                      children: [
-                        _AppField(
-                          controller: _propertyName,
-                          label: 'Property Name',
-                        ),
-                        _SelectTile(
-                          label: 'Property Type',
-                          value: _propertyType,
-                          icon: Icons.home_work_rounded,
-                          onTap: () => _showPicker(
-                            title: 'Property Type',
-                            values: _propertyTypes,
-                            selected: _propertyType,
-                            onSelected: (value) =>
-                                setState(() => _propertyType = value),
-                          ),
-                        ),
-                        _AppField(
-                          controller: _ownerName,
-                          label: 'Owner/Manager Name',
-                        ),
-                        _AppField(
-                          controller: _contactNumber,
-                          label: 'Contact Number',
-                          keyboardType: TextInputType.phone,
-                        ),
-                        _AppField(
-                          controller: _whatsAppNumber,
-                          label: 'WhatsApp Number (optional)',
-                          keyboardType: TextInputType.phone,
-                        ),
-                      ],
-                    ),
-                    _SectionCard(
-                      title: 'Location',
-                      icon: Icons.location_on_rounded,
-                      children: [
-                        _AppField(
-                          controller: _fullAddress,
-                          label: 'Full Address',
-                          maxLines: 3,
-                        ),
-                        _AppField(controller: _city, label: 'City'),
-                        _AppField(controller: _area, label: 'Area/Locality'),
-                        _AppField(
-                          controller: _nearby,
-                          label: 'Nearby College/Company',
-                        ),
-                        _MapPreview(
-                          label: _area.text.trim().isEmpty
-                              ? 'Pin Location on Map'
-                              : _area.text.trim(),
-                        ),
-                        _AppField(controller: _landmark, label: 'Landmark'),
-                      ],
-                    ),
-                  ],
+                Text(
+                  'Add a few clear photos of the property. At least one image is required.',
+                  style: AppTheme.body(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.slate500,
+                  ),
                 ),
-                _StepPage(
-                  children: [
-                    _SectionCard(
-                      title: 'Room Configurations',
-                      icon: Icons.bed_rounded,
-                      children: [
-                        Text(
-                          'Add each room variant with its own rent, capacity, and facilities.',
-                          style: AppTheme.body(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.slate500,
-                          ),
-                        ),
-                        ...List.generate(_roomConfigurations.length, (index) {
-                          final config = _roomConfigurations[index];
-                          return _RoomConfigurationCard(
-                            config: config,
-                            index: index,
-                            onToggle: () => _toggleRoomConfiguration(index),
-                            onDelete: () => _deleteRoomConfiguration(index),
-                            onPickRoomType: () => _showPicker(
-                              title: 'Room Type',
-                              values: _roomTypes,
-                              selected: config.roomType,
-                              onSelected: (value) =>
-                                  _updateRoomConfiguration(index, (current) {
-                                    current.roomType = value;
-                                    return current;
-                                  }),
-                            ),
-                            onPickFurnished: () => _showPicker(
-                              title: 'Furnished Status',
-                              values: _furnishedOptions,
-                              selected: config.furnished,
-                              onSelected: (value) =>
-                                  _updateRoomConfiguration(index, (current) {
-                                    current.furnished = value;
-                                    return current;
-                                  }),
-                            ),
-                            onAttachedChanged: (value) =>
-                                _updateRoomConfiguration(index, (current) {
-                                  current.attachedBathroom = value;
-                                  return current;
-                                }),
-                            onAcChanged: (value) =>
-                                _updateRoomConfiguration(index, (current) {
-                                  current.hasAc = value;
-                                  return current;
-                                }),
-                          );
-                        }),
-                        SizedBox(
-                          width: double.infinity,
-                          child: OutlinedButton.icon(
-                            onPressed: _addRoomConfiguration,
-                            icon: const Icon(Icons.add_rounded),
-                            label: const Text('Add Room Configuration'),
-                          ),
-                        ),
-                      ],
-                    ),
-                    _SectionCard(
-                      title: 'Pricing',
-                      icon: Icons.currency_rupee_rounded,
-                      children: [
-                        _AppField(
-                          controller: _securityDeposit,
-                          label: 'Security Deposit',
-                          prefixText: '₹ ',
-                          keyboardType: TextInputType.number,
-                        ),
-                        _SwitchTile(
-                          label: 'Electricity Included?',
-                          value: _electricityIncluded,
-                          onChanged: (value) =>
-                              setState(() => _electricityIncluded = value),
-                        ),
-                        _SwitchTile(
-                          label: 'Food Included?',
-                          value: _foodIncluded,
-                          onChanged: (value) =>
-                              setState(() => _foodIncluded = value),
-                        ),
-                        _AppField(
-                          controller: _maintenance,
-                          label: 'Maintenance Charges',
-                          prefixText: '₹ ',
-                          keyboardType: TextInputType.number,
-                        ),
-                        _SwitchTile(
-                          label: 'Brokerage',
-                          value: _brokerage,
-                          onChanged: (value) =>
-                              setState(() => _brokerage = value),
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                _StepPage(
-                  children: [
-                    _SectionCard(
-                      title: 'Amenities',
-                      icon: Icons.auto_awesome_rounded,
-                      children: [
-                        _AmenityGrid(
-                          options: _amenityOptions,
-                          selected: _amenities,
-                          onTap: (value) => setState(() {
-                            _amenities.contains(value)
-                                ? _amenities.remove(value)
-                                : _amenities.add(value);
-                          }),
-                        ),
-                      ],
-                    ),
-                    _SectionCard(
-                      title: 'Rules & Preferences',
-                      icon: Icons.rule_rounded,
-                      children: [
-                        _SelectTile(
-                          label: 'Preferred Gender',
-                          value: _preferredGender,
-                          icon: Icons.transgender_rounded,
-                          onTap: () => _showPicker(
-                            title: 'Preferred Gender',
-                            values: _genderOptions,
-                            selected: _preferredGender,
-                            onSelected: (value) =>
-                                setState(() => _preferredGender = value),
-                          ),
-                        ),
-                        _SelectTile(
-                          label: 'Student / Working Professional',
-                          value: _occupantType,
-                          icon: Icons.groups_rounded,
-                          onTap: () => _showPicker(
-                            title: 'Preferred Occupants',
-                            values: _occupantOptions,
-                            selected: _occupantType,
-                            onSelected: (value) =>
-                                setState(() => _occupantType = value),
-                          ),
-                        ),
-                        _SwitchTile(
-                          label: 'Smoking Allowed?',
-                          value: _smokingAllowed,
-                          onChanged: (value) =>
-                              setState(() => _smokingAllowed = value),
-                        ),
-                        _SwitchTile(
-                          label: 'Drinking Allowed?',
-                          value: _drinkingAllowed,
-                          onChanged: (value) =>
-                              setState(() => _drinkingAllowed = value),
-                        ),
-                        _SwitchTile(
-                          label: 'Pets Allowed?',
-                          value: _petsAllowed,
-                          onChanged: (value) =>
-                              setState(() => _petsAllowed = value),
-                        ),
-                        _AppField(
-                          controller: _visitorRestrictions,
-                          label: 'Visitor Restrictions',
-                        ),
-                        _AppField(
-                          controller: _curfewTiming,
-                          label: 'Curfew Timing',
-                        ),
-                      ],
-                    ),
-                  ],
-                ),
-                _StepPage(
-                  children: [
-                    _SectionCard(
-                      title: 'Photos & Media',
-                      icon: Icons.photo_library_rounded,
-                      children: [
-                        _ImageUploadGroup(
-                          title: 'Property Images',
-                          images: _propertyImages,
-                          onAdd: () => _pickImages(_propertyImages),
-                          onRemove: (index) =>
-                              setState(() => _propertyImages.removeAt(index)),
-                        ),
-                        _ImageUploadGroup(
-                          title: 'Room Images',
-                          images: _roomImages,
-                          onAdd: () => _pickImages(_roomImages),
-                          onRemove: (index) =>
-                              setState(() => _roomImages.removeAt(index)),
-                        ),
-                        _ImageUploadGroup(
-                          title: 'Washroom Images',
-                          images: _washroomImages,
-                          onAdd: () => _pickImages(_washroomImages),
-                          onRemove: (index) =>
-                              setState(() => _washroomImages.removeAt(index)),
-                        ),
-                        _VideoTile(
-                          videoName: _videoTour?.name,
-                          onTap: _pickVideo,
-                          onRemove: () => setState(() => _videoTour = null),
-                        ),
-                      ],
-                    ),
-                    _SectionCard(
-                      title: 'Description',
-                      icon: Icons.description_rounded,
-                      children: [
-                        _AppField(
-                          controller: _description,
-                          label: 'Short Description',
-                          hint:
-                              'Girls PG near XYZ college with WiFi, food, and security.',
-                          maxLines: 5,
-                        ),
-                      ],
-                    ),
-                    _SectionCard(
-                      title: 'Availability',
-                      icon: Icons.event_available_rounded,
-                      children: [
-                        _SwitchTile(
-                          label: 'Immediate Move-in',
-                          value: _immediateMoveIn,
-                          onChanged: (value) =>
-                              setState(() => _immediateMoveIn = value),
-                        ),
-                        _SelectTile(
-                          label: 'Available From Date',
-                          value: _immediateMoveIn
-                              ? 'Immediate'
-                              : (_availableFrom == null
-                                    ? 'Select date'
-                                    : '${_availableFrom!.day}/${_availableFrom!.month}/${_availableFrom!.year}'),
-                          icon: Icons.calendar_today_rounded,
-                          onTap: _pickAvailableDate,
-                        ),
-                        _AppField(
-                          controller: _bedsAvailable,
-                          label: 'Beds Currently Available',
-                          keyboardType: TextInputType.number,
-                        ),
-                      ],
-                    ),
-                  ],
+                _ImageUploadGroup(
+                  title: 'Photos',
+                  images: _propertyImages,
+                  onAdd: () => _pickImages(_propertyImages),
+                  onRemove: (index) =>
+                      setState(() => _propertyImages.removeAt(index)),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-      bottomNavigationBar: SafeArea(
-        top: false,
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(16, 10, 16, 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.06),
-                blurRadius: 18,
-                offset: const Offset(0, -8),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              if (_step > 0)
-                IconButton.filledTonal(
-                  onPressed: () => _goToStep(_step - 1),
-                  icon: const Icon(Icons.arrow_back_rounded),
-                  tooltip: 'Previous',
+            const SizedBox(height: 22),
+            _sectionTitle('Details'),
+            const SizedBox(height: 12),
+            _SectionCard(
+              title: 'Basic Information',
+              icon: Icons.apartment_rounded,
+              children: [
+                _AppField(
+                  controller: _propertyName,
+                  label: 'Property Name',
+                  hint: 'Om Boys PG',
                 ),
-              if (_step > 0) const SizedBox(width: 10),
-              Expanded(
-                child: ElevatedButton(
-                  onPressed: _submitting
-                      ? null
-                      : (_step == 3 ? _publish : () => _goToStep(_step + 1)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
+                _SelectTile(
+                  label: 'Property Type',
+                  value: _propertyType,
+                  icon: Icons.home_work_rounded,
+                  onTap: () => _showPicker(
+                    title: 'Property Type',
+                    values: _propertyTypes,
+                    selected: _propertyType,
+                    onSelected: (value) =>
+                        setState(() => _propertyType = value),
                   ),
-                  child: _submitting
-                      ? const SizedBox(
-                          width: 20,
-                          height: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.white,
-                          ),
-                        )
-                      : Text(
-                          _step == 3 ? 'Publish PG' : 'Continue',
-                          style: AppTheme.body(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w800,
-                            color: Colors.white,
-                          ),
-                        ),
                 ),
+                _AppField(
+                  controller: _contactNumber,
+                  label: 'Contact Number',
+                  hint: '10-digit mobile number',
+                  keyboardType: TextInputType.phone,
+                  inputFormatters: [
+                    FilteringTextInputFormatter.digitsOnly,
+                    LengthLimitingTextInputFormatter(10),
+                  ],
+                ),
+                _AppField(
+                  controller: _description,
+                  label: 'Description',
+                  hint:
+                      'Girls PG near XYZ college with WiFi, food, and security.',
+                  maxLines: 5,
+                  helperText:
+                      'Mention who it suits, what is included, and the strongest selling point.',
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            _SectionCard(
+              title: 'Location',
+              icon: Icons.location_on_rounded,
+              children: [
+                _AppField(controller: _city, label: 'City', hint: 'Indore'),
+                _AppField(
+                  controller: _area,
+                  label: 'Area/Locality',
+                  hint: 'Vijay Nagar',
+                ),
+                _AppField(
+                  controller: _nearby,
+                  label: 'Nearby landmark (optional)',
+                  hint: 'IIT Indore, TCS, Metro station',
+                ),
+              ],
+            ),
+            const SizedBox(height: 22),
+            _sectionTitle('Rooms & Pricing'),
+            const SizedBox(height: 12),
+            _SectionCard(
+              title: 'Room Configurations',
+              icon: Icons.bed_rounded,
+              children: [
+                Text(
+                  'Add each room option with its own rent, capacity, vacant beds, furnishing, and washroom setup.',
+                  style: AppTheme.body(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.slate500,
+                  ),
+                ),
+                ...List.generate(_roomConfigurations.length, (index) {
+                  final config = _roomConfigurations[index];
+                  return _RoomConfigurationCard(
+                    config: config,
+                    index: index,
+                    onToggle: () => _toggleRoomConfiguration(index),
+                    onDelete: () => _deleteRoomConfiguration(index),
+                    onPickRoomType: () => _showPicker(
+                      title: 'Room Type',
+                      values: _roomTypes,
+                      selected: config.roomType,
+                      onSelected: (value) =>
+                          _updateRoomConfiguration(index, (current) {
+                            current.roomType = value;
+                            return current;
+                          }),
+                    ),
+                    onPickFurnished: () => _showPicker(
+                      title: 'Furnished Status',
+                      values: _furnishedOptions,
+                      selected: config.furnished,
+                      onSelected: (value) =>
+                          _updateRoomConfiguration(index, (current) {
+                            current.furnished = value;
+                            return current;
+                          }),
+                    ),
+                    onAttachedChanged: (value) =>
+                        _updateRoomConfiguration(index, (current) {
+                          current.attachedBathroom = value;
+                          return current;
+                        }),
+                    onAcChanged: (value) =>
+                        _updateRoomConfiguration(index, (current) {
+                          current.hasAc = value;
+                          return current;
+                        }),
+                  );
+                }),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton.icon(
+                    onPressed: _addRoomConfiguration,
+                    icon: const Icon(Icons.add_rounded),
+                    label: const Text('Add Room Configuration'),
+                  ),
+                ),
+                _AppField(
+                  controller: _securityDeposit,
+                  label: 'Security Deposit',
+                  hint: '5000',
+                  prefixText: 'Rs ',
+                  keyboardType: TextInputType.number,
+                ),
+                _AppField(
+                  controller: _bedsAvailable,
+                  label: 'Beds Currently Available',
+                  hint: '6',
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                ),
+                _SwitchTile(
+                  label: 'Electricity Included?',
+                  value: _electricityIncluded,
+                  onChanged: (value) =>
+                      setState(() => _electricityIncluded = value),
+                ),
+                _SwitchTile(
+                  label: 'Food Included?',
+                  value: _foodIncluded,
+                  onChanged: (value) => setState(() => _foodIncluded = value),
+                ),
+              ],
+            ),
+            const SizedBox(height: 22),
+            _sectionTitle('Preferences'),
+            const SizedBox(height: 12),
+            _SectionCard(
+              title: 'Amenities & Preferences',
+              icon: Icons.tune_rounded,
+              children: [
+                _AmenityGrid(
+                  options: _amenityOptions,
+                  selected: _amenities,
+                  onTap: (value) => setState(() {
+                    _amenities.contains(value)
+                        ? _amenities.remove(value)
+                        : _amenities.add(value);
+                  }),
+                ),
+                _SelectTile(
+                  label: 'Preferred Gender',
+                  value: _preferredGender,
+                  icon: Icons.transgender_rounded,
+                  onTap: () => _showPicker(
+                    title: 'Preferred Gender',
+                    values: _genderOptions,
+                    selected: _preferredGender,
+                    onSelected: (value) =>
+                        setState(() => _preferredGender = value),
+                  ),
+                ),
+                _SelectTile(
+                  label: 'Student / Working Professional',
+                  value: _occupantType,
+                  icon: Icons.groups_rounded,
+                  onTap: () => _showPicker(
+                    title: 'Preferred Occupants',
+                    values: _occupantOptions,
+                    selected: _occupantType,
+                    onSelected: (value) =>
+                        setState(() => _occupantType = value),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 22),
+            _sectionTitle('Availability'),
+            const SizedBox(height: 12),
+            _SectionCard(
+              title: 'Move-in Details',
+              icon: Icons.event_available_rounded,
+              children: [
+                _SwitchTile(
+                  label: 'Immediate Move-in',
+                  value: _immediateMoveIn,
+                  onChanged: (value) =>
+                      setState(() => _immediateMoveIn = value),
+                ),
+                _SelectTile(
+                  label: 'Available From Date',
+                  value: _immediateMoveIn
+                      ? 'Immediate'
+                      : (_availableFrom == null
+                            ? 'Select date'
+                            : '${_availableFrom!.day}/${_availableFrom!.month}/${_availableFrom!.year}'),
+                  icon: Icons.calendar_today_rounded,
+                  onTap: _pickAvailableDate,
+                ),
+              ],
+            ),
+            const SizedBox(height: 26),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: _submitting ? null : _publish,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                ),
+                child: _submitting
+                    ? const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                    : Text(
+                        'Publish listing',
+                        style: AppTheme.body(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
+                        ),
+                      ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  Widget _sectionTitle(String label) {
+    return Text(label, style: AppTheme.headline(fontSize: 22));
   }
 
   void _showPicker({
@@ -1055,256 +978,6 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   }
 }
 
-class _RoomConfigurationCard extends StatelessWidget {
-  final _RoomConfiguration config;
-  final int index;
-  final VoidCallback onToggle;
-  final VoidCallback onDelete;
-  final VoidCallback onPickRoomType;
-  final VoidCallback onPickFurnished;
-  final ValueChanged<bool> onAttachedChanged;
-  final ValueChanged<bool> onAcChanged;
-
-  const _RoomConfigurationCard({
-    required this.config,
-    required this.index,
-    required this.onToggle,
-    required this.onDelete,
-    required this.onPickRoomType,
-    required this.onPickFurnished,
-    required this.onAttachedChanged,
-    required this.onAcChanged,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final vacant = config.vacantBeds.text.trim().isEmpty
-        ? '0'
-        : config.vacantBeds.text.trim();
-    final rent = config.rent.text.trim().isEmpty
-        ? 'Add rent'
-        : '₹${config.rent.text.trim()}';
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      curve: Curves.easeOutCubic,
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.24),
-        ),
-      ),
-      child: Column(
-        children: [
-          InkWell(
-            onTap: onToggle,
-            borderRadius: BorderRadius.circular(16),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(14),
-                  ),
-                  child: const Icon(
-                    Icons.king_bed_rounded,
-                    color: AppColors.primary,
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        config.roomType,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTheme.body(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w900,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        '$rent • $vacant vacant',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTheme.label(
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.slate500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                IconButton(
-                  onPressed: onDelete,
-                  icon: const Icon(Icons.delete_outline_rounded),
-                  color: AppColors.error,
-                  tooltip: 'Delete configuration',
-                ),
-                Icon(
-                  config.expanded
-                      ? Icons.keyboard_arrow_up_rounded
-                      : Icons.keyboard_arrow_down_rounded,
-                ),
-              ],
-            ),
-          ),
-          AnimatedCrossFade(
-            duration: const Duration(milliseconds: 180),
-            crossFadeState: config.expanded
-                ? CrossFadeState.showSecond
-                : CrossFadeState.showFirst,
-            firstChild: const SizedBox(width: double.infinity),
-            secondChild: Padding(
-              padding: const EdgeInsets.only(top: 14),
-              child: Column(
-                children: [
-                  _SelectTile(
-                    label: 'Room Type',
-                    value: config.roomType,
-                    icon: Icons.bed_rounded,
-                    onTap: onPickRoomType,
-                  ),
-                  _AppField(
-                    controller: config.rent,
-                    label: 'Monthly Rent',
-                    prefixText: '₹ ',
-                    keyboardType: TextInputType.number,
-                  ),
-                  _AppField(
-                    controller: config.capacity,
-                    label: 'Total Capacity',
-                    keyboardType: TextInputType.number,
-                  ),
-                  _AppField(
-                    controller: config.vacantBeds,
-                    label: 'Vacant Beds',
-                    keyboardType: TextInputType.number,
-                  ),
-                  _SwitchTile(
-                    label: 'Attached Bathroom',
-                    value: config.attachedBathroom,
-                    onChanged: onAttachedChanged,
-                  ),
-                  _SwitchTile(
-                    label: config.hasAc ? 'AC Room' : 'Non-AC Room',
-                    value: config.hasAc,
-                    onChanged: onAcChanged,
-                  ),
-                  _SelectTile(
-                    label: 'Furnished Status',
-                    value: config.furnished,
-                    icon: Icons.chair_rounded,
-                    onTap: onPickFurnished,
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _RoomConfiguration {
-  String roomType = 'Single';
-  String furnished = 'Fully Furnished';
-  bool attachedBathroom = true;
-  bool hasAc = false;
-  bool expanded;
-  final TextEditingController rent;
-  final TextEditingController capacity;
-  final TextEditingController vacantBeds;
-
-  _RoomConfiguration({this.expanded = false})
-    : rent = TextEditingController(),
-      capacity = TextEditingController(),
-      vacantBeds = TextEditingController();
-
-  Map<String, dynamic> toMap() {
-    return {
-      'roomType': roomType,
-      'rent': rent.text,
-      'capacity': capacity.text,
-      'vacantBeds': vacantBeds.text,
-      'attachedBathroom': attachedBathroom,
-      'hasAc': hasAc,
-      'furnished': furnished,
-      'expanded': expanded,
-    };
-  }
-
-  String get summary {
-    final rentLabel = rent.text.trim().isEmpty
-        ? 'rent not set'
-        : '₹${rent.text.trim()}';
-    final capacityLabel = capacity.text.trim().isEmpty
-        ? '0'
-        : capacity.text.trim();
-    final vacantLabel = vacantBeds.text.trim().isEmpty
-        ? '0'
-        : vacantBeds.text.trim();
-    final acLabel = hasAc ? 'AC' : 'Non-AC';
-    final bathroomLabel = attachedBathroom ? 'attached bath' : 'common bath';
-    return '$roomType -> $rentLabel -> capacity $capacityLabel -> $vacantLabel vacant -> $acLabel, $furnished, $bathroomLabel';
-  }
-
-  void dispose() {
-    rent.dispose();
-    capacity.dispose();
-    vacantBeds.dispose();
-  }
-}
-
-class _ProgressHeader extends StatelessWidget {
-  final int step;
-
-  const _ProgressHeader({required this.step});
-
-  @override
-  Widget build(BuildContext context) {
-    final labels = ['Basics', 'Rooms', 'Rules', 'Media'];
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 0, 16, 14),
-      color: AppColors.background,
-      child: Column(
-        children: [
-          LinearProgressIndicator(
-            value: (step + 1) / labels.length,
-            minHeight: 7,
-            borderRadius: BorderRadius.circular(999),
-            backgroundColor: AppColors.surfaceContainerHighest,
-            color: AppColors.primary,
-          ),
-          const SizedBox(height: 10),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: List.generate(labels.length, (index) {
-              final active = index == step;
-              return Text(
-                labels[index],
-                style: AppTheme.label(
-                  fontSize: 12,
-                  fontWeight: active ? FontWeight.w900 : FontWeight.w600,
-                  color: active ? AppColors.primary : AppColors.slate500,
-                ),
-              );
-            }),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _ValidationBanner extends StatelessWidget {
   final List<String> errors;
 
@@ -1313,7 +986,6 @@ class _ValidationBanner extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.fromLTRB(16, 0, 16, 10),
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: AppColors.errorContainer,
@@ -1335,25 +1007,6 @@ class _ValidationBanner extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _StepPage extends StatelessWidget {
-  final List<Widget> children;
-
-  const _StepPage({required this.children});
-
-  @override
-  Widget build(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 4, 16, 24),
-      children: [
-        ...children.expand((child) sync* {
-          yield child;
-          yield const SizedBox(height: 16);
-        }),
-      ],
     );
   }
 }
@@ -1419,28 +1072,46 @@ class _AppField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final String? hint;
+  final String? helperText;
   final String? prefixText;
   final int maxLines;
   final TextInputType? keyboardType;
+  final List<TextInputFormatter>? inputFormatters;
 
   const _AppField({
     required this.controller,
     required this.label,
     this.hint,
+    this.helperText,
     this.prefixText,
     this.maxLines = 1,
     this.keyboardType,
+    this.inputFormatters,
   });
 
   @override
   Widget build(BuildContext context) {
+    List<TextInputFormatter>? resolvedFormatters = inputFormatters;
+    if (resolvedFormatters == null) {
+      if (keyboardType == TextInputType.number) {
+        resolvedFormatters = [FilteringTextInputFormatter.digitsOnly];
+      } else if (keyboardType == TextInputType.phone) {
+        resolvedFormatters = [
+          FilteringTextInputFormatter.digitsOnly,
+          LengthLimitingTextInputFormatter(10),
+        ];
+      }
+    }
+
     return TextField(
       controller: controller,
       maxLines: maxLines,
       keyboardType: keyboardType,
+      inputFormatters: resolvedFormatters,
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,
+        helperText: helperText,
         prefixText: prefixText,
         filled: true,
         fillColor: AppColors.surfaceContainerLow,
@@ -1520,40 +1191,6 @@ class _SwitchTile extends StatelessWidget {
       onChanged: onChanged,
       contentPadding: const EdgeInsets.symmetric(horizontal: 4),
       title: Text(label, style: AppTheme.body(fontWeight: FontWeight.w700)),
-    );
-  }
-}
-
-class _MapPreview extends StatelessWidget {
-  final String label;
-
-  const _MapPreview({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      height: 112,
-      decoration: BoxDecoration(
-        color: AppColors.blue50,
-        borderRadius: BorderRadius.circular(18),
-      ),
-      child: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.map_rounded, color: AppColors.primary),
-            const SizedBox(height: 8),
-            Text(
-              label,
-              textAlign: TextAlign.center,
-              style: AppTheme.body(
-                fontWeight: FontWeight.w800,
-                color: AppColors.primary,
-              ),
-            ),
-          ],
-        ),
-      ),
     );
   }
 }
@@ -1741,48 +1378,215 @@ class _ImagePreviewTile extends StatelessWidget {
   }
 }
 
-class _VideoTile extends StatelessWidget {
-  final String? videoName;
-  final VoidCallback onTap;
-  final VoidCallback onRemove;
+class _RoomConfigurationCard extends StatelessWidget {
+  final _RoomConfiguration config;
+  final int index;
+  final VoidCallback onToggle;
+  final VoidCallback onDelete;
+  final VoidCallback onPickRoomType;
+  final VoidCallback onPickFurnished;
+  final ValueChanged<bool> onAttachedChanged;
+  final ValueChanged<bool> onAcChanged;
 
-  const _VideoTile({
-    required this.videoName,
-    required this.onTap,
-    required this.onRemove,
+  const _RoomConfigurationCard({
+    required this.config,
+    required this.index,
+    required this.onToggle,
+    required this.onDelete,
+    required this.onPickRoomType,
+    required this.onPickFurnished,
+    required this.onAttachedChanged,
+    required this.onAcChanged,
   });
 
   @override
   Widget build(BuildContext context) {
-    final hasVideo = videoName != null;
-    return Container(
+    final vacant = config.vacantBeds.text.trim().isEmpty
+        ? '0'
+        : config.vacantBeds.text.trim();
+    final rent = config.rent.text.trim().isEmpty
+        ? 'Add rent'
+        : 'Rs ${config.rent.text.trim()}';
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 180),
+      curve: Curves.easeOutCubic,
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.24),
+        ),
       ),
-      child: Row(
+      child: Column(
         children: [
-          const Icon(Icons.video_library_rounded, color: AppColors.primary),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              hasVideo ? videoName! : 'Upload Video Tour (optional)',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTheme.body(fontWeight: FontWeight.w700),
+          InkWell(
+            onTap: onToggle,
+            borderRadius: BorderRadius.circular(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.king_bed_rounded,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        config.roomType,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.body(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '$rent • $vacant vacant',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.label(
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.slate500,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: onDelete,
+                  icon: const Icon(Icons.delete_outline_rounded),
+                  color: AppColors.error,
+                  tooltip: 'Delete configuration',
+                ),
+                Icon(
+                  config.expanded
+                      ? Icons.keyboard_arrow_up_rounded
+                      : Icons.keyboard_arrow_down_rounded,
+                ),
+              ],
             ),
           ),
-          if (hasVideo)
-            IconButton(
-              onPressed: onRemove,
-              icon: const Icon(Icons.close_rounded),
-            )
-          else
-            TextButton(onPressed: onTap, child: const Text('Choose')),
+          AnimatedCrossFade(
+            duration: const Duration(milliseconds: 180),
+            crossFadeState: config.expanded
+                ? CrossFadeState.showSecond
+                : CrossFadeState.showFirst,
+            firstChild: const SizedBox(width: double.infinity),
+            secondChild: Padding(
+              padding: const EdgeInsets.only(top: 14),
+              child: Column(
+                children: [
+                  _SelectTile(
+                    label: 'Room Type',
+                    value: config.roomType,
+                    icon: Icons.bed_rounded,
+                    onTap: onPickRoomType,
+                  ),
+                  _AppField(
+                    controller: config.rent,
+                    label: 'Monthly Rent',
+                    prefixText: 'Rs ',
+                    keyboardType: TextInputType.number,
+                    hint: '6500',
+                  ),
+                  _AppField(
+                    controller: config.capacity,
+                    label: 'Total Capacity',
+                    keyboardType: TextInputType.number,
+                    hint: '3',
+                  ),
+                  _AppField(
+                    controller: config.vacantBeds,
+                    label: 'Vacant Beds',
+                    keyboardType: TextInputType.number,
+                    hint: '1',
+                  ),
+                  _SwitchTile(
+                    label: 'Attached Bathroom',
+                    value: config.attachedBathroom,
+                    onChanged: onAttachedChanged,
+                  ),
+                  _SwitchTile(
+                    label: config.hasAc ? 'AC Room' : 'Non-AC Room',
+                    value: config.hasAc,
+                    onChanged: onAcChanged,
+                  ),
+                  _SelectTile(
+                    label: 'Furnished Status',
+                    value: config.furnished,
+                    icon: Icons.chair_rounded,
+                    onTap: onPickFurnished,
+                  ),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
+  }
+}
+
+class _RoomConfiguration {
+  String roomType = 'Single';
+  String furnished = 'Fully Furnished';
+  bool attachedBathroom = true;
+  bool hasAc = false;
+  bool expanded;
+  final TextEditingController rent;
+  final TextEditingController capacity;
+  final TextEditingController vacantBeds;
+
+  _RoomConfiguration({this.expanded = false})
+    : rent = TextEditingController(),
+      capacity = TextEditingController(),
+      vacantBeds = TextEditingController();
+
+  Map<String, dynamic> toMap() {
+    return {
+      'roomType': roomType,
+      'rent': rent.text,
+      'capacity': capacity.text,
+      'vacantBeds': vacantBeds.text,
+      'attachedBathroom': attachedBathroom,
+      'hasAc': hasAc,
+      'furnished': furnished,
+      'expanded': expanded,
+    };
+  }
+
+  String get summary {
+    final rentLabel = rent.text.trim().isEmpty
+        ? 'rent not set'
+        : 'Rs ${rent.text.trim()}';
+    final capacityLabel = capacity.text.trim().isEmpty
+        ? '0'
+        : capacity.text.trim();
+    final vacantLabel = vacantBeds.text.trim().isEmpty
+        ? '0'
+        : vacantBeds.text.trim();
+    final acLabel = hasAc ? 'AC' : 'Non-AC';
+    final bathroomLabel = attachedBathroom ? 'attached bath' : 'common bath';
+    return '$roomType -> $rentLabel -> capacity $capacityLabel -> $vacantLabel vacant -> $acLabel, $furnished, $bathroomLabel';
+  }
+
+  void dispose() {
+    rent.dispose();
+    capacity.dispose();
+    vacantBeds.dispose();
   }
 }
 
