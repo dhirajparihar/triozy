@@ -23,18 +23,28 @@ class HousingFeedScreen extends StatelessWidget {
       child: Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: AppColors.background,
           foregroundColor: AppColors.onSurface,
           elevation: 0,
-          title: const Text('Housing'),
+          title: Text(
+            'Housing',
+            style: AppTheme.headline(fontSize: 28, fontWeight: FontWeight.w700),
+          ),
           bottom: TabBar(
-            indicatorColor: AppColors.primary,
+            indicator: BoxDecoration(
+              color: AppColors.surfaceContainerLowest,
+              borderRadius: AppTheme.radius(14),
+              boxShadow: AppTheme.shadow(blur: 16, offsetY: 6, alpha: 0.06),
+            ),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             labelColor: AppColors.primary,
             unselectedLabelColor: AppColors.onSurfaceVariant,
             labelStyle: AppTheme.body(
               fontSize: 14,
               fontWeight: FontWeight.w800,
             ),
+            dividerColor: Colors.transparent,
+            indicatorSize: TabBarIndicatorSize.tab,
             tabs: const [
               Tab(text: 'Rooms'),
               Tab(text: 'Flatmates'),
@@ -206,9 +216,12 @@ class _HousingLoadingState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       height: 330,
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+      decoration: AppTheme.cardDecoration(
+        color: AppColors.surfaceContainerLowest,
+        radiusValue: 24,
+        shadowAlpha: 0.05,
+        blur: 18,
+        offsetY: 8,
       ),
     );
   }
@@ -257,9 +270,12 @@ class _HousingEmptyState extends StatelessWidget {
 
     return Container(
       padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+      decoration: AppTheme.cardDecoration(
+        color: AppColors.surfaceContainerLowest,
+        radiusValue: 24,
+        shadowAlpha: 0.05,
+        blur: 18,
+        offsetY: 8,
       ),
       child: Column(
         children: [
@@ -267,10 +283,10 @@ class _HousingEmptyState extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: AppColors.blue50,
-              borderRadius: BorderRadius.circular(16),
+              color: AppColors.secondaryContainer.withValues(alpha: 0.7),
+              borderRadius: AppTheme.radius(16),
             ),
-            child: Icon(icon, color: AppColors.primary, size: 28),
+            child: Icon(icon, color: AppColors.secondary, size: 28),
           ),
           const SizedBox(height: 14),
           Text(title, style: AppTheme.headline(fontSize: 20)),

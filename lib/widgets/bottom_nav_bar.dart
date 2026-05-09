@@ -18,66 +18,76 @@ class AppBottomNavBar extends StatelessWidget {
     final items = const [
       (Icons.home_rounded, 'Home'),
       (Icons.apps_rounded, 'Services'),
-      (Icons.chat_bubble_rounded, 'Chat'),
+      (Icons.chat_bubble_outline_rounded, 'Chats'),
       (Icons.person_outline_rounded, 'Profile'),
     ];
 
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: const BorderRadius.only(
-          topLeft: Radius.circular(28),
-          topRight: Radius.circular(28),
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 18,
-            offset: const Offset(0, -6),
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        child: Container(
+          decoration: AppTheme.cardDecoration(
+            color: AppColors.surfaceContainerLowest,
+            radiusValue: AppTheme.radiusLg,
+            shadowAlpha: 0.1,
+            blur: 30,
+            offsetY: 14,
           ),
-        ],
-      ),
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(10, 10, 10, 8),
-          child: Row(
-            children: List.generate(items.length, (index) {
-              final item = items[index];
-              final selected = currentIndex == index;
-              return Expanded(
-                child: GestureDetector(
-                  onTap: () => onTap(index),
-                  behavior: HitTestBehavior.opaque,
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 180),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      color: selected ? AppColors.blue50 : Colors.transparent,
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(
-                          item.$1,
-                          color: selected ? AppColors.primary : AppColors.slate400,
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          item.$2,
-                          style: AppTheme.label(
-                            fontSize: 11,
-                            fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
-                            color: selected ? AppColors.primary : AppColors.slate400,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+            child: Row(
+              children: List.generate(items.length, (index) {
+                final item = items[index];
+                final selected = currentIndex == index;
+                return Expanded(
+                  child: GestureDetector(
+                    onTap: () => onTap(index),
+                    behavior: HitTestBehavior.opaque,
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 6),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          AnimatedContainer(
+                            duration: const Duration(milliseconds: 180),
+                            curve: Curves.easeOut,
+                            width: 70,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: selected
+                                  ? AppColors.surfaceContainerHigh
+                                  : Colors.transparent,
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Icon(
+                              item.$1,
+                              color: selected
+                                  ? AppColors.primary
+                                  : AppColors.outline,
+                              size: 27,
+                            ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 6),
+                          Text(
+                            item.$2,
+                            style: AppTheme.body(
+                              fontSize: 12,
+                              fontWeight: selected
+                                  ? FontWeight.w700
+                                  : FontWeight.w600,
+                              color: selected
+                                  ? AppColors.primary
+                                  : AppColors.outline,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                ),
-              );
-            }),
+                );
+              }),
+            ),
           ),
         ),
       ),

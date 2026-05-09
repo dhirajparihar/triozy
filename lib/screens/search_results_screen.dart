@@ -103,7 +103,9 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
       maxPrice: _maxBudget,
     );
     final userId = FirebaseAuth.instance.currentUser?.uid;
-    final savedListings = userId == null ? <ListingModel>[] : await db.getSavedListings(userId);
+    final savedListings = userId == null
+        ? <ListingModel>[]
+        : await db.getSavedListings(userId);
 
     if (!mounted) {
       return;
@@ -126,12 +128,16 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
         sorted.sort((a, b) => b.price.compareTo(a.price));
         break;
       case 'Featured':
-        sorted.sort((a, b) => (b.isFeatured ? 1 : 0).compareTo(a.isFeatured ? 1 : 0));
+        sorted.sort(
+          (a, b) => (b.isFeatured ? 1 : 0).compareTo(a.isFeatured ? 1 : 0),
+        );
         break;
       case 'Recently Added':
       default:
         sorted.sort(
-          (a, b) => (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)),
+          (a, b) => (b.createdAt ?? DateTime(0)).compareTo(
+            a.createdAt ?? DateTime(0),
+          ),
         );
         break;
     }
@@ -141,9 +147,9 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
   Future<void> _toggleSave(String listingId) async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sign in to save listings')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Sign in to save listings')));
       return;
     }
     await context.read<DatabaseService>().toggleSavedListing(
@@ -163,7 +169,8 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => ListingDetailScreen(listingId: listing.id, seed: listing),
+        builder: (_) =>
+            ListingDetailScreen(listingId: listing.id, seed: listing),
       ),
     );
   }
@@ -306,16 +313,12 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
 
   Widget _buildSearchBar() {
     return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
+      decoration: AppTheme.cardDecoration(
+        color: AppColors.surfaceContainerLowest,
+        radiusValue: 18,
+        shadowAlpha: 0.06,
+        blur: 18,
+        offsetY: 8,
       ),
       child: TextField(
         controller: _searchController,
@@ -349,8 +352,8 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
     return Container(
       padding: const EdgeInsets.all(4),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        color: AppColors.surfaceContainerHigh,
+        borderRadius: AppTheme.radius(18),
       ),
       child: Row(
         children: ListingType.values.map((type) {
@@ -371,8 +374,10 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
                 duration: const Duration(milliseconds: 180),
                 padding: const EdgeInsets.symmetric(vertical: 12),
                 decoration: BoxDecoration(
-                  color: selected ? AppColors.primary : Colors.transparent,
-                  borderRadius: BorderRadius.circular(14),
+                  color: selected
+                      ? AppColors.surfaceContainerLowest
+                      : Colors.transparent,
+                  borderRadius: AppTheme.radius(14),
                 ),
                 child: Center(
                   child: Text(
@@ -380,7 +385,9 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
                     style: AppTheme.body(
                       fontSize: 14,
                       fontWeight: FontWeight.w700,
-                      color: selected ? Colors.white : AppColors.onSurfaceVariant,
+                      color: selected
+                          ? AppColors.primary
+                          : AppColors.onSurfaceVariant,
                     ),
                   ),
                 ),
@@ -418,7 +425,9 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
                     });
                     _loadListings();
                   },
-                  selectedColor: AppColors.blue50,
+                  selectedColor: AppColors.secondaryContainer.withValues(
+                    alpha: 0.75,
+                  ),
                   labelStyle: AppTheme.label(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -436,15 +445,25 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
             padding: const EdgeInsets.only(right: 8),
             child: FilterChip(
               selected: _maxBudget != null,
-              label: Text(_maxBudget == null ? 'Budget' : 'Under Rs ${_maxBudget!.toInt()}'),
+              label: Text(
+                _maxBudget == null
+                    ? 'Budget'
+                    : 'Under Rs ${_maxBudget!.toInt()}',
+              ),
               onSelected: (_) => _showBudgetSheet(),
-              selectedColor: AppColors.blue50,
+              selectedColor: AppColors.secondaryContainer.withValues(
+                alpha: 0.75,
+              ),
               labelStyle: AppTheme.label(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
-                color: _maxBudget != null ? AppColors.primary : AppColors.onSurfaceVariant,
+                color: _maxBudget != null
+                    ? AppColors.primary
+                    : AppColors.onSurfaceVariant,
               ),
-              side: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.25)),
+              side: BorderSide(
+                color: AppColors.outlineVariant.withValues(alpha: 0.25),
+              ),
             ),
           ),
           if (_selectedPropertyType != null || _maxBudget != null)
@@ -473,7 +492,7 @@ class SearchResultsScreenState extends State<SearchResultsScreen> {
   void _showBudgetSheet() {
     showModalBottomSheet<void>(
       context: context,
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.surfaceContainerLowest,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -517,10 +536,7 @@ class _SortMenu extends StatelessWidget {
   final String currentValue;
   final ValueChanged<String> onSelected;
 
-  const _SortMenu({
-    required this.currentValue,
-    required this.onSelected,
-  });
+  const _SortMenu({required this.currentValue, required this.onSelected});
 
   @override
   Widget build(BuildContext context) {
@@ -529,8 +545,14 @@ class _SortMenu extends StatelessWidget {
       itemBuilder: (context) => const [
         PopupMenuItem(value: 'Recently Added', child: Text('Recently Added')),
         PopupMenuItem(value: 'Featured', child: Text('Featured')),
-        PopupMenuItem(value: 'Price: Low to High', child: Text('Price: Low to High')),
-        PopupMenuItem(value: 'Price: High to Low', child: Text('Price: High to Low')),
+        PopupMenuItem(
+          value: 'Price: Low to High',
+          child: Text('Price: Low to High'),
+        ),
+        PopupMenuItem(
+          value: 'Price: High to Low',
+          child: Text('Price: High to Low'),
+        ),
       ],
       child: Row(
         children: [
@@ -542,7 +564,10 @@ class _SortMenu extends StatelessWidget {
               color: AppColors.slate500,
             ),
           ),
-          const Icon(Icons.keyboard_arrow_down_rounded, color: AppColors.slate500),
+          const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: AppColors.slate500,
+          ),
         ],
       ),
     );
@@ -560,9 +585,12 @@ class _ExploreLoadingState extends StatelessWidget {
         (_) => Container(
           height: 280,
           margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
+          decoration: AppTheme.cardDecoration(
+            color: AppColors.surfaceContainerLowest,
+            radiusValue: 24,
+            shadowAlpha: 0.04,
+            blur: 18,
+            offsetY: 8,
           ),
         ),
       ),
@@ -585,9 +613,12 @@ class _EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(28),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+      decoration: AppTheme.cardDecoration(
+        color: AppColors.surfaceContainerLowest,
+        radiusValue: 24,
+        shadowAlpha: 0.05,
+        blur: 18,
+        offsetY: 8,
       ),
       child: Column(
         children: [

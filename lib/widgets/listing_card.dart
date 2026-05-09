@@ -29,8 +29,8 @@ class ListingCard extends StatelessWidget {
         final isNarrow = width < 360;
         final imageHeight = compact
             ? (isNarrow ? 108.0 : 120.0)
-            : (width < 380 ? 166.0 : 180.0);
-        final horizontalPadding = isNarrow ? 12.0 : 14.0;
+            : (width < 380 ? 170.0 : 184.0);
+        final horizontalPadding = isNarrow ? 12.0 : 16.0;
         final verticalPadding = compact ? (isNarrow ? 12.0 : 14.0) : 16.0;
         final titleSize = compact ? (isNarrow ? 13.0 : 14.0) : 16.0;
         final priceSize = compact ? (isNarrow ? 18.0 : 20.0) : 22.0;
@@ -42,16 +42,12 @@ class ListingCard extends StatelessWidget {
         return GestureDetector(
           onTap: onTap,
           child: Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.06),
-                  blurRadius: 24,
-                  offset: const Offset(0, 10),
-                ),
-              ],
+            decoration: AppTheme.cardDecoration(
+              color: AppColors.surfaceContainerLowest,
+              radiusValue: 20,
+              shadowAlpha: 0.08,
+              blur: 26,
+              offsetY: 12,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -70,7 +66,7 @@ class ListingCard extends StatelessWidget {
                             )
                           : ClipRRect(
                               borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(24),
+                                top: Radius.circular(20),
                               ),
                               child: SizedBox(
                                 height: imageHeight,
@@ -91,7 +87,9 @@ class ListingCard extends StatelessWidget {
                       top: 12,
                       child: _Badge(
                         label: listing.propertyTypeLabel,
-                        background: Colors.white.withValues(alpha: 0.92),
+                        background: AppColors.surfaceContainerLowest.withValues(
+                          alpha: 0.94,
+                        ),
                         foreground: AppColors.primary,
                       ),
                     ),
@@ -105,15 +103,21 @@ class ListingCard extends StatelessWidget {
                             width: 38,
                             height: 38,
                             decoration: BoxDecoration(
-                              color: Colors.white.withValues(alpha: 0.94),
+                              color: AppColors.surfaceContainerLowest
+                                  .withValues(alpha: 0.96),
                               shape: BoxShape.circle,
+                              boxShadow: AppTheme.shadow(
+                                blur: 12,
+                                offsetY: 4,
+                                alpha: 0.05,
+                              ),
                             ),
                             child: Icon(
                               isSaved
                                   ? Icons.favorite_rounded
-                                  : Icons.favorite_border,
+                                  : Icons.favorite_border_rounded,
                               color: isSaved
-                                  ? AppColors.error
+                                  ? AppColors.tertiary
                                   : AppColors.onSurface,
                               size: 20,
                             ),
@@ -138,6 +142,7 @@ class ListingCard extends StatelessWidget {
                         style: AppTheme.headline(
                           fontSize: priceSize,
                           color: AppColors.primary,
+                          fontWeight: FontWeight.w700,
                         ),
                       ),
                       const SizedBox(height: 6),
@@ -148,15 +153,16 @@ class ListingCard extends StatelessWidget {
                         style: AppTheme.body(
                           fontSize: titleSize,
                           fontWeight: FontWeight.w700,
+                          height: 1.35,
                         ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 10),
                       Row(
                         children: [
                           const Icon(
                             Icons.location_on_outlined,
                             size: 16,
-                            color: AppColors.slate500,
+                            color: AppColors.secondary,
                           ),
                           const SizedBox(width: 4),
                           Expanded(
@@ -166,23 +172,24 @@ class ListingCard extends StatelessWidget {
                               overflow: TextOverflow.ellipsis,
                               style: AppTheme.body(
                                 fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.slate500,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.secondary,
                               ),
                             ),
                           ),
                         ],
                       ),
                       if (highlights.isNotEmpty) ...[
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 12),
                         Wrap(
                           spacing: 8,
                           runSpacing: 8,
                           children: highlights.map((highlight) {
                             return _Badge(
                               label: highlight,
-                              background: AppColors.blue50,
-                              foreground: AppColors.blue700,
+                              background: AppColors.secondaryContainer
+                                  .withValues(alpha: 0.7),
+                              foreground: AppColors.secondary,
                             );
                           }).toList(),
                         ),
@@ -255,7 +262,7 @@ class _RequirementHeader extends StatelessWidget {
         : listing.ownerName.trim();
 
     return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
       child: Container(
         width: double.infinity,
         padding: EdgeInsets.fromLTRB(
@@ -269,8 +276,8 @@ class _RequirementHeader extends StatelessWidget {
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
-              AppColors.blue50,
-              AppColors.primaryFixed.withValues(alpha: 0.72),
+              AppColors.surfaceContainerLow,
+              AppColors.secondaryContainer.withValues(alpha: 0.78),
             ],
           ),
         ),
@@ -333,7 +340,7 @@ class _RequirementIdentity extends StatelessWidget {
             Icon(
               Icons.location_on_rounded,
               size: compact ? 14 : 16,
-              color: AppColors.slate500,
+              color: AppColors.secondary,
             ),
             const SizedBox(width: 4),
             Expanded(
@@ -344,7 +351,7 @@ class _RequirementIdentity extends StatelessWidget {
                 style: AppTheme.body(
                   fontSize: compact ? 12 : (isNarrow ? 13 : 14),
                   fontWeight: FontWeight.w700,
-                  color: AppColors.slate500,
+                  color: AppColors.secondary,
                 ),
               ),
             ),
@@ -387,7 +394,7 @@ class _ProfilePhoto extends StatelessWidget {
 
   Widget _fallback(String initial) {
     return Container(
-      color: AppColors.blue50,
+      color: AppColors.surfaceContainerLowest,
       alignment: Alignment.center,
       child: Text(
         initial,
@@ -414,13 +421,13 @@ class _Badge extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: background,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: AppTheme.radius(999),
       ),
       child: Text(
         label,
         style: AppTheme.label(
           fontSize: 11,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w800,
           color: foreground,
         ),
       ),

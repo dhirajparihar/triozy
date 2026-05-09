@@ -204,212 +204,138 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         }
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF4F8FF),
-          appBar: _buildAppBar(conversation),
-          body: DecoratedBox(
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Color(0xFFF4F8FF), Color(0xFFEAF2FF)],
-              ),
-            ),
-            child: Stack(
+          backgroundColor: AppColors.background,
+          body: SafeArea(
+            bottom: false,
+            child: Column(
               children: [
-                Positioned(
-                  top: -60,
-                  right: -20,
-                  child: _BackdropOrb(
-                    size: 180,
-                    color: AppColors.primary.withValues(alpha: 0.10),
-                  ),
+                _DetailHeader(
+                  conversation: conversation,
+                  currentUserId: _currentUserId,
                 ),
-                Positioned(
-                  top: 180,
-                  left: -30,
-                  child: _BackdropOrb(
-                    size: 150,
-                    color: AppColors.blue600.withValues(alpha: 0.08),
-                  ),
-                ),
-                Column(
-                  children: [
-                    Expanded(
-                      child: Builder(
-                        builder: (context) {
-                          if (chatProvider.isLoading && messages.isEmpty) {
-                            return const Center(
-                              child: CircularProgressIndicator(),
-                            );
-                          }
+                _ListingPreview(conversation: conversation),
+                Expanded(
+                  child: Builder(
+                    builder: (context) {
+                      if (chatProvider.isLoading && messages.isEmpty) {
+                        return const Center(
+                          child: CircularProgressIndicator(
+                            color: AppColors.primary,
+                          ),
+                        );
+                      }
 
-                          if ((chatProvider.errorMessage ?? '').isNotEmpty &&
-                              messages.isEmpty) {
-                            return Center(
-                              child: Padding(
-                                padding: const EdgeInsets.all(24),
-                                child: Text(
-                                  chatProvider.errorMessage!,
-                                  textAlign: TextAlign.center,
-                                  style: AppTheme.body(
-                                    fontSize: 14,
-                                    fontWeight: FontWeight.w500,
-                                    color: AppColors.slate500,
-                                  ),
-                                ),
+                      if ((chatProvider.errorMessage ?? '').isNotEmpty &&
+                          messages.isEmpty) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.all(24),
+                            child: Text(
+                              chatProvider.errorMessage!,
+                              textAlign: TextAlign.center,
+                              style: AppTheme.body(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.slate500,
                               ),
-                            );
-                          }
+                            ),
+                          ),
+                        );
+                      }
 
-                          if (messages.isEmpty) {
-                            return Center(
-                              child: Text(
-                                'No messages yet. Say hello and start the conversation.',
-                                textAlign: TextAlign.center,
-                                style: AppTheme.body(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.slate500,
-                                  height: 1.6,
-                                ),
+                      if (messages.isEmpty) {
+                        return Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 28),
+                            child: Text(
+                              'No messages yet. Say hello and start the conversation.',
+                              textAlign: TextAlign.center,
+                              style: AppTheme.body(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.slate500,
+                                height: 1.6,
                               ),
+                            ),
+                          ),
+                        );
+                      }
+
+                      return ListView.builder(
+                        controller: _scrollController,
+                        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+                        itemCount: messages.length + 1,
+                        itemBuilder: (context, index) {
+                          if (index == 0) {
+                            return const Padding(
+                              padding: EdgeInsets.only(bottom: 16),
+                              child: _SafetyTip(),
                             );
                           }
 
-                          return ListView.builder(
-                            controller: _scrollController,
-                            padding: const EdgeInsets.fromLTRB(14, 18, 14, 18),
-                            itemCount: messages.length,
-                            itemBuilder: (context, index) {
-                              final message = messages[index];
-                              final previous = index > 0
-                                  ? messages[index - 1]
-                                  : null;
-                              final isOwnMessage = _isOwnMessage(
-                                message,
-                                conversation,
-                              );
-                              final previousIsOwnMessage = previous == null
-                                  ? null
-                                  : _isOwnMessage(previous, conversation);
-                              final showDateHeader =
-                                  previous == null ||
-                                  !_isSameDay(
-                                    previous.timestamp,
-                                    message.timestamp,
-                                  );
-                              final groupedWithPrevious =
-                                  previous != null &&
-                                  previousIsOwnMessage == isOwnMessage &&
-                                  _isSameDay(
-                                    previous.timestamp,
-                                    message.timestamp,
-                                  ) &&
-                                  message.timestamp
-                                          .difference(previous.timestamp)
-                                          .inMinutes <
-                                      4;
+                          final actualIndex = index - 1;
+                          final message = messages[actualIndex];
+                          final previous = actualIndex > 0
+                              ? messages[actualIndex - 1]
+                              : null;
+                          final isOwnMessage = _isOwnMessage(
+                            message,
+                            conversation,
+                          );
+                          final previousIsOwnMessage = previous == null
+                              ? null
+                              : _isOwnMessage(previous, conversation);
+                          final showDateHeader =
+                              previous == null ||
+                              !_isSameDay(previous.timestamp, message.timestamp);
+                          final groupedWithPrevious =
+                              previous != null &&
+                              previousIsOwnMessage == isOwnMessage &&
+                              _isSameDay(previous.timestamp, message.timestamp) &&
+                              message.timestamp
+                                      .difference(previous.timestamp)
+                                      .inMinutes <
+                                  4;
 
-                              return Column(
-                                children: [
-                                  if (showDateHeader)
-                                    _DateChip(
-                                      label: _dayLabel(message.timestamp),
-                                    ),
-                                  _MessageBubble(
-                                    message: message,
-                                    isOwn: isOwnMessage,
-                                    isReadByPeer:
-                                        isOwnMessage &&
-                                        peerLastReadAt != null &&
-                                        !message.isFailed &&
-                                        !message.isSending &&
-                                        !peerLastReadAt.isBefore(
-                                          message.timestamp,
-                                        ),
-                                    groupedWithPrevious: groupedWithPrevious,
-                                    formattedTime: _formatTime(
-                                      message.timestamp,
-                                    ),
-                                    onRetry: message.isFailed
-                                        ? () => chatProvider.retryMessage(
-                                            message.clientId,
-                                          )
-                                        : null,
-                                  ),
-                                ],
-                              );
-                            },
+                          return Column(
+                            children: [
+                              if (showDateHeader)
+                                _DateChip(label: _dayLabel(message.timestamp)),
+                              _MessageBubble(
+                                message: message,
+                                isOwn: isOwnMessage,
+                                isReadByPeer:
+                                    isOwnMessage &&
+                                    peerLastReadAt != null &&
+                                    !message.isFailed &&
+                                    !message.isSending &&
+                                    !peerLastReadAt.isBefore(message.timestamp),
+                                groupedWithPrevious: groupedWithPrevious,
+                                formattedTime: _formatTime(message.timestamp),
+                                onRetry: message.isFailed
+                                    ? () => chatProvider.retryMessage(
+                                        message.clientId,
+                                      )
+                                    : null,
+                              ),
+                            ],
                           );
                         },
-                      ),
-                    ),
-                    _Composer(
-                      controller: _messageController,
-                      canSend: _canSend,
-                      onChanged: _handleComposerChanged,
-                      onSend: _sendMessage,
-                    ),
-                  ],
+                      );
+                    },
+                  ),
+                ),
+                _Composer(
+                  controller: _messageController,
+                  canSend: _canSend,
+                  onChanged: _handleComposerChanged,
+                  onSend: _sendMessage,
                 ),
               ],
             ),
           ),
         );
       },
-    );
-  }
-
-  AppBar _buildAppBar(ConversationModel? conversation) {
-    final peer = conversation?.peerMetaFor(_currentUserId);
-    final isPeerTyping = conversation?.isPeerTypingFor(_currentUserId) ?? false;
-    final peerName = (peer?.name ?? '').trim();
-    final name = peerName.isEmpty ? 'Messages' : peerName;
-    final subtitle = isPeerTyping
-        ? 'typing...'
-        : ((conversation?.listingTitle ?? '').trim().isEmpty
-              ? 'Conversation'
-              : conversation!.listingTitle.trim());
-    final photoUrl = (peer?.photoUrl ?? '').trim();
-
-    return AppBar(
-      backgroundColor: const Color(0xFFF8FBFF),
-      foregroundColor: AppColors.onSurface,
-      elevation: 0,
-      titleSpacing: 4,
-      title: Row(
-        children: [
-          _PeerAvatar(name: name, photoUrl: photoUrl),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.body(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                Text(
-                  subtitle,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.body(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: isPeerTyping ? AppColors.primary : AppColors.slate500,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
     );
   }
 
@@ -430,6 +356,18 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
     if (difference == 1) {
       return 'Yesterday';
+    }
+    const weekdays = [
+      'Monday',
+      'Tuesday',
+      'Wednesday',
+      'Thursday',
+      'Friday',
+      'Saturday',
+      'Sunday',
+    ];
+    if (difference < 7) {
+      return weekdays[dateTime.weekday - 1];
     }
     return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
   }
@@ -479,6 +417,213 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 }
 
+class _DetailHeader extends StatelessWidget {
+  final ConversationModel? conversation;
+  final String currentUserId;
+
+  const _DetailHeader({
+    required this.conversation,
+    required this.currentUserId,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final peer = conversation?.peerMetaFor(currentUserId);
+    final peerName = (peer?.name ?? '').trim();
+    final name = peerName.isEmpty ? 'Messages' : peerName;
+    final photoUrl = (peer?.photoUrl ?? '').trim();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          IconButton(
+            onPressed: () => Navigator.of(context).maybePop(),
+            icon: const Icon(
+              Icons.arrow_back_rounded,
+              color: AppColors.primary,
+              size: 34,
+            ),
+          ),
+          Expanded(
+            child: Row(
+              children: [
+                _PeerAvatar(name: name, photoUrl: photoUrl),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.headline(
+                          fontSize: 24,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 5,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondaryContainer,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.verified_outlined,
+                              size: 16,
+                              color: AppColors.onSecondaryContainer,
+                            ),
+                            const SizedBox(width: 6),
+                            Text(
+                              'Verified',
+                              style: AppTheme.body(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.onSecondaryContainer,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: () {},
+            icon: const Icon(
+              Icons.more_vert_rounded,
+              color: AppColors.primary,
+              size: 30,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ListingPreview extends StatelessWidget {
+  final ConversationModel? conversation;
+
+  const _ListingPreview({required this.conversation});
+
+  @override
+  Widget build(BuildContext context) {
+    final title = conversation?.listingTitle.trim().isNotEmpty == true
+        ? conversation!.listingTitle.trim()
+        : 'Sunny 1BR in Downtown';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLowest,
+        border: Border(
+          bottom: BorderSide(
+            color: AppColors.outlineVariant.withValues(alpha: 0.42),
+          ),
+        ),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: SizedBox(
+              width: 96,
+              height: 96,
+              child: Image.asset(
+                'assets/onboarding/home.png',
+                fit: BoxFit.cover,
+                errorBuilder: (_, _, _) => Container(
+                  color: AppColors.surfaceContainerHigh,
+                  alignment: Alignment.center,
+                  child: const Icon(
+                    Icons.home_work_outlined,
+                    color: AppColors.primary,
+                    size: 32,
+                  ),
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Listing Inquiry',
+                  style: AppTheme.body(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.headline(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
+                    height: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'View listing for pricing',
+                  style: AppTheme.body(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.secondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          FilledButton(
+            onPressed: () {},
+            style: FilledButton.styleFrom(
+              backgroundColor: AppColors.surfaceContainerHigh,
+              foregroundColor: AppColors.primary,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
+            ),
+            child: Text(
+              'View Details',
+              style: AppTheme.body(
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
+                color: AppColors.primary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Composer extends StatelessWidget {
   final TextEditingController controller;
   final bool canSend;
@@ -496,66 +641,87 @@ class _Composer extends StatelessWidget {
   Widget build(BuildContext context) {
     return SafeArea(
       top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 6, 12, 10),
-        child: Container(
-          padding: const EdgeInsets.fromLTRB(14, 10, 10, 10),
-          decoration: BoxDecoration(
-            color: const Color(0xFFFCFDFF),
-            borderRadius: BorderRadius.circular(28),
-            border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.14),
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerLowest,
+          border: Border(
+            top: BorderSide(
+              color: AppColors.outlineVariant.withValues(alpha: 0.42),
             ),
-            boxShadow: [
-              BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.08),
-                blurRadius: 24,
-                offset: const Offset(0, 10),
-              ),
-            ],
           ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: TextField(
-                  controller: controller,
-                  maxLines: 5,
-                  minLines: 1,
-                  textInputAction: TextInputAction.newline,
-                  onChanged: onChanged,
-                  decoration: InputDecoration(
-                    hintText: 'Message',
-                    hintStyle: AppTheme.body(
-                      fontSize: 15,
-                      color: AppColors.slate400,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            IconButton(
+              onPressed: () {},
+              icon: const Icon(
+                Icons.add_circle_outline_rounded,
+                color: AppColors.onSurfaceVariant,
+                size: 36,
+              ),
+            ),
+            const SizedBox(width: 6),
+            Expanded(
+              child: Container(
+                constraints: const BoxConstraints(minHeight: 56),
+                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: AppColors.outlineVariant.withValues(alpha: 0.8),
+                  ),
+                ),
+                child: Center(
+                  child: TextField(
+                    controller: controller,
+                    maxLines: 5,
+                    minLines: 1,
+                    textInputAction: TextInputAction.newline,
+                    onChanged: onChanged,
+                    style: AppTheme.body(
+                      fontSize: 16,
+                      color: AppColors.onSurface,
                     ),
-                    border: InputBorder.none,
-                    isCollapsed: true,
+                    decoration: InputDecoration(
+                      hintText: 'Type a message...',
+                      hintStyle: AppTheme.body(
+                        fontSize: 16,
+                        color: AppColors.slate500,
+                      ),
+                      border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      contentPadding: EdgeInsets.zero,
+                      isDense: true,
+                    ),
                   ),
                 ),
               ),
-              const SizedBox(width: 10),
-              Material(
-                color: canSend
-                    ? AppColors.primary
-                    : AppColors.primary.withValues(alpha: 0.28),
-                shape: const CircleBorder(),
-                child: InkWell(
-                  onTap: canSend ? onSend : null,
-                  customBorder: const CircleBorder(),
-                  child: const Padding(
-                    padding: EdgeInsets.all(14),
-                    child: Icon(
-                      Icons.send_rounded,
-                      color: Colors.white,
-                      size: 20,
-                    ),
-                  ),
+            ),
+            const SizedBox(width: 12),
+            GestureDetector(
+              onTap: canSend ? onSend : null,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: canSend
+                      ? AppColors.primary
+                      : AppColors.primary.withValues(alpha: 0.35),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: const Icon(
+                  Icons.send_rounded,
+                  color: AppColors.onPrimary,
+                  size: 28,
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
@@ -572,20 +738,20 @@ class _PeerAvatar extends StatelessWidget {
   Widget build(BuildContext context) {
     final initial = name.isEmpty ? '?' : name[0].toUpperCase();
     return Container(
-      width: 40,
-      height: 40,
+      width: 56,
+      height: 56,
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.blue50,
+        color: AppColors.surfaceContainerHigh,
       ),
       child: ClipOval(
         child: photoUrl.isEmpty
             ? Center(
                 child: Text(
                   initial,
-                  style: AppTheme.body(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
+                  style: AppTheme.headline(
+                    fontSize: 22,
+                    fontWeight: FontWeight.w700,
                     color: AppColors.primary,
                   ),
                 ),
@@ -596,31 +762,15 @@ class _PeerAvatar extends StatelessWidget {
                 errorWidget: (_, _, _) => Center(
                   child: Text(
                     initial,
-                    style: AppTheme.body(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
+                    style: AppTheme.headline(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w700,
                       color: AppColors.primary,
                     ),
                   ),
                 ),
               ),
       ),
-    );
-  }
-}
-
-class _BackdropOrb extends StatelessWidget {
-  final double size;
-  final Color color;
-
-  const _BackdropOrb({required this.size, required this.color});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: size,
-      height: size,
-      decoration: BoxDecoration(shape: BoxShape.circle, color: color),
     );
   }
 }
@@ -633,23 +783,20 @@ class _DateChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 14),
+      padding: const EdgeInsets.symmetric(vertical: 18),
       child: Center(
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
           decoration: BoxDecoration(
-            color: AppColors.blue50.withValues(alpha: 0.96),
+            color: AppColors.surfaceContainerHigh,
             borderRadius: BorderRadius.circular(999),
-            border: Border.all(
-              color: AppColors.primary.withValues(alpha: 0.12),
-            ),
           ),
           child: Text(
             label,
-            style: AppTheme.label(
-              fontSize: 11,
-              fontWeight: FontWeight.w800,
-              color: AppColors.slate500,
+            style: AppTheme.body(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: AppColors.onSurfaceVariant,
             ),
           ),
         ),
@@ -677,96 +824,99 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final bubbleColor = isOwn ? const Color(0xFFDCEBFF) : const Color(0xFFFDFEFF);
+    final bubbleColor = isOwn
+        ? AppColors.primary
+        : AppColors.surfaceContainerLow;
+    final textColor = isOwn ? AppColors.onPrimary : AppColors.onSurface;
     final timeColor = message.isFailed
         ? AppColors.error
-        : (isOwn ? AppColors.slate500 : AppColors.slate500);
-    final radius = Radius.circular(groupedWithPrevious ? 14 : 22);
+        : (isOwn ? AppColors.slate500 : AppColors.onSurfaceVariant);
+    final maxWidth = MediaQuery.of(context).size.width * 0.78;
 
     return Align(
       alignment: isOwn ? Alignment.centerRight : Alignment.centerLeft,
       child: Padding(
-        padding: EdgeInsets.only(top: groupedWithPrevious ? 2 : 8, bottom: 2),
+        padding: EdgeInsets.only(
+          top: groupedWithPrevious ? 4 : 8,
+          bottom: 8,
+          left: isOwn ? 42 : 0,
+          right: isOwn ? 0 : 42,
+        ),
         child: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: MediaQuery.of(context).size.width * 0.78,
-          ),
-          child: GestureDetector(
-            onTap: message.isFailed ? onRetry : null,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(12, 9, 10, 8),
-              decoration: BoxDecoration(
-                color: bubbleColor,
-                border: Border.all(
-                  color: isOwn
-                      ? AppColors.primary.withValues(alpha: 0.10)
-                      : AppColors.outlineVariant.withValues(alpha: 0.22),
-                ),
-                borderRadius: BorderRadius.only(
-                  topLeft: radius,
-                  topRight: radius,
-                  bottomLeft: Radius.circular(isOwn ? 22 : 6),
-                  bottomRight: Radius.circular(isOwn ? 6 : 22),
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.06),
-                    blurRadius: 12,
-                    offset: const Offset(0, 4),
+          constraints: BoxConstraints(maxWidth: maxWidth),
+          child: Column(
+            crossAxisAlignment: isOwn
+                ? CrossAxisAlignment.end
+                : CrossAxisAlignment.start,
+            children: [
+              GestureDetector(
+                onTap: message.isFailed ? onRetry : null,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 18,
+                    vertical: 16,
                   ),
-                ],
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      message.text,
-                      style: AppTheme.body(
-                        fontSize: 15,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.onSurface,
-                        height: 1.4,
-                      ),
+                  decoration: BoxDecoration(
+                    color: bubbleColor,
+                    borderRadius: BorderRadius.only(
+                      topLeft: Radius.circular(isOwn ? 26 : 10),
+                      topRight: Radius.circular(isOwn ? 10 : 26),
+                      bottomLeft: const Radius.circular(26),
+                      bottomRight: const Radius.circular(26),
                     ),
-                  ),
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (message.isFailed)
-                        Padding(
-                          padding: const EdgeInsets.only(right: 6),
-                          child: Text(
-                            'Tap to retry',
-                            style: AppTheme.label(
-                              fontSize: 10,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.error,
-                            ),
-                          ),
-                        ),
-                      Text(
-                        formattedTime,
-                        style: AppTheme.label(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          color: timeColor,
-                        ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.primary.withValues(alpha: 0.08),
+                        blurRadius: 18,
+                        offset: const Offset(0, 8),
                       ),
-                      if (isOwn) ...[
-                        const SizedBox(width: 4),
-                        _StatusIcon(
-                          message: message,
-                          isReadByPeer: isReadByPeer,
-                        ),
-                      ],
                     ],
                   ),
+                  child: Text(
+                    message.text,
+                    style: AppTheme.body(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                      color: textColor,
+                      height: 1.55,
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 6),
+              Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (message.isFailed)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: Text(
+                        'Tap to retry',
+                        style: AppTheme.body(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.error,
+                        ),
+                      ),
+                    ),
+                  Text(
+                    formattedTime,
+                    style: AppTheme.body(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: timeColor,
+                    ),
+                  ),
+                  if (isOwn) ...[
+                    const SizedBox(width: 4),
+                    _StatusIcon(
+                      message: message,
+                      isReadByPeer: isReadByPeer,
+                    ),
+                  ],
                 ],
               ),
-            ),
+            ],
           ),
         ),
       ),
@@ -802,14 +952,72 @@ class _StatusIcon extends StatelessWidget {
     if (isReadByPeer || message.isRead) {
       return const Icon(
         Icons.done_all_rounded,
-        size: 15,
+        size: 16,
         color: AppColors.primary,
       );
     }
     return const Icon(
       Icons.done_all_rounded,
-      size: 15,
+      size: 16,
       color: AppColors.slate500,
+    );
+  }
+}
+
+class _SafetyTip extends StatelessWidget {
+  const _SafetyTip();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.55),
+        ),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 2),
+            child: Icon(
+              Icons.shield_outlined,
+              color: AppColors.primary,
+              size: 26,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: RichText(
+              text: TextSpan(
+                style: AppTheme.body(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.onSurfaceVariant,
+                  height: 1.55,
+                ),
+                children: [
+                  TextSpan(
+                    text: 'Safety Tip: ',
+                    style: AppTheme.body(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.onSurface,
+                    ),
+                  ),
+                  const TextSpan(
+                    text:
+                        'For your protection, always keep your communications and payments within the Triozy platform. Avoid transferring money externally.',
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

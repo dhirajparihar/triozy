@@ -241,6 +241,9 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                                 context,
                               ).colorScheme.surfaceContainerLowest,
                               foregroundColor: AppColors.onSurface,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: AppTheme.radius(18),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 10),
@@ -925,16 +928,12 @@ class _MarketplaceSearchBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      decoration: BoxDecoration(
+      decoration: AppTheme.cardDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(18),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.05),
-            blurRadius: 18,
-            offset: const Offset(0, 8),
-          ),
-        ],
+        radiusValue: 18,
+        shadowAlpha: 0.06,
+        blur: 18,
+        offsetY: 8,
       ),
       child: TextField(
         controller: controller,
@@ -979,8 +978,8 @@ class _LocationPill extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: AppColors.blue50,
-        borderRadius: BorderRadius.circular(999),
+        color: AppColors.secondaryContainer.withValues(alpha: 0.72),
+        borderRadius: AppTheme.radius(999),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -988,7 +987,7 @@ class _LocationPill extends StatelessWidget {
           const Icon(
             Icons.location_on_rounded,
             size: 16,
-            color: AppColors.primary,
+            color: AppColors.secondary,
           ),
           const SizedBox(width: 6),
           Flexible(
@@ -998,7 +997,7 @@ class _LocationPill extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
               style: AppTheme.label(
                 fontWeight: FontWeight.w800,
-                color: AppColors.primary,
+                color: AppColors.secondary,
               ),
             ),
           ),
@@ -1034,9 +1033,17 @@ class _CategoryRail extends StatelessWidget {
             label: Text(category),
             selected: isSelected,
             onSelected: (_) => onSelected(category),
-            selectedColor: AppColors.primary,
+            selectedColor: AppColors.surfaceContainerLowest,
+            backgroundColor: AppColors.surfaceContainerHigh,
+            side: BorderSide(
+              color: isSelected
+                  ? AppColors.primary.withValues(alpha: 0.18)
+                  : Colors.transparent,
+            ),
             labelStyle: AppTheme.label(
-              color: isSelected ? Colors.white : AppColors.onSurfaceVariant,
+              color: isSelected
+                  ? AppColors.primary
+                  : AppColors.onSurfaceVariant,
               fontWeight: FontWeight.w800,
             ),
           );
@@ -1105,16 +1112,12 @@ class _MarketplaceItemCard extends StatelessWidget {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        decoration: BoxDecoration(
+        decoration: AppTheme.cardDecoration(
           color: Theme.of(context).colorScheme.surfaceContainerLowest,
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
+          radiusValue: 22,
+          shadowAlpha: 0.07,
+          blur: 20,
+          offsetY: 8,
         ),
         clipBehavior: Clip.antiAlias,
         child: Column(
@@ -1148,7 +1151,9 @@ class _MarketplaceItemCard extends StatelessWidget {
                         width: 34,
                         height: 34,
                         decoration: BoxDecoration(
-                          color: Colors.white.withValues(alpha: 0.94),
+                          color: AppColors.surfaceContainerLowest.withValues(
+                            alpha: 0.96,
+                          ),
                           shape: BoxShape.circle,
                         ),
                         child: Icon(
@@ -1264,8 +1269,8 @@ class _TinyBadge extends StatelessWidget {
       decoration: BoxDecoration(
         color: urgent
             ? AppColors.error.withValues(alpha: 0.92)
-            : Colors.white.withValues(alpha: 0.92),
-        borderRadius: BorderRadius.circular(999),
+            : AppColors.surfaceContainerLowest.withValues(alpha: 0.92),
+        borderRadius: AppTheme.radius(999),
       ),
       child: Text(
         label,
@@ -1686,9 +1691,12 @@ class _MarketplaceSkeleton extends StatelessWidget {
       ),
       itemBuilder: (_, _) {
         return Container(
-          decoration: BoxDecoration(
+          decoration: AppTheme.cardDecoration(
             color: Theme.of(context).colorScheme.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(22),
+            radiusValue: 22,
+            shadowAlpha: 0.04,
+            blur: 16,
+            offsetY: 6,
           ),
         );
       },
@@ -1712,14 +1720,14 @@ class _MarketplaceEmptyState extends StatelessWidget {
             Container(
               width: 108,
               height: 108,
-              decoration: const BoxDecoration(
-                color: AppColors.blue50,
+              decoration: BoxDecoration(
+                color: AppColors.secondaryContainer.withValues(alpha: 0.76),
                 shape: BoxShape.circle,
               ),
               child: const Icon(
                 Icons.storefront_rounded,
                 size: 52,
-                color: AppColors.primary,
+                color: AppColors.secondary,
               ),
             ),
             const SizedBox(height: 18),
@@ -1760,7 +1768,11 @@ class _MarketplaceErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.error_outline_rounded, size: 52),
+            const Icon(
+              Icons.error_outline_rounded,
+              size: 52,
+              color: AppColors.tertiary,
+            ),
             const SizedBox(height: 12),
             Text(message, textAlign: TextAlign.center),
             const SizedBox(height: 16),

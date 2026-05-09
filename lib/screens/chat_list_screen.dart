@@ -9,6 +9,8 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'chat_detail_screen.dart';
 
+enum _ChatInboxSegment { housing, marketplace }
+
 class ChatListScreen extends StatefulWidget {
   final bool showScaffold;
 
@@ -20,7 +22,9 @@ class ChatListScreen extends StatefulWidget {
 
 class _ChatListScreenState extends State<ChatListScreen> {
   final TextEditingController _searchController = TextEditingController();
+  final FocusNode _searchFocusNode = FocusNode();
   String? _currentUserId;
+  _ChatInboxSegment _selectedSegment = _ChatInboxSegment.housing;
 
   @override
   void initState() {
@@ -41,6 +45,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   @override
   void dispose() {
     _searchController.dispose();
+    _searchFocusNode.dispose();
     super.dispose();
   }
 
@@ -50,6 +55,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     if (uid == null || uid.isEmpty) {
       return widget.showScaffold
           ? const Scaffold(
+              backgroundColor: AppColors.background,
               body: Center(child: Text('Please sign in to view chats')),
             )
           : const Center(child: Text('Please sign in to view chats'));
@@ -65,22 +71,21 @@ class _ChatListScreenState extends State<ChatListScreen> {
             conversation.listingTitle,
             conversation.lastMessage,
           ].join(' ').toLowerCase();
-          return query.isEmpty || searchable.contains(query);
+          return _matchesSegment(conversation) &&
+              (query.isEmpty || searchable.contains(query));
         }).toList();
 
         return Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Color(0xFFF4F8FF), Colors.white],
-            ),
-          ),
+          color: AppColors.background,
           child: Column(
             children: [
-              _Header(
+              _ChatListHeader(
                 controller: _searchController,
-                totalUnreadCount: chatProvider.totalUnreadCount,
+                focusNode: _searchFocusNode,
+                selectedSegment: _selectedSegment,
+                onSegmentChanged: (segment) {
+                  setState(() => _selectedSegment = segment);
+                },
               ),
               Expanded(
                 child: Builder(
@@ -99,6 +104,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       return _EmptyState(
                         hasSearch: query.isNotEmpty,
                         query: query,
+                        selectedSegment: _selectedSegment,
                       );
                     }
 
@@ -111,9 +117,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         );
                       },
                       child: ListView.separated(
-                        padding: const EdgeInsets.fromLTRB(18, 6, 18, 20),
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
                         itemCount: filtered.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 10),
+                        separatorBuilder: (_, _) => const SizedBox(height: 16),
                         itemBuilder: (context, index) {
                           final conversation = filtered[index];
                           return _ConversationTile(
@@ -147,112 +154,230 @@ class _ChatListScreenState extends State<ChatListScreen> {
     }
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       body: SafeArea(child: content),
+    );
+  }
+
+  bool _matchesSegment(ConversationModel conversation) {
+    switch (_selectedSegment) {
+      case _ChatInboxSegment.housing:
+        return conversation.chatType == ChatType.listing;
+      case _ChatInboxSegment.marketplace:
+        return conversation.chatType != ChatType.listing;
+    }
+  }
+}
+
+class _ChatListHeader extends StatelessWidget {
+  final TextEditingController controller;
+  final FocusNode focusNode;
+  final _ChatInboxSegment selectedSegment;
+  final ValueChanged<_ChatInboxSegment> onSegmentChanged;
+
+  const _ChatListHeader({
+    required this.controller,
+    required this.focusNode,
+    required this.selectedSegment,
+    required this.onSegmentChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.05),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+        child: Column(
+          children: [
+            SizedBox(
+              height: 52,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: _HeaderIconButton(
+                      icon: Icons.location_on_outlined,
+                      onTap: () {},
+                    ),
+                  ),
+                  Text(
+                    'Triozy',
+                    style: AppTheme.headline(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: _HeaderIconButton(
+                      icon: Icons.search_rounded,
+                      onTap: focusNode.requestFocus,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+            Container(
+              height: 58,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerLowest,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: AppColors.outlineVariant.withValues(alpha: 0.48),
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.05),
+                    blurRadius: 16,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: TextField(
+                controller: controller,
+                focusNode: focusNode,
+                style: AppTheme.body(
+                  fontSize: 16,
+                  color: AppColors.onSurfaceVariant,
+                ),
+                decoration: InputDecoration(
+                  hintText: 'Search messages...',
+                  hintStyle: AppTheme.body(
+                    fontSize: 16,
+                    color: AppColors.slate500,
+                  ),
+                  prefixIcon: const Icon(
+                    Icons.search_rounded,
+                    size: 28,
+                    color: AppColors.slate500,
+                  ),
+                  suffixIcon: controller.text.trim().isEmpty
+                      ? null
+                      : IconButton(
+                          onPressed: controller.clear,
+                          icon: const Icon(
+                            Icons.close_rounded,
+                            color: AppColors.slate500,
+                          ),
+                        ),
+                  border: InputBorder.none,
+                  enabledBorder: InputBorder.none,
+                  focusedBorder: InputBorder.none,
+                  contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Container(
+              height: 56,
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerHighest,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: _SegmentButton(
+                      label: 'Housing',
+                      selected: selectedSegment == _ChatInboxSegment.housing,
+                      onTap: () =>
+                          onSegmentChanged(_ChatInboxSegment.housing),
+                    ),
+                  ),
+                  Expanded(
+                    child: _SegmentButton(
+                      label: 'Marketplace',
+                      selected: selectedSegment == _ChatInboxSegment.marketplace,
+                      onTap: () =>
+                          onSegmentChanged(_ChatInboxSegment.marketplace),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _Header extends StatelessWidget {
-  final TextEditingController controller;
-  final int totalUnreadCount;
+class _HeaderIconButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
 
-  const _Header({required this.controller, required this.totalUnreadCount});
+  const _HeaderIconButton({required this.icon, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  'Messages',
-                  style: AppTheme.headline(fontSize: 30, letterSpacing: -0.9),
-                ),
-              ),
-              if (totalUnreadCount > 0)
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
+    return Material(
+      color: Colors.transparent,
+      child: InkResponse(
+        onTap: onTap,
+        radius: 24,
+        child: Icon(icon, color: AppColors.primary, size: 30),
+      ),
+    );
+  }
+}
+
+class _SegmentButton extends StatelessWidget {
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _SegmentButton({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        curve: Curves.easeOut,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: selected
+              ? AppColors.surfaceContainerLowest
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: selected
+              ? [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
                   ),
-                  decoration: BoxDecoration(
-                    color: AppColors.secondary,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    '$totalUnreadCount unread',
-                    style: AppTheme.label(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-            ],
+                ]
+              : null,
+        ),
+        child: Text(
+          label,
+          style: AppTheme.body(
+            fontSize: 15,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
+            color: selected ? AppColors.primary : AppColors.onSurfaceVariant,
           ),
-          const SizedBox(height: 8),
-          Text(
-            'Fast, threaded conversations with real-time delivery and read state.',
-            style: AppTheme.body(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppColors.slate500,
-              height: 1.5,
-            ),
-          ),
-          const SizedBox(height: 18),
-          Container(
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(22),
-              border: Border.all(
-                color: AppColors.outlineVariant.withValues(alpha: 0.2),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 20,
-                  offset: const Offset(0, 8),
-                ),
-              ],
-            ),
-            child: TextField(
-              controller: controller,
-              decoration: InputDecoration(
-                hintText: 'Search people, listings, messages',
-                hintStyle: AppTheme.body(
-                  fontSize: 14,
-                  color: AppColors.slate400,
-                ),
-                prefixIcon: const Icon(
-                  Icons.search_rounded,
-                  color: AppColors.slate500,
-                ),
-                suffixIcon: controller.text.trim().isEmpty
-                    ? null
-                    : IconButton(
-                        onPressed: controller.clear,
-                        icon: const Icon(
-                          Icons.close_rounded,
-                          color: AppColors.slate500,
-                        ),
-                      ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(22),
-                  borderSide: BorderSide.none,
-                ),
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: const EdgeInsets.symmetric(vertical: 18),
-              ),
-            ),
-          ),
-        ],
+        ),
       ),
     );
   }
@@ -274,36 +399,35 @@ class _ConversationTile extends StatelessWidget {
     final peer = conversation.peerMetaFor(currentUserId);
     final unreadCount = conversation.unreadCountFor(currentUserId);
     final isPeerTyping = conversation.isPeerTypingFor(currentUserId);
+    final isUnread = unreadCount > 0;
     final peerName = (peer?.name ?? '').trim();
     final name = peerName.isEmpty ? 'User' : peerName;
     final subtitle = isPeerTyping
-        ? 'typing...'
+        ? 'Typing...'
         : (conversation.lastMessage.trim().isEmpty
-              ? 'Tap to start the conversation'
+              ? 'Say hello to start the conversation.'
               : conversation.lastMessage.trim());
-    final subtitleColor = isPeerTyping
-        ? AppColors.secondary
-        : (unreadCount > 0 ? AppColors.onSurface : AppColors.slate500);
     final photoUrl = (peer?.photoUrl ?? '').trim();
+    final listingTitle = conversation.listingTitle.trim().isEmpty
+        ? conversation.chatType.label
+        : conversation.listingTitle.trim();
 
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(26),
+        borderRadius: BorderRadius.circular(22),
         onTap: onTap,
         child: Ink(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
           decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(26),
+            color: AppColors.surfaceContainerLowest,
+            borderRadius: BorderRadius.circular(22),
             border: Border.all(
-              color: unreadCount > 0
-                  ? AppColors.primary.withValues(alpha: 0.18)
-                  : AppColors.outlineVariant.withValues(alpha: 0.12),
+              color: AppColors.outlineVariant.withValues(alpha: 0.28),
             ),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.04),
+                color: AppColors.primary.withValues(alpha: 0.05),
                 blurRadius: 18,
                 offset: const Offset(0, 8),
               ),
@@ -311,53 +435,63 @@ class _ConversationTile extends StatelessWidget {
           ),
           child: Row(
             children: [
-              _Avatar(name: name, photoUrl: photoUrl),
-              const SizedBox(width: 14),
+              _Avatar(
+                name: name,
+                photoUrl: photoUrl,
+                showPresence: isUnread || isPeerTyping,
+              ),
+              const SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Expanded(
                           child: Text(
                             name,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
-                            style: AppTheme.body(
-                              fontSize: 16,
-                              fontWeight: unreadCount > 0
-                                  ? FontWeight.w800
-                                  : FontWeight.w700,
+                            style: AppTheme.headline(
+                              fontSize: 24,
+                              fontWeight: isUnread
+                                  ? FontWeight.w700
+                                  : FontWeight.w600,
+                              color: isUnread
+                                  ? AppColors.onSurface
+                                  : AppColors.onSurfaceVariant,
                             ),
                           ),
                         ),
                         const SizedBox(width: 8),
                         Text(
-                          conversation.formattedTime,
-                          style: AppTheme.label(
-                            fontSize: 11,
-                            fontWeight: unreadCount > 0
-                                ? FontWeight.w800
+                          _formatConversationTime(conversation.lastMessageTime),
+                          style: AppTheme.body(
+                            fontSize: 13,
+                            fontWeight: isUnread
+                                ? FontWeight.w700
                                 : FontWeight.w600,
-                            color: unreadCount > 0
+                            color: isUnread
                                 ? AppColors.primary
-                                : AppColors.slate500,
+                                : AppColors.outlineVariant,
                           ),
                         ),
                       ],
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      conversation.listingTitle.trim().isEmpty
-                          ? conversation.chatType.label
-                          : conversation.listingTitle,
+                      listingTitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTheme.label(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.primary,
+                      style: AppTheme.body(
+                        fontSize: 14,
+                        fontWeight: isUnread
+                            ? FontWeight.w700
+                            : FontWeight.w500,
+                        color: isUnread
+                            ? AppColors.primary
+                            : AppColors.onSurfaceVariant,
                       ),
                     ),
                     const SizedBox(height: 6),
@@ -369,37 +503,22 @@ class _ConversationTile extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTheme.body(
-                              fontSize: 13,
-                              fontWeight: unreadCount > 0
-                                  ? FontWeight.w700
-                                  : FontWeight.w500,
-                              color: subtitleColor,
+                              fontSize: 15,
+                              fontWeight: FontWeight.w500,
+                              color: isUnread
+                                  ? AppColors.onSurface
+                                  : AppColors.slate500,
                             ),
                           ),
                         ),
-                        if (unreadCount > 0) ...[
-                          const SizedBox(width: 10),
+                        if (isUnread) ...[
+                          const SizedBox(width: 12),
                           Container(
-                            constraints: const BoxConstraints(minWidth: 24),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 7,
-                              vertical: 5,
-                            ),
+                            width: 12,
+                            height: 12,
                             decoration: const BoxDecoration(
-                              color: AppColors.secondary,
-                              shape: BoxShape.rectangle,
-                              borderRadius: BorderRadius.all(
-                                Radius.circular(999),
-                              ),
-                            ),
-                            child: Text(
-                              unreadCount > 99 ? '99+' : '$unreadCount',
-                              textAlign: TextAlign.center,
-                              style: AppTheme.label(
-                                fontSize: 11,
-                                fontWeight: FontWeight.w800,
-                                color: Colors.white,
-                              ),
+                              color: AppColors.primary,
+                              shape: BoxShape.circle,
                             ),
                           ),
                         ],
@@ -414,49 +533,104 @@ class _ConversationTile extends StatelessWidget {
       ),
     );
   }
+
+  String _formatConversationTime(DateTime dateTime) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final target = DateTime(dateTime.year, dateTime.month, dateTime.day);
+    final difference = today.difference(target).inDays;
+    if (difference == 0) {
+      final hour = dateTime.hour % 12 == 0 ? 12 : dateTime.hour % 12;
+      final minute = dateTime.minute.toString().padLeft(2, '0');
+      final suffix = dateTime.hour >= 12 ? 'PM' : 'AM';
+      return '$hour:$minute $suffix';
+    }
+    if (difference == 1) {
+      return 'Yesterday';
+    }
+    if (difference < 7) {
+      const weekdays = [
+        'Monday',
+        'Tuesday',
+        'Wednesday',
+        'Thursday',
+        'Friday',
+        'Saturday',
+        'Sunday',
+      ];
+      return weekdays[dateTime.weekday - 1];
+    }
+    return '${dateTime.day}/${dateTime.month}/${dateTime.year}';
+  }
 }
 
 class _Avatar extends StatelessWidget {
   final String name;
   final String photoUrl;
+  final bool showPresence;
 
-  const _Avatar({required this.name, required this.photoUrl});
+  const _Avatar({
+    required this.name,
+    required this.photoUrl,
+    required this.showPresence,
+  });
 
   @override
   Widget build(BuildContext context) {
     final initial = name.isEmpty ? '?' : name[0].toUpperCase();
-    return Container(
-      width: 58,
-      height: 58,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.blue50,
-      ),
-      child: ClipOval(
-        child: photoUrl.isEmpty
-            ? Center(
-                child: Text(
-                  initial,
-                  style: AppTheme.headline(
-                    fontSize: 22,
-                    color: AppColors.primary,
-                  ),
-                ),
-              )
-            : CachedNetworkImage(
-                imageUrl: photoUrl,
-                fit: BoxFit.cover,
-                errorWidget: (_, _, _) => Center(
-                  child: Text(
-                    initial,
-                    style: AppTheme.headline(
-                      fontSize: 22,
-                      color: AppColors.primary,
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        Container(
+          width: 58,
+          height: 58,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            color: AppColors.surfaceContainerHigh,
+          ),
+          child: ClipOval(
+            child: photoUrl.isEmpty
+                ? Center(
+                    child: Text(
+                      initial,
+                      style: AppTheme.headline(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.slate500,
+                      ),
+                    ),
+                  )
+                : CachedNetworkImage(
+                    imageUrl: photoUrl,
+                    fit: BoxFit.cover,
+                    errorWidget: (_, _, _) => Center(
+                      child: Text(
+                        initial,
+                        style: AppTheme.headline(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.slate500,
+                        ),
+                      ),
                     ),
                   ),
-                ),
+          ),
+        ),
+        if (showPresence)
+          Positioned(
+            right: 1,
+            bottom: 1,
+            child: Container(
+              width: 16,
+              height: 16,
+              decoration: BoxDecoration(
+                color: AppColors.secondary,
+                shape: BoxShape.circle,
+                border: Border.all(color: AppColors.surfaceContainerLowest, width: 3),
               ),
-      ),
+            ),
+          ),
+      ],
     );
   }
 }
@@ -470,16 +644,29 @@ class _ErrorState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(28),
+        padding: const EdgeInsets.symmetric(horizontal: 28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(
-              Icons.cloud_off_rounded,
-              size: 56,
-              color: AppColors.slate400,
+            Container(
+              width: 84,
+              height: 84,
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(26),
+              ),
+              child: const Icon(
+                Icons.cloud_off_rounded,
+                size: 40,
+                color: AppColors.slate500,
+              ),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 18),
+            Text(
+              'Couldn’t load chats',
+              style: AppTheme.headline(fontSize: 24, color: AppColors.primary),
+            ),
+            const SizedBox(height: 10),
             Text(
               message,
               textAlign: TextAlign.center,
@@ -487,7 +674,7 @@ class _ErrorState extends StatelessWidget {
                 fontSize: 14,
                 fontWeight: FontWeight.w500,
                 color: AppColors.slate500,
-                height: 1.5,
+                height: 1.6,
               ),
             ),
           ],
@@ -500,11 +687,27 @@ class _ErrorState extends StatelessWidget {
 class _EmptyState extends StatelessWidget {
   final bool hasSearch;
   final String query;
+  final _ChatInboxSegment selectedSegment;
 
-  const _EmptyState({required this.hasSearch, required this.query});
+  const _EmptyState({
+    required this.hasSearch,
+    required this.query,
+    required this.selectedSegment,
+  });
 
   @override
   Widget build(BuildContext context) {
+    final title = hasSearch
+        ? 'No matching chats'
+        : selectedSegment == _ChatInboxSegment.marketplace
+        ? 'No marketplace chats'
+        : 'No chats yet';
+    final subtitle = hasSearch
+        ? 'Nothing matched "$query". Try a person, listing title, or message text.'
+        : selectedSegment == _ChatInboxSegment.marketplace
+        ? 'Marketplace conversations will appear here once buying or selling chats are enabled.'
+        : 'Start a conversation from any listing and it will appear here.';
+
     return Center(
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 28),
@@ -512,28 +715,23 @@ class _EmptyState extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 88,
-              height: 88,
+              width: 92,
+              height: 92,
               decoration: BoxDecoration(
-                color: AppColors.blue50,
-                borderRadius: BorderRadius.circular(28),
+                color: AppColors.surfaceContainerLow,
+                borderRadius: BorderRadius.circular(30),
               ),
               child: const Icon(
                 Icons.chat_bubble_outline_rounded,
                 color: AppColors.primary,
-                size: 40,
+                size: 42,
               ),
             ),
-            const SizedBox(height: 18),
-            Text(
-              hasSearch ? 'No matching chats' : 'No chats yet',
-              style: AppTheme.headline(fontSize: 24),
-            ),
+            const SizedBox(height: 20),
+            Text(title, style: AppTheme.headline(fontSize: 24)),
             const SizedBox(height: 8),
             Text(
-              hasSearch
-                  ? 'Nothing matched "$query". Try a person, listing title, or message text.'
-                  : 'Start a conversation from any listing and it will show up here with unread counts and live typing state.',
+              subtitle,
               textAlign: TextAlign.center,
               style: AppTheme.body(
                 fontSize: 14,

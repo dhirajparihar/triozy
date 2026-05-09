@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -6,7 +7,6 @@ import '../models/listing_model.dart';
 import '../services/database_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
-import '../widgets/listing_card.dart';
 import 'listing_detail_screen.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -41,7 +41,10 @@ class HomeScreenState extends State<HomeScreen> {
   Future<void> _loadData() async {
     final db = context.read<DatabaseService>();
     try {
-      final featured = await db.getFeaturedListings(limit: 4);
+      final featured = await db.getFeaturedListings(
+        type: ListingType.housing,
+        limit: 6,
+      );
       final userId = FirebaseAuth.instance.currentUser?.uid;
       final saved = userId == null
           ? <ListingModel>[]
@@ -97,294 +100,327 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final firstName = _firstName();
+
     return RefreshIndicator(
       onRefresh: _loadData,
       color: AppColors.primary,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 12, 20, 110),
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 110),
         children: [
-          _HeroSection(
-            onSearchTap: widget.onSearchTapped ?? widget.onExploreTapped,
-          ),
+          _WelcomeSection(firstName: firstName),
           const SizedBox(height: 24),
-          _QuickCategoryRow(
-            onPropertyTypeSelected: widget.onPropertyTypeSelected,
+          _QuickActions(
+            onFindRoomTap: () =>
+                widget.onPropertyTypeSelected?.call(PropertyType.room),
+            onFlatmatesTap: () =>
+                widget.onPropertyTypeSelected?.call(PropertyType.flat),
+            onMarketplaceTap: () =>
+                widget.onPropertyTypeSelected?.call(PropertyType.item),
           ),
-          const SizedBox(height: 28),
+          const SizedBox(height: 30),
           _SectionHeader(
-            title: 'Featured for your move',
-            actionLabel: 'Explore',
+            title: 'Verified Homes for You',
+            actionLabel: 'See all',
             onActionTap: widget.onExploreTapped,
           ),
-          const SizedBox(height: 14),
+          const SizedBox(height: 16),
           if (_loading)
             const _HomeLoadingState()
+          else if (_featured.isEmpty)
+            const _EmptyFeaturedState()
           else
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final availableWidth = constraints.maxWidth;
-                final cardWidth = availableWidth < 480
-                    ? availableWidth - 8
-                    : availableWidth < 900
-                    ? 320.0
-                    : 360.0;
-                final cardHeight = availableWidth < 480 ? 348.0 : 372.0;
-
-                return SizedBox(
-                  height: cardHeight,
-                  child: ListView.separated(
-                    scrollDirection: Axis.horizontal,
-                    itemCount: _featured.length,
-                    separatorBuilder: (_, _) => const SizedBox(width: 16),
-                    itemBuilder: (context, index) {
-                      final listing = _featured[index];
-                      return SizedBox(
-                        width: cardWidth,
-                        child: ListingCard(
-                          listing: listing,
-                          onTap: () => _openListing(listing),
-                          onSaveTap: () => _toggleSave(listing.id),
-                          isSaved: _savedIds.contains(listing.id),
-                        ),
-                      );
-                    },
-                  ),
-                );
-              },
-            ),
-          const SizedBox(height: 28),
-          const _LivingStrip(),
-        ],
-      ),
-    );
-  }
-}
-
-class _HeroSection extends StatelessWidget {
-  final VoidCallback? onSearchTap;
-
-  const _HeroSection({this.onSearchTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [Color(0xFFF6F9FF), Color(0xFFEAF1FF)],
-        ),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.18),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Move to a new city without starting from zero.',
-            style: AppTheme.headline(fontSize: 30, letterSpacing: -1.0),
-          ),
-          const SizedBox(height: 10),
-          Text(
-            'Find a room or PG, discover flatmates, and shop move-in essentials in one calm flow.',
-            style: AppTheme.body(
-              fontSize: 14,
-              fontWeight: FontWeight.w500,
-              color: AppColors.onSurfaceVariant,
-              height: 1.6,
-            ),
-          ),
-          const SizedBox(height: 22),
-          GestureDetector(
-            onTap: onSearchTap,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(18),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.05),
-                    blurRadius: 20,
-                    offset: const Offset(0, 8),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  const Icon(Icons.search_rounded, color: AppColors.slate500),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      'Search rooms, PGs, flatmates or used items',
-                      style: AppTheme.body(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.slate500,
-                      ),
+            SizedBox(
+              height: 370,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: _featured.length,
+                separatorBuilder: (_, _) => const SizedBox(width: 18),
+                itemBuilder: (context, index) {
+                  final listing = _featured[index];
+                  return SizedBox(
+                    width: 324,
+                    child: _FeaturedHomeCard(
+                      listing: listing,
+                      isSaved: _savedIds.contains(listing.id),
+                      onTap: () => _openListing(listing),
+                      onSaveTap: () => _toggleSave(listing.id),
                     ),
-                  ),
-                ],
+                  );
+                },
               ),
             ),
-          ),
         ],
       ),
     );
   }
+
+  String _firstName() {
+    final auth = FirebaseAuth.instance.currentUser;
+    final raw = (auth?.displayName?.trim().isNotEmpty == true
+            ? auth!.displayName!
+            : auth?.email?.split('@').first.replaceAll(RegExp(r'[._]'), ' ')) ??
+        '';
+    if (raw.trim().isEmpty) {
+      return 'there';
+    }
+    final part = raw.trim().split(' ').first;
+    return part[0].toUpperCase() + part.substring(1);
+  }
 }
 
-class _QuickCategoryRow extends StatelessWidget {
-  final ValueChanged<PropertyType>? onPropertyTypeSelected;
+class _WelcomeSection extends StatelessWidget {
+  final String firstName;
 
-  const _QuickCategoryRow({this.onPropertyTypeSelected});
+  const _WelcomeSection({required this.firstName});
 
   @override
   Widget build(BuildContext context) {
-    final categories = [
-      (
-        propertyType: PropertyType.room,
-        icon: Icons.bed_rounded,
-        label: 'Rooms',
-      ),
-      (
-        propertyType: PropertyType.flat,
-        icon: Icons.groups_rounded,
-        label: 'Flatmates',
-      ),
-      (
-        propertyType: PropertyType.pg,
-        icon: Icons.apartment_rounded,
-        label: 'PGs',
-      ),
-      (
-        propertyType: PropertyType.item,
-        icon: Icons.shopping_bag_rounded,
-        label: 'Marketplace',
-      ),
-    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Welcome to your new city,\n$firstName!',
+          style: AppTheme.headline(
+            fontSize: 30,
+            fontWeight: FontWeight.w700,
+            color: AppColors.primary,
+            height: 1.18,
+            letterSpacing: -0.7,
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'Your relocation is on track. Let’s tackle the next steps.',
+          style: AppTheme.body(
+            fontSize: 16,
+            fontWeight: FontWeight.w500,
+            color: AppColors.onSurfaceVariant,
+            height: 1.55,
+          ),
+        ),
+      ],
+    );
+  }
+}
 
-    return SizedBox(
-      height: 146,
-      child: Row(
-        children: List.generate(categories.length, (index) {
-          final entry = categories[index];
-          final isLast = index == categories.length - 1;
 
-          return Expanded(
-            child: Padding(
-              padding: EdgeInsets.only(right: isLast ? 0 : 10),
-              child: GestureDetector(
-                onTap: () => onPropertyTypeSelected?.call(entry.propertyType),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
+class _QuickActions extends StatelessWidget {
+  final VoidCallback onFindRoomTap;
+  final VoidCallback onFlatmatesTap;
+  final VoidCallback onMarketplaceTap;
+
+  const _QuickActions({
+    required this.onFindRoomTap,
+    required this.onFlatmatesTap,
+    required this.onMarketplaceTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        _PrimaryActionCard(
+          icon: Icons.bed_rounded,
+          title: 'Find a Room',
+          subtitle: 'Browse 400+ verified listings',
+          onTap: onFindRoomTap,
+        ),
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: _SecondaryActionCard(
+                icon: Icons.groups_rounded,
+                iconColor: AppColors.secondary,
+                iconBackground: AppColors.secondaryContainer.withValues(
+                  alpha: 0.18,
+                ),
+                title: 'Match Flatmates',
+                subtitle: 'Find your vibe',
+                onTap: onFlatmatesTap,
+              ),
+            ),
+            const SizedBox(width: 16),
+            Expanded(
+              child: _SecondaryActionCard(
+                icon: Icons.shopping_bag_outlined,
+                iconColor: AppColors.primary,
+                iconBackground: AppColors.primary.withValues(alpha: 0.08),
+                title: 'Marketplace',
+                subtitle: 'Furnish your space',
+                onTap: onMarketplaceTap,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _PrimaryActionCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _PrimaryActionCard({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(28),
+        decoration: BoxDecoration(
+          color: AppColors.primary,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: AppColors.primary.withValues(alpha: 0.14),
+              blurRadius: 26,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(22),
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      Colors.white.withValues(alpha: 0.08),
+                      Colors.transparent,
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, color: AppColors.onPrimary, size: 30),
+                const SizedBox(height: 26),
+                Text(
+                  title,
+                  style: AppTheme.headline(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.onPrimary,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
                   children: [
-                    Container(
-                      height: 82,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(22),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 18,
-                            offset: const Offset(0, 8),
-                          ),
-                        ],
-                      ),
-                      padding: const EdgeInsets.all(14),
-                      child: Center(
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: AppColors.blue50,
-                            borderRadius: BorderRadius.circular(14),
-                          ),
-                          child: Icon(
-                            entry.icon,
-                            color: AppColors.primary,
-                            size: 20,
-                          ),
+                    Expanded(
+                      child: Text(
+                        subtitle,
+                        style: AppTheme.body(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.primaryFixedDim,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    Text(
-                      entry.label,
-                      textAlign: TextAlign.center,
-                      style: AppTheme.body(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
+                    Container(
+                      width: 46,
+                      height: 46,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.16),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.arrow_forward_rounded,
+                        color: AppColors.onPrimary,
+                        size: 24,
                       ),
                     ),
                   ],
                 ),
-              ),
+              ],
             ),
-          );
-        }),
+          ],
+        ),
       ),
     );
   }
 }
 
-class _LivingStrip extends StatelessWidget {
-  const _LivingStrip();
+class _SecondaryActionCard extends StatelessWidget {
+  final IconData icon;
+  final Color iconColor;
+  final Color iconBackground;
+  final String title;
+  final String subtitle;
+  final VoidCallback onTap;
+
+  const _SecondaryActionCard({
+    required this.icon,
+    required this.iconColor,
+    required this.iconBackground,
+    required this.title,
+    required this.subtitle,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final items = const [
-      'No brokerage-first browsing',
-      'Flatmate-friendly discovery',
-      'Marketplace for essentials',
-    ];
-
-    return Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(26),
-        border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.18),
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 168,
+        padding: const EdgeInsets.all(20),
+        decoration: AppTheme.cardDecoration(
+          color: AppColors.surfaceContainerLowest,
+          radiusValue: 20,
+          shadowAlpha: 0.045,
+          blur: 20,
+          offsetY: 8,
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Built for students and professionals',
-            style: AppTheme.headline(fontSize: 20),
-          ),
-          const SizedBox(height: 14),
-          ...items.map((item) {
-            return Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: Row(
-                children: [
-                  const Icon(
-                    Icons.check_circle_rounded,
-                    color: AppColors.primary,
-                    size: 18,
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      item,
-                      style: AppTheme.body(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ),
-                ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: iconBackground,
+                borderRadius: BorderRadius.circular(14),
               ),
-            );
-          }),
-        ],
+              child: Icon(icon, color: iconColor, size: 25),
+            ),
+            const Spacer(),
+            Text(
+              title,
+              style: AppTheme.headline(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              subtitle,
+              style: AppTheme.body(
+                fontSize: 14,
+                fontWeight: FontWeight.w500,
+                color: AppColors.slate500,
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -392,35 +428,280 @@ class _LivingStrip extends StatelessWidget {
 
 class _SectionHeader extends StatelessWidget {
   final String title;
-  final String? actionLabel;
+  final String actionLabel;
   final VoidCallback? onActionTap;
 
   const _SectionHeader({
     required this.title,
-    this.actionLabel,
+    required this.actionLabel,
     this.onActionTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(title, style: AppTheme.headline(fontSize: 22)),
-        if (actionLabel != null)
-          TextButton(
-            onPressed: onActionTap,
-            child: Text(
-              actionLabel!,
-              style: AppTheme.body(
-                fontSize: 14,
-                fontWeight: FontWeight.w700,
-                color: AppColors.primary,
-              ),
+        Expanded(
+          child: Text(
+            title,
+            style: AppTheme.headline(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: AppColors.primary,
             ),
           ),
+        ),
+        TextButton(
+          onPressed: onActionTap,
+          style: TextButton.styleFrom(padding: EdgeInsets.zero),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                actionLabel,
+                style: AppTheme.body(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(width: 4),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: AppColors.primary,
+                size: 22,
+              ),
+            ],
+          ),
+        ),
       ],
     );
+  }
+}
+
+class _FeaturedHomeCard extends StatelessWidget {
+  final ListingModel listing;
+  final bool isSaved;
+  final VoidCallback onTap;
+  final VoidCallback onSaveTap;
+
+  const _FeaturedHomeCard({
+    required this.listing,
+    required this.isSaved,
+    required this.onTap,
+    required this.onSaveTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        decoration: AppTheme.cardDecoration(
+          color: AppColors.surfaceContainerLowest,
+          radiusValue: 22,
+          shadowAlpha: 0.05,
+          blur: 24,
+          offsetY: 10,
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
+              child: SizedBox(
+                height: 210,
+                width: double.infinity,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    listing.imageUrls.isEmpty
+                        ? Container(
+                            color: AppColors.surfaceContainerHigh,
+                            alignment: Alignment.center,
+                            child: const Icon(
+                              Icons.home_work_outlined,
+                              color: AppColors.primary,
+                              size: 40,
+                            ),
+                          )
+                        : CachedNetworkImage(
+                            imageUrl: listing.imageUrls.first,
+                            fit: BoxFit.cover,
+                            errorWidget: (_, _, _) => Container(
+                              color: AppColors.surfaceContainerHigh,
+                              alignment: Alignment.center,
+                              child: const Icon(
+                                Icons.home_work_outlined,
+                                color: AppColors.primary,
+                                size: 40,
+                              ),
+                            ),
+                          ),
+                    Positioned(
+                      top: 14,
+                      left: 14,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 7,
+                        ),
+                        decoration: BoxDecoration(
+                          color: AppColors.secondaryContainer.withValues(
+                            alpha: 0.96,
+                          ),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(
+                              Icons.verified_outlined,
+                              size: 15,
+                              color: AppColors.onSecondaryContainer,
+                            ),
+                            const SizedBox(width: 5),
+                            Text(
+                              'Verified',
+                              style: AppTheme.body(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.onSecondaryContainer,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: GestureDetector(
+                        onTap: onSaveTap,
+                        child: Container(
+                          width: 42,
+                          height: 42,
+                          decoration: BoxDecoration(
+                            color: AppColors.surfaceContainerLowest.withValues(
+                              alpha: 0.86,
+                            ),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            isSaved
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border_rounded,
+                            color: isSaved
+                                ? AppColors.tertiary
+                                : AppColors.primary,
+                            size: 22,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: RichText(
+                          text: TextSpan(
+                            style: AppTheme.headline(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                            children: [
+                              TextSpan(text: listing.priceLabel),
+                              TextSpan(
+                                text: listing.price > 0 ? ' /mo' : '',
+                                style: AppTheme.body(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w500,
+                                  color: AppColors.slate500,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Row(
+                        children: [
+                          const Icon(
+                            Icons.star_border_rounded,
+                            size: 18,
+                            color: AppColors.primary,
+                          ),
+                          const SizedBox(width: 3),
+                          Text(
+                            _ratingLabel(listing),
+                            style: AppTheme.body(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w700,
+                              color: AppColors.primary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    listing.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.body(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.onSurface,
+                      height: 1.35,
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.location_on_outlined,
+                        size: 18,
+                        color: AppColors.slate500,
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          listing.location,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.body(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: AppColors.slate500,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  String _ratingLabel(ListingModel listing) {
+    final highlightsCount = listing.highlights.isEmpty ? 0 : listing.highlights.length;
+    final rating = (4.6 + (highlightsCount.clamp(0, 4) * 0.1)).clamp(4.6, 4.9);
+    return rating.toStringAsFixed(1);
   }
 }
 
@@ -429,16 +710,50 @@ class _HomeLoadingState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: List.generate(
-        1,
-        (_) => Container(
-          height: 330,
-          margin: const EdgeInsets.only(bottom: 16),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(24),
-          ),
+    return SizedBox(
+      height: 370,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: 2,
+        separatorBuilder: (_, _) => const SizedBox(width: 18),
+        itemBuilder: (_, index) {
+          return Container(
+            width: 324,
+            decoration: AppTheme.cardDecoration(
+              color: AppColors.surfaceContainerLowest,
+              radiusValue: 22,
+              shadowAlpha: 0.04,
+              blur: 18,
+              offsetY: 8,
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _EmptyFeaturedState extends StatelessWidget {
+  const _EmptyFeaturedState();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: AppTheme.cardDecoration(
+        color: AppColors.surfaceContainerLowest,
+        radiusValue: 20,
+        shadowAlpha: 0.04,
+        blur: 18,
+        offsetY: 8,
+      ),
+      child: Text(
+        'Featured verified homes will appear here once listings are available.',
+        style: AppTheme.body(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: AppColors.slate500,
+          height: 1.6,
         ),
       ),
     );
