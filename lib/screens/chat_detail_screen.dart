@@ -538,87 +538,107 @@ class _ListingPreview extends StatelessWidget {
           ),
         ),
       ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(18),
-            child: SizedBox(
-              width: 96,
-              height: 96,
-              child: Image.asset(
-                'assets/onboarding/home.png',
-                fit: BoxFit.cover,
-                errorBuilder: (_, _, _) => Container(
-                  color: AppColors.surfaceContainerHigh,
-                  alignment: Alignment.center,
-                  child: const Icon(
-                    Icons.home_work_outlined,
-                    color: AppColors.primary,
-                    size: 32,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Listing Inquiry',
-                  style: AppTheme.body(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.headline(
-                    fontSize: 22,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                    height: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'View listing for pricing',
-                  style: AppTheme.body(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    color: AppColors.secondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          FilledButton(
-            onPressed: () {},
-            style: FilledButton.styleFrom(
-              backgroundColor: AppColors.surfaceContainerHigh,
-              foregroundColor: AppColors.primary,
-              elevation: 0,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
-              shape: RoundedRectangleBorder(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final isCompact = constraints.maxWidth < 380;
+          final imageSize = isCompact ? 76.0 : 96.0;
+          final titleSize = isCompact ? 18.0 : 22.0;
+
+          return Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ClipRRect(
                 borderRadius: BorderRadius.circular(18),
+                child: SizedBox(
+                  width: imageSize,
+                  height: imageSize,
+                  child: Image.asset(
+                    'assets/onboarding/home.png',
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      color: AppColors.surfaceContainerHigh,
+                      alignment: Alignment.center,
+                      child: const Icon(
+                        Icons.home_work_outlined,
+                        color: AppColors.primary,
+                        size: 32,
+                      ),
+                    ),
+                  ),
+                ),
               ),
-            ),
-            child: Text(
-              'View Details',
-              style: AppTheme.body(
-                fontSize: 15,
-                fontWeight: FontWeight.w700,
-                color: AppColors.primary,
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Listing Inquiry',
+                      style: AppTheme.body(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                        color: AppColors.onSurfaceVariant,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      title,
+                      maxLines: isCompact ? 1 : 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.headline(
+                        fontSize: titleSize,
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.primary,
+                        height: 1.15,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'View listing for pricing',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.body(
+                        fontSize: isCompact ? 13 : 14,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.secondary,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: FilledButton(
+                        onPressed: () {},
+                        style: FilledButton.styleFrom(
+                          backgroundColor: AppColors.surfaceContainerHigh,
+                          foregroundColor: AppColors.primary,
+                          elevation: 0,
+                          minimumSize: Size.zero,
+                          padding: EdgeInsets.symmetric(
+                            horizontal: isCompact ? 14 : 18,
+                            vertical: isCompact ? 12 : 14,
+                          ),
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                        ),
+                        child: Text(
+                          'View Details',
+                          style: AppTheme.body(
+                            fontSize: isCompact ? 13 : 15,
+                            fontWeight: FontWeight.w700,
+                            color: AppColors.primary,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
-          ),
-        ],
+            ],
+          );
+        },
       ),
     );
   }
