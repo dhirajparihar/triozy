@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'dart:ui';
-import 'package:google_fonts/google_fonts.dart';
+
 import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
 
 class TriozyTopAppBar extends StatelessWidget {
   final String? userDisplayName;
@@ -27,228 +27,146 @@ class TriozyTopAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final rawName = (userDisplayName ?? '').trim();
-    final firstName = rawName.isEmpty ? '' : rawName.split(' ').first;
-    final titleText = firstName.isEmpty ? 'Welcome' : 'Welcome, $firstName!';
+    final cityLabel = _cityLabel(location);
+
     return SafeArea(
       bottom: false,
-      child: ClipRRect(
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final compact = constraints.maxWidth < 380;
-            final sideButtonCount = (onChatTap != null ? 1 : 0) + (showAvatar ? 1 : 0);
-            final reservedActionWidth = sideButtonCount == 0
-                ? 0.0
-                : sideButtonCount * 44.0 + (sideButtonCount * 8.0);
-            final availableTitleWidth = constraints.maxWidth - 48 - reservedActionWidth;
-            final titleFontSize = _responsiveTitleFontSize(
-              firstName: firstName,
-              availableWidth: availableTitleWidth,
-            );
-
-            return Container(
-              height: compact ? 66 : 70,
-              padding: EdgeInsets.symmetric(horizontal: compact ? 18 : 24),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.85),
-                border: const Border(
-                  bottom: BorderSide(color: Color(0xFFE8ECF0), width: 0.5),
+      child: Container(
+        height: 68,
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 6),
+        color: AppColors.background,
+        child: Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                onTap: onLocationTap,
+                behavior: HitTestBehavior.opaque,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(
+                      Icons.location_on_outlined,
+                      color: AppColors.primary,
+                      size: 22,
+                    ),
+                    const SizedBox(width: 6),
+                    Flexible(
+                      child: Text(
+                        cityLabel,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.headline(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primary,
+                          letterSpacing: -0.2,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(
+                      Icons.keyboard_arrow_down_rounded,
+                      color: AppColors.primary,
+                      size: 18,
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  Expanded(
-                    child: GestureDetector(
-                      onTap: onLocationTap,
-                      behavior: HitTestBehavior.opaque,
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            titleText,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: GoogleFonts.manrope(
-                              fontWeight: FontWeight.w900,
-                              fontSize: titleFontSize,
-                              color: AppColors.blue700,
-                              letterSpacing: -0.5,
-                              height: 1.0,
-                            ),
-                          ),
-                          SizedBox(height: compact ? 6 : 8),
-                          Row(
-                            children: [
-                              Flexible(
-                                child: Text(
-                                  location ?? 'Locating...',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: GoogleFonts.inter(
-                                    fontWeight: FontWeight.w600,
-                                    fontSize: compact ? 12 : 13,
-                                    color: AppColors.slate500,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(width: 4),
-                              const Icon(
-                                Icons.arrow_forward_ios_rounded,
-                                color: AppColors.slate500,
-                                size: 10,
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  if (onChatTap != null) ...[
-                    const SizedBox(width: 8),
-                    Stack(
-                      clipBehavior: Clip.none,
-                      children: [
-                        GestureDetector(
-                          onTap: onChatTap,
-                          child: Container(
-                            width: 36,
-                            height: 36,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: AppColors.secondary.withValues(
-                                  alpha: 0.15,
-                                ),
-                                width: 2,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(
-                                    alpha: 0.06,
-                                  ),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.chat_rounded,
-                              color: AppColors.secondary,
-                              size: 18,
-                            ),
-                          ),
-                        ),
-                        if (unreadCount > 0)
-                          Positioned(
-                            right: -2,
-                            top: -4,
-                            child: Container(
-                              constraints: const BoxConstraints(
-                                minWidth: 16,
-                                minHeight: 16,
-                              ),
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 4,
-                              ),
-                              decoration: const BoxDecoration(
-                                color: Colors.red,
-                                shape: BoxShape.circle,
-                              ),
-                              alignment: Alignment.center,
-                              child: Text(
-                                unreadCount > 99
-                                    ? '99+'
-                                    : unreadCount.toString(),
-                                style: GoogleFonts.inter(
-                                  fontSize: unreadCount > 99 ? 7 : 9,
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ],
-                  if (showAvatar) ...[
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: onAvatarTap,
-                      child: Container(
-                        width: 36,
-                        height: 36,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(
-                            color: AppColors.primary.withValues(
-                              alpha: 0.15,
-                            ),
-                            width: 2,
-                          ),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.06),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: ClipOval(
-                          child: avatarUrl != null
-                              ? Image.network(
-                                  avatarUrl!,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (_, _, _) =>
-                                      _avatarPlaceholder(),
-                                )
-                              : _avatarPlaceholder(),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
+            ),
+            if (showAvatar)
+              _AvatarButton(
+                avatarUrl: avatarUrl,
+                onTap: onAvatarTap,
+                showChatDot: unreadCount > 0,
               ),
-            );
-          },
+          ],
         ),
       ),
+    );
+  }
+
+  String _cityLabel(String? rawLocation) {
+    final cleaned = (rawLocation ?? '').trim();
+    if (cleaned.isEmpty) {
+      return 'Moving to your city';
+    }
+    final firstSegment = cleaned
+        .split(',')
+        .map((part) => part.trim())
+        .firstWhere((part) => part.isNotEmpty, orElse: () => cleaned);
+    return 'Moving to $firstSegment';
+  }
+}
+
+class _AvatarButton extends StatelessWidget {
+  final String? avatarUrl;
+  final VoidCallback? onTap;
+  final bool showChatDot;
+
+  const _AvatarButton({
+    required this.avatarUrl,
+    required this.onTap,
+    required this.showChatDot,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(20),
+          child: Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: AppColors.surfaceContainerLow,
+              border: Border.all(
+                color: AppColors.surfaceContainerLowest,
+                width: 2,
+              ),
+            ),
+            clipBehavior: Clip.antiAlias,
+            child: avatarUrl != null && avatarUrl!.trim().isNotEmpty
+                ? Image.network(
+                    avatarUrl!,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => _placeholder(),
+                  )
+                : _placeholder(),
+          ),
+        ),
+        if (showChatDot)
+          Positioned(
+            right: -1,
+            top: -1,
+            child: Container(
+              width: 10,
+              height: 10,
+              decoration: BoxDecoration(
+                color: AppColors.secondary,
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: AppColors.background,
+                  width: 2,
+                ),
+              ),
+            ),
+          ),
+      ],
+    );
+  }
+
+  Widget _placeholder() {
+    return Container(
+      color: const Color(0xFFE9EEF8),
+      child: const Icon(
+        Icons.person_rounded,
+        size: 20,
+        color: Color(0xFF78B9C8),
       ),
     );
-  }
-
-  Widget _avatarPlaceholder() {
-    return Container(
-      color: AppColors.surfaceContainerHigh,
-      child: const Icon(Icons.person, color: AppColors.outline, size: 20),
-    );
-  }
-
-  double _responsiveTitleFontSize({
-    required String firstName,
-    required double availableWidth,
-  }) {
-    var fontSize = 24.0;
-
-    if (availableWidth < 220) {
-      fontSize = 21.0;
-    }
-    if (availableWidth < 190) {
-      fontSize = 19.0;
-    }
-    if (firstName.length > 8) {
-      fontSize -= 1.0;
-    }
-    if (firstName.length > 11) {
-      fontSize -= 1.5;
-    }
-    if (firstName.length > 14) {
-      fontSize -= 1.5;
-    }
-
-    return fontSize.clamp(16.0, 24.0).toDouble();
   }
 }

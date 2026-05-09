@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../theme/app_colors.dart';
+import '../theme/app_theme.dart';
+
 class SplashScreen extends StatefulWidget {
   final String? statusText;
   final bool showLoader;
@@ -12,12 +15,9 @@ class SplashScreen extends StatefulWidget {
 
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
-  static const Color _brandBlue = Color(0xFF2038A3);
-  static const Color _brandBlueDeep = Color(0xFF172A7F);
-
   late AnimationController _controller;
   late AnimationController _pulseController;
-  
+
   late Animation<double> _logoScale;
   late Animation<double> _logoOpacity;
   late Animation<Offset> _textSlide;
@@ -28,24 +28,19 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   void initState() {
     super.initState();
-    
-    // Main Entrance Animation
+
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     );
 
-    // Continuous Subtle Pulse Animation (runs in background)
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
     )..repeat(reverse: true);
 
-    _glowPulse = Tween<double>(begin: 0.08, end: 0.16).animate(
-      CurvedAnimation(
-        parent: _pulseController,
-        curve: Curves.easeInOutSine,
-      ),
+    _glowPulse = Tween<double>(begin: 0.1, end: 0.18).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOutSine),
     );
 
     _logoOpacity = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -55,7 +50,7 @@ class _SplashScreenState extends State<SplashScreen>
       ),
     );
 
-    _logoScale = Tween<double>(begin: 0.85, end: 1.0).animate(
+    _logoScale = Tween<double>(begin: 0.86, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
         curve: const Interval(0.0, 0.6, curve: Curves.easeOutBack),
@@ -96,22 +91,19 @@ class _SplashScreenState extends State<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      backgroundColor: _brandBlue,
+      backgroundColor: AppColors.background,
       body: DecoratedBox(
-        decoration: const BoxDecoration(
+        decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [_brandBlue, _brandBlueDeep],
+            colors: [AppColors.background, AppColors.surfaceContainerLow],
           ),
         ),
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Ambient breathing/pulsing glow
             IgnorePointer(
               child: AnimatedBuilder(
                 animation: _pulseController,
@@ -119,10 +111,10 @@ class _SplashScreenState extends State<SplashScreen>
                   return DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
-                        center: const Alignment(0, -0.15),
-                        radius: 0.95 + (_pulseController.value * 0.05),
+                        center: const Alignment(0, -0.1),
+                        radius: 0.92 + (_pulseController.value * 0.04),
                         colors: [
-                          Colors.white.withValues(alpha: _glowPulse.value),
+                          AppColors.primary.withValues(alpha: _glowPulse.value),
                           Colors.transparent,
                         ],
                       ),
@@ -131,97 +123,140 @@ class _SplashScreenState extends State<SplashScreen>
                 },
               ),
             ),
+            Align(
+              alignment: const Alignment(0.75, -0.68),
+              child: Container(
+                width: 180,
+                height: 180,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.secondaryContainer.withValues(alpha: 0.34),
+                ),
+              ),
+            ),
+            Align(
+              alignment: const Alignment(-0.85, 0.72),
+              child: Container(
+                width: 220,
+                height: 220,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: AppColors.accentSoft.withValues(alpha: 0.34),
+                ),
+              ),
+            ),
             SafeArea(
               child: LayoutBuilder(
                 builder: (context, constraints) {
-                  final logoWidth = (constraints.maxWidth * 0.58).clamp(
-                    220.0,
-                    360.0,
-                  );
-
-                  return Center(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 28),
-                      child: AnimatedBuilder(
-                        animation: _controller,
-                        builder: (context, child) {
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Hero Logo with Scale & Fade & Float
-                              Transform.scale(
-                                scale: _logoScale.value,
-                                child: SlideTransition(
-                                  position: Tween<Offset>(
-                                    begin: Offset.zero,
-                                    end: const Offset(0, -0.015), // Gentle hover
-                                  ).animate(
-                                    CurvedAnimation(
-                                      parent: _pulseController,
-                                      curve: Curves.easeInOutSine,
+                  return AnimatedBuilder(
+                    animation: _controller,
+                    builder: (context, child) {
+                      return Column(
+                        children: [
+                          const Spacer(),
+                          Transform.scale(
+                            scale: _logoScale.value,
+                            child: Opacity(
+                              opacity: _logoOpacity.value,
+                              child: Container(
+                                width: 140,
+                                height: 140,
+                                padding: const EdgeInsets.all(24),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceContainerLowest,
+                                  borderRadius: BorderRadius.circular(32),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: AppColors.primary.withValues(
+                                        alpha: 0.1,
+                                      ),
+                                      blurRadius: 30,
+                                      offset: const Offset(0, 15),
                                     ),
-                                  ),
-                                  child: Opacity(
-                                    opacity: _logoOpacity.value,
-                                    child: Image.asset(
-                                      'assets/logo.png',
-                                      width: logoWidth,
-                                      filterQuality: FilterQuality.high,
-                                    ),
-                                  ),
+                                  ],
+                                ),
+                                child: Image.asset(
+                                  'assets/logo.png',
+                                  fit: BoxFit.contain,
+                                  filterQuality: FilterQuality.high,
                                 ),
                               ),
-                              const SizedBox(height: 32),
-                              // Subtitle with Fade & Slide up
-                              SlideTransition(
-                                position: _textSlide,
-                                child: Opacity(
-                                  opacity: _textOpacity.value,
-                                  child: ConstrainedBox(
+                            ),
+                          ),
+                          const SizedBox(height: 32),
+                          SlideTransition(
+                            position: _textSlide,
+                            child: Opacity(
+                              opacity: _textOpacity.value,
+                              child: Column(
+                                children: [
+                                  Text(
+                                    'Triozy',
+                                    style: AppTheme.headline(
+                                      color: AppColors.primary,
+                                      fontSize: 32,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 12),
+                                  ConstrainedBox(
                                     constraints: const BoxConstraints(
-                                      maxWidth: 320,
+                                      maxWidth: 280,
                                     ),
                                     child: Text(
                                       widget.statusText ??
-                                          'Your local network for everything.',
+                                          'Curating your premium relocation experience.',
                                       textAlign: TextAlign.center,
-                                      style: theme.textTheme.bodyMedium
-                                          ?.copyWith(
-                                            color: Colors.white.withValues(
-                                              alpha: 0.9,
-                                            ),
-                                            fontSize: 15,
-                                            fontWeight: FontWeight.w400,
-                                            height: 1.5,
-                                            letterSpacing: 0.3,
-                                          ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                              if (widget.showLoader) ...[
-                                const SizedBox(height: 32),
-                                // Elegant Loader with Fade
-                                Opacity(
-                                  opacity: _loaderOpacity.value,
-                                  child: SizedBox(
-                                    width: 26,
-                                    height: 26,
-                                    child: CircularProgressIndicator(
-                                      strokeWidth: 2.2,
-                                      color: Colors.white,
-                                      backgroundColor: Colors.white.withValues(
-                                        alpha: 0.15,
+                                      style: AppTheme.body(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.w400,
+                                        color: AppColors.onSurfaceVariant,
+                                        height: 1.5,
                                       ),
                                     ),
                                   ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const Spacer(),
+                          if (widget.showLoader) ...[
+                            Opacity(
+                              opacity: _loaderOpacity.value,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 64,
                                 ),
-                              ],
-                            ],
-                          );
-                        },
-                      ),
-                    ),
+                                child: Column(
+                                  children: [
+                                    LinearProgressIndicator(
+                                      backgroundColor: AppColors.outlineVariant
+                                          .withValues(alpha: 0.3),
+                                      color: AppColors.primary,
+                                      minHeight: 2,
+                                    ),
+                                    const SizedBox(height: 24),
+                                    Text(
+                                      'INITIALIZING',
+                                      style: AppTheme.label(
+                                        fontSize: 11,
+                                        letterSpacing: 1.5,
+                                        fontWeight: FontWeight.w600,
+                                        color: AppColors.onSurfaceVariant
+                                            .withValues(alpha: 0.8),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 48),
+                          ] else ...[
+                            const SizedBox(height: 48),
+                          ],
+                        ],
+                      );
+                    },
                   );
                 },
               ),

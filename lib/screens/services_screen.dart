@@ -29,9 +29,7 @@ class ServicesScreen extends StatelessWidget {
         title: 'Marketplace',
         onTap: () => Navigator.push(
           context,
-          MaterialPageRoute(
-            builder: (_) => const MarketplaceScreen(),
-          ),
+          MaterialPageRoute(builder: (_) => const MarketplaceScreen()),
         ),
       ),
     ];
@@ -48,7 +46,10 @@ class ServicesScreen extends StatelessWidget {
               children: [
                 Text(
                   'All Services',
-                  style: AppTheme.headline(fontSize: 24).copyWith(color: AppColors.primary),
+                  style: AppTheme.headline(
+                    fontSize: 24,
+                    color: AppColors.primary,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -83,7 +84,10 @@ class ServicesScreen extends StatelessWidget {
                       const SizedBox(height: 8),
                       Text(
                         tile.title,
-                        style: AppTheme.body(fontSize: 16, fontWeight: FontWeight.w800),
+                        style: AppTheme.body(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                        ),
                         textAlign: TextAlign.center,
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
@@ -124,26 +128,22 @@ class _ServiceTile extends StatelessWidget {
       onTap: onTap,
       child: Container(
         height: 118,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.04),
-              blurRadius: 18,
-              offset: const Offset(0, 8),
-            ),
-          ],
+        decoration: AppTheme.cardDecoration(
+          color: AppColors.surfaceContainerLowest,
+          radiusValue: 20,
+          shadowAlpha: 0.06,
+          blur: 18,
+          offsetY: 8,
         ),
         child: Center(
           child: Container(
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: AppColors.blue50,
-              borderRadius: BorderRadius.circular(12),
+              color: AppColors.secondaryContainer.withValues(alpha: 0.72),
+              borderRadius: AppTheme.radius(14),
             ),
-            child: Icon(icon, color: AppColors.primary, size: 26),
+            child: Icon(icon, color: AppColors.secondary, size: 26),
           ),
         ),
       ),

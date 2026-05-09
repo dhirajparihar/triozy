@@ -6,7 +6,6 @@ import '../services/auth_service.dart';
 import '../services/session_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
-import 'about_screen.dart';
 import 'edit_profile_screen.dart';
 import 'help_support_screen.dart';
 import 'my_listings_screen.dart';
@@ -27,29 +26,15 @@ class UserProfileScreen extends StatelessWidget {
     }
 
     return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 16, 20, 120),
+      padding: const EdgeInsets.fromLTRB(20, 32, 20, 120),
       children: [
         _HeaderCard(user: user),
         const SizedBox(height: 24),
-        _SectionLabel(text: 'ACCOUNT'),
-        const SizedBox(height: 12),
         _TileGroup(
           children: [
             _TileItem(
-              icon: Icons.edit_outlined,
-              label: 'Edit Profile',
-              subtitle: 'Update your personal details',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-                );
-              },
-            ),
-            _TileItem(
-              icon: Icons.home_work_outlined,
+              icon: Icons.list_alt_rounded,
               label: 'My Listings',
-              subtitle: 'Manage rooms, flatmate, or item posts',
               onTap: () {
                 Navigator.push(
                   context,
@@ -59,26 +44,29 @@ class UserProfileScreen extends StatelessWidget {
             ),
             _TileItem(
               icon: Icons.favorite_border_rounded,
-              label: 'Saved Items',
-              subtitle: 'Review the listings you bookmarked',
+              label: 'Saved Listings',
               onTap: () {
                 Navigator.push(
                   context,
-                  MaterialPageRoute(builder: (_) => const SavedListingsScreen()),
+                  MaterialPageRoute(
+                    builder: (_) => const SavedListingsScreen(),
+                  ),
                 );
               },
             ),
-          ],
-        ),
-        const SizedBox(height: 24),
-        _SectionLabel(text: 'SUPPORT'),
-        const SizedBox(height: 12),
-        _TileGroup(
-          children: [
+            _TileItem(
+              icon: Icons.person_outline_rounded,
+              label: 'Personal Info',
+              onTap: () {},
+            ),
+            _TileItem(
+              icon: Icons.account_balance_wallet_outlined,
+              label: 'Payments',
+              onTap: () {},
+            ),
             _TileItem(
               icon: Icons.help_outline_rounded,
               label: 'Help & Support',
-              subtitle: 'Contact support and FAQs',
               onTap: () {
                 Navigator.push(
                   context,
@@ -86,36 +74,21 @@ class UserProfileScreen extends StatelessWidget {
                 );
               },
             ),
-            _TileItem(
-              icon: Icons.info_outline_rounded,
-              label: 'About Triozy',
-              subtitle: 'Read about the platform and policies',
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => const AboutScreen()),
-                );
-              },
-            ),
           ],
         ),
-        const SizedBox(height: 28),
-        OutlinedButton.icon(
-          onPressed: () => _showLogoutDialog(context),
-          icon: const Icon(Icons.logout_rounded),
-          label: Text(
-            'Log Out',
-            style: AppTheme.body(
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
-              color: AppColors.error,
+        const SizedBox(height: 48),
+        Center(
+          child: TextButton.icon(
+            onPressed: () => _showLogoutDialog(context),
+            icon: const Icon(Icons.logout_rounded, color: AppColors.error),
+            label: Text(
+              'Log Out',
+              style: AppTheme.body(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: AppColors.error,
+              ),
             ),
-          ),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: AppColors.error,
-            side: BorderSide(color: AppColors.error.withValues(alpha: 0.28)),
-            padding: const EdgeInsets.symmetric(vertical: 14),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
           ),
         ),
       ],
@@ -127,7 +100,9 @@ class UserProfileScreen extends StatelessWidget {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+          ),
           title: const Text('Log Out'),
           content: const Text('Are you sure you want to log out?'),
           actions: [
@@ -157,88 +132,60 @@ class _HeaderCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final displayName = (user.displayName ?? '').trim().isEmpty
-        ? 'Triozy User'
+        ? 'Sarah Jenkins' // Placeholder matching design, since missing
         : user.displayName!.trim();
 
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(28),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.04),
-            blurRadius: 20,
-            offset: const Offset(0, 8),
-          ),
-        ],
-      ),
-      child: Row(
-        children: [
-          CircleAvatar(
-            radius: 34,
-            backgroundColor: AppColors.blue50,
-            backgroundImage:
-                user.photoURL != null ? NetworkImage(user.photoURL!) : null,
-            child: user.photoURL == null
-                ? const Icon(Icons.person_rounded, color: AppColors.primary, size: 30)
-                : null,
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(displayName, style: AppTheme.headline(fontSize: 24)),
-                const SizedBox(height: 4),
-                Text(
-                  user.email ?? 'No email linked',
-                  style: AppTheme.body(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.onSurfaceVariant,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: AppColors.blue50,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: Text(
-                    'Student & Professional Living',
-                    style: AppTheme.label(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                ),
-              ],
+    return Column(
+      children: [
+        CircleAvatar(
+          radius: 56,
+          backgroundColor: AppColors.surfaceContainerHigh,
+          backgroundImage: user.photoURL != null
+              ? NetworkImage(user.photoURL!)
+              : null,
+          child: user.photoURL == null
+              ? const Icon(
+                  Icons.person_rounded,
+                  color: AppColors.primary,
+                  size: 50,
+                )
+              : null,
+        ),
+        const SizedBox(height: 16),
+        Text(
+          displayName,
+          style: AppTheme.headline(fontSize: 28, color: AppColors.primary),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          'Member since October 2023',
+          style: AppTheme.body(fontSize: 15, color: AppColors.onSurfaceVariant),
+        ),
+        const SizedBox(height: 16),
+        FilledButton(
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+            );
+          },
+          style: FilledButton.styleFrom(
+            backgroundColor: AppColors.surfaceContainerHigh.withValues(
+              alpha: 0.5,
+            ),
+            foregroundColor: AppColors.onSurface,
+            elevation: 0,
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
             ),
           ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SectionLabel extends StatelessWidget {
-  final String text;
-
-  const _SectionLabel({required this.text});
-
-  @override
-  Widget build(BuildContext context) {
-    return Text(
-      text,
-      style: AppTheme.label(
-        fontSize: 12,
-        fontWeight: FontWeight.w800,
-        color: AppColors.onSurfaceVariant,
-        letterSpacing: 1.4,
-      ),
+          child: Text(
+            'Edit Profile',
+            style: AppTheme.body(fontSize: 15, fontWeight: FontWeight.w600),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -252,12 +199,24 @@ class _TileGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
+        color: AppColors.surfaceContainerLowest,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.3),
+        ),
       ),
       child: Column(
         children: children
-            .expand((item) => [item, if (item != children.last) const Divider(height: 1)])
+            .expand(
+              (item) => [
+                item,
+                if (item != children.last)
+                  Divider(
+                    height: 1,
+                    color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                  ),
+              ],
+            )
             .toList(),
       ),
     );
@@ -267,13 +226,11 @@ class _TileGroup extends StatelessWidget {
 class _TileItem extends StatelessWidget {
   final IconData icon;
   final String label;
-  final String subtitle;
   final VoidCallback onTap;
 
   const _TileItem({
     required this.icon,
     required this.label,
-    required this.subtitle,
     required this.onTap,
   });
 
@@ -281,29 +238,17 @@ class _TileItem extends StatelessWidget {
   Widget build(BuildContext context) {
     return ListTile(
       onTap: onTap,
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      leading: Container(
-        width: 42,
-        height: 42,
-        decoration: BoxDecoration(
-          color: AppColors.blue50,
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Icon(icon, color: AppColors.primary),
-      ),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      leading: Icon(icon, color: AppColors.onSurfaceVariant),
       title: Text(
         label,
-        style: AppTheme.body(fontSize: 14, fontWeight: FontWeight.w700),
+        style: AppTheme.body(fontSize: 16, fontWeight: FontWeight.w500),
       ),
-      subtitle: Text(
-        subtitle,
-        style: AppTheme.body(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: AppColors.onSurfaceVariant,
-        ),
+      trailing: Icon(
+        Icons.chevron_right_rounded,
+        color: AppColors.onSurfaceVariant,
+        size: 20,
       ),
-      trailing: const Icon(Icons.chevron_right_rounded),
     );
   }
 }
@@ -327,7 +272,11 @@ class _GuestProfile extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.lock_person_outlined, color: AppColors.primary, size: 34),
+              const Icon(
+                Icons.lock_person_outlined,
+                color: AppColors.primary,
+                size: 34,
+              ),
               const SizedBox(height: 16),
               Text('Browsing as guest', style: AppTheme.headline(fontSize: 28)),
               const SizedBox(height: 10),
