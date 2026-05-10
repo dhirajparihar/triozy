@@ -61,6 +61,7 @@ class AppColors {
   static const Color accentSoft = Color(0xFFFFE7D6);
   static const Color warmSurface = Color(0xFFF7F6F2);
   static const Color blue50 = Color(0xFFEEF2FA);
+  static const Color blue500 = Color(0xFF3A86FF);
   static const Color blue600 = Color(0xFF2E3A59);
   static const Color blue700 = Color(0xFF182442);
   static const Color green50 = Color(0xFFE8F5F0);

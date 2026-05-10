@@ -77,41 +77,58 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
 
   Future<void> _pickImages() async {
     final messenger = ScaffoldMessenger.of(context);
+    final remainingSlots = _maxImageCount - _pickedImages.length;
+    if (remainingSlots <= 0) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Only 3 images can be uploaded')),
+      );
+      return;
+    }
+
     final images = await _picker.pickMultiImage(
       imageQuality: 82,
-      limit: _maxImageCount,
+      limit: remainingSlots,
     );
     if (images.isEmpty) {
       return;
     }
 
     final accepted = <XFile>[];
+    final existingPaths = _pickedImages.map((image) => image.path).toSet();
     var rejectedOversize = false;
-    for (final image in images.take(_maxImageCount)) {
+    var rejectedDuplicate = false;
+    for (final image in images.take(remainingSlots)) {
       final size = await image.length();
       if (size > _maxImageBytes) {
         rejectedOversize = true;
         continue;
       }
+      if (existingPaths.contains(image.path)) {
+        rejectedDuplicate = true;
+        continue;
+      }
       accepted.add(image);
+      existingPaths.add(image.path);
     }
 
     if (!mounted) {
       return;
     }
     setState(() {
-      _pickedImages
-        ..clear()
-        ..addAll(accepted);
+      _pickedImages.addAll(accepted);
     });
 
-    if (images.length > _maxImageCount) {
+    if (images.length > remainingSlots || _pickedImages.length >= _maxImageCount) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Only 3 images can be uploaded')),
       );
     } else if (rejectedOversize) {
       messenger.showSnackBar(
         const SnackBar(content: Text('Each image must be 10 MB or smaller')),
+      );
+    } else if (rejectedDuplicate) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('This image is already selected')),
       );
     }
   }
@@ -217,61 +234,46 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth < 380;
+    final horizontalPadding = isCompact ? 14.0 : 16.0;
+    final sectionGap = isCompact ? 28.0 : 34.0;
+    final labelGap = isCompact ? 10.0 : 12.0;
+
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        bottom: false,
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            padding: const EdgeInsets.fromLTRB(24, 22, 24, 28),
-            children: [
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Add your Room Details',
-                          style: AppTheme.headline(
-                            fontSize: 28,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF3F4145),
-                            letterSpacing: 0,
-                          ),
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'so that other users can contact you',
-                          style: AppTheme.body(
-                            fontSize: 18,
-                            color: const Color(0xFF8A8A8A),
-                            letterSpacing: 0,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  IconButton(
-                    onPressed: () => Navigator.pop(context),
-                    icon: const Icon(Icons.close_rounded),
-                    iconSize: 42,
-                    color: const Color(0xFFA5A5A5),
-                    tooltip: 'Close',
-                  ),
-                ],
+      backgroundColor: AppColors.background,
+      appBar: AppBar(
+        title: const Text('Add Room Details'),
+        backgroundColor: Colors.white,
+        foregroundColor: AppColors.onSurface,
+        elevation: 0,
+      ),
+      body: Form(
+        key: _formKey,
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            12,
+            horizontalPadding,
+            28,
+          ),
+          children: [
+              Text(
+                'Share your room details so compatible flatmates can contact you.',
+                style: AppTheme.body(
+                  fontSize: 14,
+                  color: AppColors.onSurfaceVariant,
+                ),
               ),
-              const SizedBox(height: 48),
+              SizedBox(height: sectionGap * 0.55),
               _FieldLabel('Your Location'),
-              const SizedBox(height: 22),
+              SizedBox(height: labelGap),
               _UnderlineTextField(
                 controller: _locationController,
                 hintText: 'Enter your location...',
                 prefix: const Icon(
                   Icons.location_on,
-                  size: 34,
+                  size: 24,
                   color: Color(0xFF414141),
                 ),
                 suffix: _locationController.text.isEmpty
@@ -280,7 +282,7 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
                         onPressed: () =>
                             setState(() => _locationController.clear()),
                         icon: const Icon(Icons.close_rounded),
-                        iconSize: 34,
+                        iconSize: 22,
                         color: const Color(0xFF898989),
                         tooltip: 'Clear location',
                       ),
@@ -292,16 +294,16 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 46),
+              SizedBox(height: sectionGap),
               _FieldLabel('Rent per Person'),
-              const SizedBox(height: 22),
+              SizedBox(height: labelGap),
               _UnderlineTextField(
                 controller: _rentController,
                 keyboardType: TextInputType.number,
                 prefix: Text(
                   '₹',
                   style: AppTheme.body(
-                    fontSize: 24,
+                    fontSize: 18,
                     fontWeight: FontWeight.w800,
                     color: const Color(0xFF3F4145),
                   ),
@@ -314,39 +316,39 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
                   return null;
                 },
               ),
-              const SizedBox(height: 42),
+              SizedBox(height: sectionGap),
               _FieldLabel('Upload 3 Images'),
-              const SizedBox(height: 22),
+              SizedBox(height: labelGap),
               Text(
-                '*Each image size should not exceeds 10\nMB',
+                '*Each image size should not exceed 10 MB',
                 style: AppTheme.body(
-                  fontSize: 24,
-                  height: 1.22,
-                  color: Colors.black,
+                  fontSize: 13,
+                  height: 1.35,
+                  color: AppColors.onSurfaceVariant,
                 ),
               ),
-              const SizedBox(height: 26),
+              SizedBox(height: labelGap + 4),
               _ImagePickerGrid(images: _pickedImages, onTap: _pickImages),
-              const SizedBox(height: 46),
+              SizedBox(height: sectionGap),
               _DropdownLine(
                 label: 'Occupancy per room',
                 value: _occupancy,
                 values: const ['Single', 'Double', 'Triple'],
                 onChanged: (value) => setState(() => _occupancy = value),
               ),
-              const SizedBox(height: 48),
+              SizedBox(height: sectionGap),
               _DropdownLine(
                 label: 'Looking for',
                 value: _lookingFor,
                 values: const ['Male', 'Female', 'Any'],
                 onChanged: (value) => setState(() => _lookingFor = value),
               ),
-              const SizedBox(height: 58),
+              SizedBox(height: sectionGap),
               _FieldLabel('Choose highlights for your property'),
-              const SizedBox(height: 26),
+              SizedBox(height: labelGap + 4),
               Wrap(
-                spacing: 16,
-                runSpacing: 16,
+                spacing: isCompact ? 8 : 10,
+                runSpacing: isCompact ? 8 : 10,
                 children: _highlightOptions.map((highlight) {
                   final selected = _selectedHighlights.contains(highlight);
                   return _PillChoice(
@@ -360,9 +362,9 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
                   );
                 }).toList(),
               ),
-              const SizedBox(height: 58),
+              SizedBox(height: sectionGap),
               _FieldLabel('Amenities'),
-              const SizedBox(height: 32),
+              SizedBox(height: labelGap + 4),
               _AmenitiesGrid(
                 options: _amenityOptions,
                 selected: _selectedAmenities,
@@ -372,21 +374,21 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
                       : _selectedAmenities.add(label);
                 }),
               ),
-              const SizedBox(height: 58),
+              SizedBox(height: sectionGap),
               _MobileVisibilityCard(
                 isPublic: _mobilePublic,
                 onChanged: (value) => setState(() => _mobilePublic = value),
               ),
-              const SizedBox(height: 58),
+              SizedBox(height: sectionGap),
               _FieldLabel('Description'),
-              const SizedBox(height: 24),
+              SizedBox(height: labelGap),
               TextFormField(
                 controller: _descriptionController,
                 maxLines: 3,
                 minLines: 1,
                 style: AppTheme.body(
-                  fontSize: 21,
-                  fontWeight: FontWeight.w800,
+                  fontSize: isCompact ? 17 : 18,
+                  fontWeight: FontWeight.w700,
                   color: const Color(0xFF3F4145),
                 ),
                 decoration: const InputDecoration(
@@ -399,7 +401,7 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
                   focusedBorder: UnderlineInputBorder(
                     borderSide: BorderSide(color: AppColors.primary),
                   ),
-                  contentPadding: EdgeInsets.zero,
+                  contentPadding: EdgeInsets.only(bottom: 10),
                 ),
                 validator: (value) {
                   if ((value ?? '').trim().isEmpty) {
@@ -410,19 +412,23 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
               ),
             ],
           ),
-        ),
       ),
       bottomNavigationBar: SafeArea(
         top: false,
         child: Container(
-          padding: const EdgeInsets.fromLTRB(24, 12, 24, 18),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            10,
+            horizontalPadding,
+            14,
+          ),
           decoration: const BoxDecoration(
             color: Colors.white,
             border: Border(top: BorderSide(color: Color(0xFFE9E9E9))),
           ),
           child: SizedBox(
             width: double.infinity,
-            height: 56,
+            height: isCompact ? 50 : 54,
             child: ElevatedButton(
               onPressed: _submitting ? null : _submit,
               style: ElevatedButton.styleFrom(
@@ -444,7 +450,7 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
                   : Text(
                       'Add Room Details',
                       style: AppTheme.body(
-                        fontSize: 17,
+                        fontSize: isCompact ? 15 : 16,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
                       ),
@@ -464,10 +470,13 @@ class _FieldLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+
     return Text(
       text,
       style: AppTheme.body(
-        fontSize: 19,
+        fontSize: isCompact ? 16 : 17,
+        fontWeight: FontWeight.w700,
         color: const Color(0xFF171A20),
         letterSpacing: 0,
       ),
@@ -496,30 +505,33 @@ class _UnderlineTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       onChanged: onChanged,
       validator: validator,
       style: AppTheme.body(
-        fontSize: 22,
-        fontWeight: FontWeight.w800,
+        fontSize: isCompact ? 17 : 18,
+        fontWeight: FontWeight.w700,
         color: const Color(0xFF3F4145),
       ),
       decoration: InputDecoration(
+        isDense: true,
         hintText: hintText,
         hintStyle: AppTheme.body(
-          fontSize: 20,
+          fontSize: isCompact ? 15 : 16,
           height: 1.1,
-          fontWeight: FontWeight.w800,
+          fontWeight: FontWeight.w600,
           color: const Color(0xFFB9B9B9),
         ),
         prefixIcon: prefix == null
             ? null
-            : Padding(padding: const EdgeInsets.only(right: 18), child: prefix),
-        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 44),
+            : Padding(padding: const EdgeInsets.only(right: 12), child: prefix),
+        prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 32),
         suffixIcon: suffix,
-        contentPadding: const EdgeInsets.only(bottom: 18),
+        contentPadding: const EdgeInsets.only(bottom: 2),
         border: const UnderlineInputBorder(
           borderSide: BorderSide(color: Color(0xFFE9E9E9)),
         ),
@@ -544,14 +556,16 @@ class _ImagePickerGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final gap = constraints.maxWidth < 420 ? 12.0 : 14.0;
+        final isCompact = constraints.maxWidth < 360;
+        final gap = isCompact ? 8.0 : 10.0;
         final cellWidth = (constraints.maxWidth - gap) / 2;
+        final gridHeight = cellWidth * (isCompact ? 1.14 : 1.22);
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(
               width: cellWidth,
-              height: cellWidth * 1.34,
+              height: gridHeight,
               child: _ImageSlot(
                 image: images.isNotEmpty ? images[0] : null,
                 onTap: onTap,
@@ -563,7 +577,7 @@ class _ImagePickerGrid extends StatelessWidget {
               child: Column(
                 children: [
                   SizedBox(
-                    height: (cellWidth * 1.34 - gap) / 2,
+                    height: (gridHeight - gap) / 2,
                     child: _ImageSlot(
                       image: images.length > 1 ? images[1] : null,
                       onTap: onTap,
@@ -571,7 +585,7 @@ class _ImagePickerGrid extends StatelessWidget {
                   ),
                   SizedBox(height: gap),
                   SizedBox(
-                    height: (cellWidth * 1.34 - gap) / 2,
+                    height: (gridHeight - gap) / 2,
                     child: _ImageSlot(
                       image: images.length > 2 ? images[2] : null,
                       onTap: onTap,
@@ -606,7 +620,7 @@ class _ImageSlot extends StatelessWidget {
               ? const Center(
                   child: Icon(
                     Icons.add_photo_alternate_outlined,
-                    size: 68,
+                    size: 42,
                     color: Color(0xFFB9BEC2),
                   ),
                 )
@@ -647,15 +661,17 @@ class _DropdownLine extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _FieldLabel(label),
-        const SizedBox(height: 18),
+        SizedBox(height: isCompact ? 10 : 12),
         DropdownButtonFormField<String>(
           initialValue: value,
           isExpanded: true,
-          icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 32),
+          icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 24),
           decoration: const InputDecoration(
             border: UnderlineInputBorder(
               borderSide: BorderSide(color: Color(0xFFE9E9E9)),
@@ -666,11 +682,11 @@ class _DropdownLine extends StatelessWidget {
             focusedBorder: UnderlineInputBorder(
               borderSide: BorderSide(color: AppColors.primary),
             ),
-            contentPadding: EdgeInsets.only(bottom: 18),
+            contentPadding: EdgeInsets.only(bottom: 12),
           ),
           style: AppTheme.body(
-            fontSize: 18,
-            fontWeight: FontWeight.w800,
+            fontSize: isCompact ? 16 : 17,
+            fontWeight: FontWeight.w700,
             color: const Color(0xFF3F4145),
           ),
           items: values
@@ -700,14 +716,19 @@ class _PillChoice extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 17),
+        padding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 14 : 16,
+          vertical: isCompact ? 10 : 11,
+        ),
         decoration: BoxDecoration(
           color: selected ? const Color(0xFFDFF4E9) : const Color(0xFFF0F0F0),
-          borderRadius: BorderRadius.circular(34),
+          borderRadius: BorderRadius.circular(22),
           border: selected
               ? Border.all(color: const Color(0xFF1EBB72), width: 1.4)
               : null,
@@ -715,7 +736,7 @@ class _PillChoice extends StatelessWidget {
         child: Text(
           label,
           style: AppTheme.body(
-            fontSize: 16,
+            fontSize: isCompact ? 13 : 14,
             color: selected ? const Color(0xFF147A4C) : const Color(0xFF808080),
           ),
         ),
@@ -737,55 +758,69 @@ class _AmenitiesGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: options.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 3,
-        mainAxisSpacing: 34,
-        crossAxisSpacing: 22,
-        childAspectRatio: 0.72,
-      ),
-      itemBuilder: (context, index) {
-        final option = options[index];
-        final isSelected = selected.contains(option.label);
-        return GestureDetector(
-          onTap: () => onTap(option.label),
-          child: Column(
-            children: [
-              AnimatedContainer(
-                duration: const Duration(milliseconds: 160),
-                width: 86,
-                height: 86,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: const Color(0xFFFFF6EC),
-                  border: isSelected
-                      ? Border.all(color: const Color(0xFF1EBB72), width: 3)
-                      : null,
-                ),
-                child: Icon(
-                  option.icon,
-                  size: 50,
-                  color: isSelected
-                      ? const Color(0xFF1EBB72)
-                      : const Color(0xFF707377),
-                ),
-              ),
-              const SizedBox(height: 13),
-              Text(
-                option.label,
-                textAlign: TextAlign.center,
-                style: AppTheme.body(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
-                  height: 1.15,
-                  color: const Color(0xFF202226),
-                ),
-              ),
-            ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 360;
+        final crossAxisCount = constraints.maxWidth < 320 ? 2 : 3;
+        final circleSize = isCompact ? 58.0 : 64.0;
+
+        return GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: options.length,
+          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: crossAxisCount,
+            mainAxisSpacing: isCompact ? 18 : 22,
+            crossAxisSpacing: isCompact ? 10 : 14,
+            childAspectRatio: crossAxisCount == 2 ? 1.1 : 0.88,
           ),
+          itemBuilder: (context, index) {
+            final option = options[index];
+            final isSelected = selected.contains(option.label);
+            return GestureDetector(
+              onTap: () => onTap(option.label),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 160),
+                    width: circleSize,
+                    height: circleSize,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: const Color(0xFFFFF6EC),
+                      border: isSelected
+                          ? Border.all(
+                              color: const Color(0xFF1EBB72),
+                              width: 2.4,
+                            )
+                          : null,
+                    ),
+                    child: Icon(
+                      option.icon,
+                      size: isCompact ? 28 : 32,
+                      color: isSelected
+                          ? const Color(0xFF1EBB72)
+                          : const Color(0xFF707377),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    option.label,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.body(
+                      fontSize: isCompact ? 12 : 13,
+                      fontWeight: FontWeight.w500,
+                      height: 1.15,
+                      color: const Color(0xFF202226),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         );
       },
     );
@@ -803,56 +838,84 @@ class _MobileVisibilityCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.fromLTRB(22, 30, 22, 28),
-      decoration: BoxDecoration(
-        color: const Color(0xFFEDFFF5),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Do you want to make your mobile number visible to\nother user?',
-            style: AppTheme.body(
-              fontSize: 18,
-              fontWeight: FontWeight.w800,
-              height: 1.25,
-              color: const Color(0xFF3F4145),
-            ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 340;
+
+        return Container(
+          padding: EdgeInsets.fromLTRB(
+            isCompact ? 14 : 16,
+            isCompact ? 16 : 18,
+            isCompact ? 14 : 16,
+            isCompact ? 16 : 18,
           ),
-          const SizedBox(height: 36),
-          Row(
+          decoration: BoxDecoration(
+            color: const Color(0xFFEDFFF5),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Expanded(
-                child: _VisibilityButton(
-                  text: 'Yes! make it public',
-                  selected: isPublic,
-                  onTap: () => onChanged(true),
+              Text(
+                'Make your mobile number visible to other users?',
+                style: AppTheme.body(
+                  fontSize: isCompact ? 15 : 16,
+                  fontWeight: FontWeight.w800,
+                  height: 1.25,
+                  color: const Color(0xFF3F4145),
                 ),
               ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: _VisibilityButton(
-                  text: 'No! make it private',
-                  selected: !isPublic,
-                  onTap: () => onChanged(false),
+              SizedBox(height: isCompact ? 14 : 16),
+              if (isCompact)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _VisibilityButton(
+                      text: 'Yes, public',
+                      selected: isPublic,
+                      onTap: () => onChanged(true),
+                    ),
+                    const SizedBox(height: 10),
+                    _VisibilityButton(
+                      text: 'No, private',
+                      selected: !isPublic,
+                      onTap: () => onChanged(false),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: _VisibilityButton(
+                        text: 'Yes, public',
+                        selected: isPublic,
+                        onTap: () => onChanged(true),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _VisibilityButton(
+                        text: 'No, private',
+                        selected: !isPublic,
+                        onTap: () => onChanged(false),
+                      ),
+                    ),
+                  ],
+                ),
+              SizedBox(height: isCompact ? 14 : 16),
+              Text(
+                'Note: If your mobile number is private, others can contact you only through chat.',
+                style: AppTheme.body(
+                  fontSize: 12,
+                  height: 1.35,
+                  color: AppColors.onSurfaceVariant,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 34),
-          Text(
-            'Note: If your mobile number is private, others can contact you only',
-            style: AppTheme.body(fontSize: 14, color: Colors.black),
-          ),
-          const SizedBox(height: 18),
-          Text(
-            'through chat.',
-            style: AppTheme.body(fontSize: 14, color: Colors.black),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -870,8 +933,10 @@ class _VisibilityButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+
     return SizedBox(
-      height: 78,
+      height: isCompact ? 46 : 48,
       child: ElevatedButton(
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
@@ -887,10 +952,12 @@ class _VisibilityButton extends StatelessWidget {
         child: Text(
           text,
           textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: AppTheme.body(
-            fontSize: 16,
+            fontSize: isCompact ? 13 : 14,
             height: 1.15,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w700,
             color: selected ? Colors.white : Colors.black,
           ),
         ),
