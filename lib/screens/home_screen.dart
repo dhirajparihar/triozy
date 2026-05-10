@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +9,9 @@ import '../models/listing_model.dart';
 import '../services/database_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import 'housing_entry_screen.dart';
 import 'listing_detail_screen.dart';
+import 'requirement_form_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onExploreTapped;
@@ -29,6 +33,8 @@ class HomeScreenState extends State<HomeScreen> {
   List<ListingModel> _featured = [];
   Set<String> _savedIds = <String>{};
   bool _loading = true;
+  bool _hasPublishedRequirement = false;
+  bool _hasPostedHousingListing = false;
 
   @override
   void initState() {
@@ -49,6 +55,10 @@ class HomeScreenState extends State<HomeScreen> {
       final saved = userId == null
           ? <ListingModel>[]
           : await db.getSavedListings(userId);
+      final hasPublishedRequirement = userId != null &&
+          await db.hasUserPublishedRequirement(userId);
+      final hasPostedHousingListing = userId != null &&
+          await db.hasUserPostedHousingListing(userId);
 
       if (!mounted) {
         return;
@@ -56,6 +66,8 @@ class HomeScreenState extends State<HomeScreen> {
       setState(() {
         _featured = featured;
         _savedIds = saved.map((listing) => listing.id).toSet();
+        _hasPublishedRequirement = hasPublishedRequirement;
+        _hasPostedHousingListing = hasPostedHousingListing;
         _loading = false;
       });
     } catch (_) {
@@ -98,10 +110,35 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
+  Future<void> _openRoomRequirement() async {
+    final published = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(builder: (_) => const RequirementFormScreen()),
+    );
+    if (published == true && mounted) {
+      _loadData();
+    }
+  }
+
+  void _openPgListings() {
+    widget.onPropertyTypeSelected?.call(PropertyType.pg);
+  }
+
+  Future<void> _openFlatmates() async {
+    if (_hasPostedHousingListing) {
+      widget.onPropertyTypeSelected?.call(PropertyType.flat);
+      return;
+    }
+
+    final route = await HousingEntryScreen.buildRoute();
+    if (!mounted) {
+      return;
+    }
+    Navigator.push(context, route);
+  }
+
   @override
   Widget build(BuildContext context) {
-    final firstName = _firstName();
-
     return RefreshIndicator(
       onRefresh: _loadData,
       color: AppColors.primary,
@@ -109,19 +146,22 @@ class HomeScreenState extends State<HomeScreen> {
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(20, 10, 20, 110),
         children: [
-          _WelcomeSection(firstName: firstName),
-          const SizedBox(height: 24),
+          _HeroSection(
+            onSearchTap: widget.onSearchTapped ?? widget.onExploreTapped,
+          ),
+          const SizedBox(height: 12),
           _QuickActions(
-            onFindRoomTap: () =>
-                widget.onPropertyTypeSelected?.call(PropertyType.room),
-            onFlatmatesTap: () =>
-                widget.onPropertyTypeSelected?.call(PropertyType.flat),
+            hasPublishedRequirement: _hasPublishedRequirement,
+            onFindRoomTap:
+                _hasPublishedRequirement ? _openPgListings : _openRoomRequirement,
+            onFlatmatesTap: _openFlatmates,
             onMarketplaceTap: () =>
                 widget.onPropertyTypeSelected?.call(PropertyType.item),
+            onAllServicesTap: widget.onSearchTapped ?? widget.onExploreTapped,
           ),
           const SizedBox(height: 30),
           _SectionHeader(
-            title: 'Verified Homes for You',
+            title: 'Explore',
             actionLabel: 'See all',
             onActionTap: widget.onExploreTapped,
           ),
@@ -156,48 +196,165 @@ class HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  String _firstName() {
-    final auth = FirebaseAuth.instance.currentUser;
-    final raw = (auth?.displayName?.trim().isNotEmpty == true
-            ? auth!.displayName!
-            : auth?.email?.split('@').first.replaceAll(RegExp(r'[._]'), ' ')) ??
-        '';
-    if (raw.trim().isEmpty) {
-      return 'there';
-    }
-    final part = raw.trim().split(' ').first;
-    return part[0].toUpperCase() + part.substring(1);
-  }
 }
 
-class _WelcomeSection extends StatelessWidget {
-  final String firstName;
+class _HeroSection extends StatelessWidget {
+  final VoidCallback? onSearchTap;
 
-  const _WelcomeSection({required this.firstName});
+  const _HeroSection({this.onSearchTap});
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Welcome to your new city,\n$firstName!',
-          style: AppTheme.headline(
-            fontSize: 30,
-            fontWeight: FontWeight.w700,
-            color: AppColors.primary,
-            height: 1.18,
-            letterSpacing: -0.7,
-          ),
+    return Container(
+      padding: const EdgeInsets.all(26),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFF6F9FF), Color(0xFFEAF1FF)],
         ),
-        const SizedBox(height: 12),
-        Text(
-          'Your relocation is on track. Let’s tackle the next steps.',
-          style: AppTheme.body(
-            fontSize: 16,
-            fontWeight: FontWeight.w500,
-            color: AppColors.onSurfaceVariant,
-            height: 1.55,
+        borderRadius: BorderRadius.circular(32),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.18),
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Move to a new city without starting from zero.',
+            style: AppTheme.headline(
+              fontSize: 25,
+              fontWeight: FontWeight.w800,
+              color: AppColors.onSurface,
+              height: 1.5,
+              letterSpacing: 0,
+            ),
+          ),
+          const SizedBox(height: 24),
+          GestureDetector(
+            onTap: onSearchTap,
+            child: Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+              decoration: BoxDecoration(
+                color: AppColors.surfaceContainerLowest.withValues(alpha: 0.64),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.78),
+                  width: 1.2,
+                ),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Colors.white.withValues(alpha: 0.82),
+                    Colors.white.withValues(alpha: 0.48),
+                  ],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: AppColors.primary.withValues(alpha: 0.08),
+                    blurRadius: 24,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Row(
+                children: [
+                  const Icon(
+                    Icons.search_rounded,
+                    color: AppColors.primaryContainer,
+                    size: 24,
+                  ),
+                  const SizedBox(width: 14),
+                  const Expanded(child: _AnimatedSearchPrompt()),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AnimatedSearchPrompt extends StatefulWidget {
+  const _AnimatedSearchPrompt();
+
+  @override
+  State<_AnimatedSearchPrompt> createState() => _AnimatedSearchPromptState();
+}
+
+class _AnimatedSearchPromptState extends State<_AnimatedSearchPrompt> {
+  static const List<String> _terms = [
+    'PGs',
+    'rooms',
+    'flatmates',
+    'essentials',
+  ];
+
+  Timer? _timer;
+  int _index = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _timer = Timer.periodic(const Duration(seconds: 2), (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() => _index = (_index + 1) % _terms.length);
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final style = AppTheme.body(
+      fontSize: 15,
+      fontWeight: FontWeight.w700,
+      color: AppColors.primaryContainer,
+      height: 1.45,
+    );
+
+    return Row(
+      children: [
+        Text('Search for ', style: style),
+        Flexible(
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 320),
+            layoutBuilder: (currentChild, previousChildren) {
+              return Stack(
+                alignment: Alignment.centerLeft,
+                children: [
+                  ...previousChildren,
+                  if (currentChild != null) currentChild,
+                ],
+              );
+            },
+            transitionBuilder: (child, animation) {
+              final offsetAnimation = Tween<Offset>(
+                begin: const Offset(0, 0.45),
+                end: Offset.zero,
+              ).animate(animation);
+              return FadeTransition(
+                opacity: animation,
+                child: SlideTransition(position: offsetAnimation, child: child),
+              );
+            },
+            child: Text(
+              _terms[_index],
+              key: ValueKey(_terms[_index]),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: style,
+            ),
           ),
         ),
       ],
@@ -207,50 +364,111 @@ class _WelcomeSection extends StatelessWidget {
 
 
 class _QuickActions extends StatelessWidget {
+  final bool hasPublishedRequirement;
   final VoidCallback onFindRoomTap;
   final VoidCallback onFlatmatesTap;
   final VoidCallback onMarketplaceTap;
+  final VoidCallback? onAllServicesTap;
 
   const _QuickActions({
+    required this.hasPublishedRequirement,
     required this.onFindRoomTap,
     required this.onFlatmatesTap,
     required this.onMarketplaceTap,
+    this.onAllServicesTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final compact = width < 380;
+    final gap = compact ? 10.0 : 12.0;
+    final shortCardHeight = compact ? 108.0 : 116.0;
+    final tallCardHeight = compact ? 158.0 : 170.0;
+    final tallestCardHeight = compact ? 174.0 : 188.0;
+    final allServicesHeight = compact ? 94.0 : 102.0;
+    final eyebrowSize = compact ? 14.0 : 15.0;
+    final titleSize = compact ? 17.0 : 18.0;
+    final allServicesTitleSize = compact ? 20.0 : 21.0;
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _PrimaryActionCard(
-          icon: Icons.bed_rounded,
-          title: 'Find a Room',
-          subtitle: 'Browse 400+ verified listings',
-          onTap: onFindRoomTap,
+        Text(
+          'Find your need',
+          style: AppTheme.headline(
+            fontSize: 15,
+            fontWeight: FontWeight.w800,
+            color: const Color(0xFF42526A),
+            height: 1.15,
+            letterSpacing: 0,
+          ),
         ),
-        const SizedBox(height: 16),
+        SizedBox(height: gap),
         Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: _SecondaryActionCard(
-                icon: Icons.groups_rounded,
-                iconColor: AppColors.secondary,
-                iconBackground: AppColors.secondaryContainer.withValues(
-                  alpha: 0.18,
-                ),
-                title: 'Match Flatmates',
-                subtitle: 'Find your vibe',
-                onTap: onFlatmatesTap,
+              child: Column(
+                children: [
+                  _ServiceActionCard(
+                    height: shortCardHeight,
+                    eyebrow: hasPublishedRequirement
+                        ? 'Looking for'
+                        : 'Publish Requirement',
+                    title: hasPublishedRequirement ? 'PG' : 'Room',
+                    icon: Icons.meeting_room_rounded,
+                    iconColor: const Color(0xFF3A86FF),
+                    onTap: onFindRoomTap,
+                    alignIconBottom: true,
+                    compact: compact,
+                    eyebrowSize: eyebrowSize,
+                    titleSize: titleSize,
+                  ),
+                  SizedBox(height: gap),
+                  _ServiceActionCard(
+                    height: tallCardHeight,
+                    eyebrow: 'Your daily essentials',
+                    title: 'Marketplace',
+                    icon: Icons.shopping_bag_rounded,
+                    iconColor: const Color(0xFF3A86FF),
+                    onTap: onMarketplaceTap,
+                    alignIconBottom: true,
+                    compact: compact,
+                    eyebrowSize: eyebrowSize,
+                    titleSize: titleSize,
+                  ),
+                ],
               ),
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: gap),
             Expanded(
-              child: _SecondaryActionCard(
-                icon: Icons.shopping_bag_outlined,
-                iconColor: AppColors.primary,
-                iconBackground: AppColors.primary.withValues(alpha: 0.08),
-                title: 'Marketplace',
-                subtitle: 'Furnish your space',
-                onTap: onMarketplaceTap,
+              child: Column(
+                children: [
+                  _ServiceActionCard(
+                    height: tallestCardHeight,
+                    eyebrow: 'Match',
+                    title: 'Flatmates',
+                    icon: Icons.groups_rounded,
+                    iconColor: const Color(0xFF3A86FF),
+                    onTap: onFlatmatesTap,
+                    alignIconBottom: true,
+                    compact: compact,
+                    eyebrowSize: eyebrowSize,
+                    titleSize: titleSize,
+                  ),
+                  SizedBox(height: gap),
+                  _ServiceActionCard(
+                    height: allServicesHeight,
+                    title: 'All\nServices',
+                    icon: Icons.apps_rounded,
+                    iconColor: const Color(0xFF3A86FF),
+                    onTap: onAllServicesTap,
+                    showIcon: false,
+                    compact: compact,
+                    titleSize: allServicesTitleSize,
+                  ),
+                ],
               ),
             ),
           ],
@@ -260,163 +478,125 @@ class _QuickActions extends StatelessWidget {
   }
 }
 
-class _PrimaryActionCard extends StatelessWidget {
-  final IconData icon;
+class _ServiceActionCard extends StatelessWidget {
+  final double height;
+  final String? eyebrow;
   final String title;
-  final String subtitle;
-  final VoidCallback onTap;
+  final IconData icon;
+  final Color iconColor;
+  final VoidCallback? onTap;
+  final bool alignIconBottom;
+  final bool showIcon;
+  final bool compact;
+  final double? eyebrowSize;
+  final double? titleSize;
 
-  const _PrimaryActionCard({
-    required this.icon,
+  const _ServiceActionCard({
+    required this.height,
+    this.eyebrow,
     required this.title,
-    required this.subtitle,
-    required this.onTap,
+    required this.icon,
+    required this.iconColor,
+    this.onTap,
+    this.alignIconBottom = false,
+    this.showIcon = true,
+    this.compact = false,
+    this.eyebrowSize,
+    this.titleSize,
   });
 
   @override
   Widget build(BuildContext context) {
+    final iconSize = alignIconBottom
+        ? (compact ? 60.0 : 68.0)
+        : (compact ? 46.0 : 50.0);
+    final iconGlyphSize = alignIconBottom
+        ? (compact ? 30.0 : 34.0)
+        : (compact ? 24.0 : 26.0);
+
     return GestureDetector(
       onTap: onTap,
+      behavior: HitTestBehavior.opaque,
       child: Container(
+        height: height,
         width: double.infinity,
-        padding: const EdgeInsets.all(28),
+        padding: EdgeInsets.all(compact ? 14 : 16),
         decoration: BoxDecoration(
-          color: AppColors.primary,
-          borderRadius: BorderRadius.circular(22),
+          color: const Color(0xFFF4F8FF),
+          borderRadius: BorderRadius.circular(compact ? 20 : 24),
+          border: Border.all(
+            color: const Color(0xFFE5E7EB).withValues(alpha: 0.72),
+          ),
           boxShadow: [
             BoxShadow(
-              color: AppColors.primary.withValues(alpha: 0.14),
-              blurRadius: 26,
-              offset: const Offset(0, 12),
+              color: const Color(0xFF14213D).withValues(alpha: 0.035),
+              blurRadius: 22,
+              offset: const Offset(0, 10),
             ),
           ],
         ),
         child: Stack(
           children: [
+            if (showIcon)
+              Positioned(
+                right: alignIconBottom ? -6 : 2,
+                bottom: alignIconBottom ? -4 : null,
+                top: alignIconBottom ? null : 6,
+                child: Container(
+                  width: iconSize,
+                  height: iconSize,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withValues(alpha: 0.78),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    icon,
+                    color: iconColor,
+                    size: iconGlyphSize,
+                  ),
+                ),
+              ),
             Positioned.fill(
-              child: DecoratedBox(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(22),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      Colors.white.withValues(alpha: 0.08),
-                      Colors.transparent,
+              child: Align(
+                alignment: Alignment.topLeft,
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: showIcon && !alignIconBottom ? 46 : 0,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (eyebrow != null) ...[
+                        Text(
+                          eyebrow!,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.body(
+                            fontSize: eyebrowSize ?? 15,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF536178),
+                            height: 1.22,
+                            letterSpacing: 0,
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                      ],
+                      Text(
+                        title,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.headline(
+                          fontSize: titleSize ?? 18,
+                          fontWeight: FontWeight.w800,
+                          color: const Color(0xFF111827),
+                          height: 1.08,
+                          letterSpacing: 0,
+                        ),
+                      ),
                     ],
                   ),
                 ),
-              ),
-            ),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Icon(icon, color: AppColors.onPrimary, size: 30),
-                const SizedBox(height: 26),
-                Text(
-                  title,
-                  style: AppTheme.headline(
-                    fontSize: 24,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.onPrimary,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        subtitle,
-                        style: AppTheme.body(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w500,
-                          color: AppColors.primaryFixedDim,
-                        ),
-                      ),
-                    ),
-                    Container(
-                      width: 46,
-                      height: 46,
-                      decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.16),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.arrow_forward_rounded,
-                        color: AppColors.onPrimary,
-                        size: 24,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _SecondaryActionCard extends StatelessWidget {
-  final IconData icon;
-  final Color iconColor;
-  final Color iconBackground;
-  final String title;
-  final String subtitle;
-  final VoidCallback onTap;
-
-  const _SecondaryActionCard({
-    required this.icon,
-    required this.iconColor,
-    required this.iconBackground,
-    required this.title,
-    required this.subtitle,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        height: 168,
-        padding: const EdgeInsets.all(20),
-        decoration: AppTheme.cardDecoration(
-          color: AppColors.surfaceContainerLowest,
-          radiusValue: 20,
-          shadowAlpha: 0.045,
-          blur: 20,
-          offsetY: 8,
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 52,
-              height: 52,
-              decoration: BoxDecoration(
-                color: iconBackground,
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: Icon(icon, color: iconColor, size: 25),
-            ),
-            const Spacer(),
-            Text(
-              title,
-              style: AppTheme.headline(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              subtitle,
-              style: AppTheme.body(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: AppColors.slate500,
               ),
             ),
           ],

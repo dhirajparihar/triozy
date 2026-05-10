@@ -139,6 +139,17 @@ class DatabaseService {
     return snapshot.docs.isNotEmpty;
   }
 
+  Future<bool> hasUserPublishedRequirement(String userId) async {
+    final snapshot = await _firestore
+        .collection('listings')
+        .where('ownerId', isEqualTo: userId)
+        .where('type', isEqualTo: ListingType.housing.value)
+        .where('purpose', isEqualTo: ListingPurpose.needPlace.value)
+        .limit(1)
+        .get();
+    return snapshot.docs.isNotEmpty;
+  }
+
   Stream<List<ListingModel>> streamUserListings(String userId) {
     return _firestore
         .collection('listings')
