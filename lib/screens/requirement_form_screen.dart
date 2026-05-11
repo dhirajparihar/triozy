@@ -110,6 +110,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
       ).showSnackBar(const SnackBar(content: Text('Sign in to upload photo')));
       return;
     }
+    final cloudinaryService = context.read<CloudinaryService>();
 
     final image = await _picker.pickImage(
       source: ImageSource.gallery,
@@ -120,10 +121,13 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
     if (image == null) {
       return;
     }
+    if (!mounted) {
+      return;
+    }
 
     setState(() => _uploadingProfilePhoto = true);
     try {
-      final photoUrl = await context.read<CloudinaryService>().uploadImage(
+      final photoUrl = await cloudinaryService.uploadImage(
         bytes: await image.readAsBytes(),
         fileName: image.name,
         folder: 'profile_photos/${user.uid}',
@@ -847,6 +851,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
           bottom: MediaQuery.of(context).viewInsets.bottom,
         ),
         child: SafeArea(
+          top: false,
           child: Container(
             padding: EdgeInsets.fromLTRB(
               horizontalPadding,
@@ -854,17 +859,18 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
               horizontalPadding,
               14,
             ),
-            color: Colors.white,
+            decoration: const BoxDecoration(
+              color: AppColors.surfaceContainerLowest,
+              border: Border(top: BorderSide(color: AppColors.outlineVariant)),
+            ),
             child: SizedBox(
               width: double.infinity,
-              height: isCompact ? 50 : 56,
+              height: isCompact ? 50 : 54,
               child: ElevatedButton(
                 onPressed: _publish,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.secondaryContainer.withValues(
-                    alpha: 0.75,
-                  ),
-                  foregroundColor: AppColors.primary,
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.onPrimary,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
@@ -874,7 +880,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
                   style: AppTheme.body(
                     fontSize: isCompact ? 15 : 16,
                     fontWeight: FontWeight.w800,
-                    color: AppColors.primary,
+                    color: AppColors.onPrimary,
                   ),
                 ),
               ),

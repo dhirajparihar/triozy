@@ -38,17 +38,17 @@ class TriozyTopAppBar extends StatelessWidget {
     
     final greetingFontSize = isSmallScreen ? 15.0 : 18.0;
     final locationFontSize = isSmallScreen ? 11.0 : 12.0;
-    final locationIconSize = isSmallScreen ? 14.0 : 16.0;
     final dropdownIconSize = isSmallScreen ? 12.0 : 14.0;
     final avatarSize = isSmallScreen ? 34.0 : 38.0;
     final appBarHeight = isSmallScreen ? 52.0 : 56.0;
-    final verticalPadding = isSmallScreen ? 6.0 : 8.0;
+    final topPadding = isSmallScreen ? 6.0 : 8.0;
+    final bottomPadding = isSmallScreen ? 1.0 : 2.0;
 
     return SafeArea(
       bottom: false,
       child: Container(
         constraints: BoxConstraints(minHeight: appBarHeight),
-        padding: EdgeInsets.fromLTRB(20, verticalPadding, 20, verticalPadding),
+        padding: EdgeInsets.fromLTRB(20, topPadding, 20, bottomPadding),
         color: AppColors.background,
         child: Row(
           children: [
@@ -83,7 +83,7 @@ class TriozyTopAppBar extends StatelessWidget {
                             style: AppTheme.body(
                               fontSize: locationFontSize,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.blue500,
+                              color: AppColors.textPrimary,
                             ),
                           ),
                         ),

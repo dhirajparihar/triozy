@@ -555,7 +555,7 @@ class _ListingPreview extends StatelessWidget {
                   child: Image.asset(
                     'assets/onboarding/home.png',
                     fit: BoxFit.cover,
-                    errorBuilder: (_, __, ___) => Container(
+                    errorBuilder: (_, _, _) => Container(
                       color: AppColors.surfaceContainerHigh,
                       alignment: Alignment.center,
                       child: const Icon(
