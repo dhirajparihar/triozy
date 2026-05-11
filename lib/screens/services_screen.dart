@@ -143,7 +143,7 @@ class _ServiceTile extends StatelessWidget {
               color: AppColors.secondaryContainer.withValues(alpha: 0.72),
               borderRadius: AppTheme.radius(14),
             ),
-            child: Icon(icon, color: AppColors.secondary, size: 26),
+            child: Icon(icon, color: AppColors.primary, size: 26),
           ),
         ),
       ),

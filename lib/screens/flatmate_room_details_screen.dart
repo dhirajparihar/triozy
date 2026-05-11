@@ -244,7 +244,7 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
       backgroundColor: AppColors.background,
       appBar: AppBar(
         title: const Text('Add Room Details'),
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         foregroundColor: AppColors.onSurface,
         elevation: 0,
       ),
@@ -274,7 +274,7 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
                 prefix: const Icon(
                   Icons.location_on,
                   size: 24,
-                  color: Color(0xFF414141),
+                  color: AppColors.onSurface,
                 ),
                 suffix: _locationController.text.isEmpty
                     ? null
@@ -283,7 +283,7 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
                             setState(() => _locationController.clear()),
                         icon: const Icon(Icons.close_rounded),
                         iconSize: 22,
-                        color: const Color(0xFF898989),
+                        color: AppColors.onSurfaceVariant,
                         tooltip: 'Clear location',
                       ),
                 onChanged: (_) => setState(() {}),
@@ -303,10 +303,10 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
                 prefix: Text(
                   '₹',
                   style: AppTheme.body(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: const Color(0xFF3F4145),
-                  ),
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.onSurface,
+                ),
                 ),
                 validator: (value) {
                   final rent = double.tryParse((value ?? '').trim());
@@ -389,14 +389,14 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
                 style: AppTheme.body(
                   fontSize: isCompact ? 17 : 18,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF3F4145),
+                  color: AppColors.onSurface,
                 ),
                 decoration: const InputDecoration(
                   border: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Color(0xFFE9E9E9)),
+                    borderSide: BorderSide(color: AppColors.outlineVariant),
                   ),
                   enabledBorder: UnderlineInputBorder(
-                    borderSide: BorderSide(color: Color(0xFFE9E9E9)),
+                    borderSide: BorderSide(color: AppColors.outlineVariant),
                   ),
                   focusedBorder: UnderlineInputBorder(
                     borderSide: BorderSide(color: AppColors.primary),
@@ -423,8 +423,8 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
             14,
           ),
           decoration: const BoxDecoration(
-            color: Colors.white,
-            border: Border(top: BorderSide(color: Color(0xFFE9E9E9))),
+            color: AppColors.surfaceContainerLowest,
+            border: Border(top: BorderSide(color: AppColors.outlineVariant)),
           ),
           child: SizedBox(
             width: double.infinity,
@@ -432,8 +432,8 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
             child: ElevatedButton(
               onPressed: _submitting ? null : _submit,
               style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF1EBB72),
-                foregroundColor: Colors.white,
+                backgroundColor: AppColors.primary,
+                foregroundColor: AppColors.onPrimary,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(12),
                 ),
@@ -444,7 +444,7 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
                       height: 20,
                       child: CircularProgressIndicator(
                         strokeWidth: 2,
-                        color: Colors.white,
+                        color: AppColors.onPrimary,
                       ),
                     )
                   : Text(
@@ -452,7 +452,7 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
                       style: AppTheme.body(
                         fontSize: isCompact ? 15 : 16,
                         fontWeight: FontWeight.w800,
-                        color: Colors.white,
+                        color: AppColors.onPrimary,
                       ),
                     ),
             ),
@@ -477,7 +477,7 @@ class _FieldLabel extends StatelessWidget {
       style: AppTheme.body(
         fontSize: isCompact ? 16 : 17,
         fontWeight: FontWeight.w700,
-        color: const Color(0xFF171A20),
+        color: AppColors.onSurface,
         letterSpacing: 0,
       ),
     );
@@ -515,7 +515,7 @@ class _UnderlineTextField extends StatelessWidget {
       style: AppTheme.body(
         fontSize: isCompact ? 17 : 18,
         fontWeight: FontWeight.w700,
-        color: const Color(0xFF3F4145),
+        color: AppColors.onSurface,
       ),
       decoration: InputDecoration(
         isDense: true,
@@ -524,7 +524,7 @@ class _UnderlineTextField extends StatelessWidget {
           fontSize: isCompact ? 15 : 16,
           height: 1.1,
           fontWeight: FontWeight.w600,
-          color: const Color(0xFFB9B9B9),
+          color: AppColors.slate400,
         ),
         prefixIcon: prefix == null
             ? null
@@ -533,13 +533,13 @@ class _UnderlineTextField extends StatelessWidget {
         suffixIcon: suffix,
         contentPadding: const EdgeInsets.only(bottom: 2),
         border: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFFE9E9E9)),
+          borderSide: BorderSide(color: AppColors.outlineVariant),
         ),
         enabledBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFFE9E9E9)),
+          borderSide: BorderSide(color: AppColors.outlineVariant),
         ),
         focusedBorder: const UnderlineInputBorder(
-          borderSide: BorderSide(color: Color(0xFF1C9A99), width: 2),
+          borderSide: BorderSide(color: AppColors.primary, width: 2),
         ),
       ),
     );
@@ -615,13 +615,13 @@ class _ImageSlot extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(8),
         child: Container(
-          color: const Color(0xFFE9EEF1),
+          color: AppColors.surfaceContainerHigh,
           child: image == null
               ? const Center(
                   child: Icon(
                     Icons.add_photo_alternate_outlined,
                     size: 42,
-                    color: Color(0xFFB9BEC2),
+                    color: AppColors.slate400,
                   ),
                 )
               : FutureBuilder<Uint8List>(
@@ -674,10 +674,10 @@ class _DropdownLine extends StatelessWidget {
           icon: const Icon(Icons.keyboard_arrow_down_rounded, size: 24),
           decoration: const InputDecoration(
             border: UnderlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFFE9E9E9)),
+              borderSide: BorderSide(color: AppColors.outlineVariant),
             ),
             enabledBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Color(0xFFE9E9E9)),
+              borderSide: BorderSide(color: AppColors.outlineVariant),
             ),
             focusedBorder: UnderlineInputBorder(
               borderSide: BorderSide(color: AppColors.primary),
@@ -687,7 +687,7 @@ class _DropdownLine extends StatelessWidget {
           style: AppTheme.body(
             fontSize: isCompact ? 16 : 17,
             fontWeight: FontWeight.w700,
-            color: const Color(0xFF3F4145),
+            color: AppColors.onSurface,
           ),
           items: values
               .map((item) => DropdownMenuItem(value: item, child: Text(item)))
@@ -727,17 +727,21 @@ class _PillChoice extends StatelessWidget {
           vertical: isCompact ? 10 : 11,
         ),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFDFF4E9) : const Color(0xFFF0F0F0),
+          color: selected
+              ? AppColors.secondaryContainer
+              : AppColors.surfaceContainerLow,
           borderRadius: BorderRadius.circular(22),
           border: selected
-              ? Border.all(color: const Color(0xFF1EBB72), width: 1.4)
+              ? Border.all(color: AppColors.secondary, width: 1.4)
               : null,
         ),
         child: Text(
           label,
           style: AppTheme.body(
             fontSize: isCompact ? 13 : 14,
-            color: selected ? const Color(0xFF147A4C) : const Color(0xFF808080),
+            color: selected
+                ? AppColors.onSecondaryContainer
+                : AppColors.onSurfaceVariant,
           ),
         ),
       ),
@@ -788,10 +792,10 @@ class _AmenitiesGrid extends StatelessWidget {
                     height: circleSize,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: const Color(0xFFFFF6EC),
+                      color: AppColors.tertiaryContainer,
                       border: isSelected
                           ? Border.all(
-                              color: const Color(0xFF1EBB72),
+                              color: AppColors.secondary,
                               width: 2.4,
                             )
                           : null,
@@ -800,8 +804,8 @@ class _AmenitiesGrid extends StatelessWidget {
                       option.icon,
                       size: isCompact ? 28 : 32,
                       color: isSelected
-                          ? const Color(0xFF1EBB72)
-                          : const Color(0xFF707377),
+                          ? AppColors.secondary
+                          : AppColors.onSurfaceVariant,
                     ),
                   ),
                   const SizedBox(height: 8),
@@ -814,7 +818,7 @@ class _AmenitiesGrid extends StatelessWidget {
                       fontSize: isCompact ? 12 : 13,
                       fontWeight: FontWeight.w500,
                       height: 1.15,
-                      color: const Color(0xFF202226),
+                      color: AppColors.onSurface,
                     ),
                   ),
                 ],
@@ -850,7 +854,7 @@ class _MobileVisibilityCard extends StatelessWidget {
             isCompact ? 16 : 18,
           ),
           decoration: BoxDecoration(
-            color: const Color(0xFFEDFFF5),
+            color: AppColors.secondaryContainer,
             borderRadius: BorderRadius.circular(12),
           ),
           child: Column(
@@ -862,7 +866,7 @@ class _MobileVisibilityCard extends StatelessWidget {
                   fontSize: isCompact ? 15 : 16,
                   fontWeight: FontWeight.w800,
                   height: 1.25,
-                  color: const Color(0xFF3F4145),
+                  color: AppColors.onSurface,
                 ),
               ),
               SizedBox(height: isCompact ? 14 : 16),
@@ -942,9 +946,9 @@ class _VisibilityButton extends StatelessWidget {
         style: ElevatedButton.styleFrom(
           elevation: 0,
           backgroundColor: selected
-              ? const Color(0xFF1EBB72)
-              : const Color(0xFFE4E5EA),
-          foregroundColor: selected ? Colors.white : Colors.black,
+              ? AppColors.primary
+              : AppColors.surfaceContainerHigh,
+          foregroundColor: selected ? AppColors.onPrimary : AppColors.onSurface,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
@@ -958,7 +962,7 @@ class _VisibilityButton extends StatelessWidget {
             fontSize: isCompact ? 13 : 14,
             height: 1.15,
             fontWeight: FontWeight.w700,
-            color: selected ? Colors.white : Colors.black,
+            color: selected ? AppColors.onPrimary : AppColors.onSurface,
           ),
         ),
       ),

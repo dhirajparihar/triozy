@@ -144,7 +144,7 @@ class HomeScreenState extends State<HomeScreen> {
       color: AppColors.primary,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 10, 20, 110),
+        padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
         children: [
           _HeroSection(
             onSearchTap: widget.onSearchTapped ?? widget.onExploreTapped,
@@ -238,19 +238,11 @@ class _HeroSection extends StatelessWidget {
               width: double.infinity,
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
               decoration: BoxDecoration(
-                color: AppColors.surfaceContainerLowest.withValues(alpha: 0.64),
+                color: AppColors.surfaceContainerLowest,
                 borderRadius: BorderRadius.circular(22),
                 border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.78),
+                  color: AppColors.outlineVariant.withValues(alpha: 0.55),
                   width: 1.2,
-                ),
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    Colors.white.withValues(alpha: 0.82),
-                    Colors.white.withValues(alpha: 0.48),
-                  ],
                 ),
                 boxShadow: [
                   BoxShadow(
@@ -264,7 +256,7 @@ class _HeroSection extends StatelessWidget {
                 children: [
                   const Icon(
                     Icons.search_rounded,
-                    color: AppColors.primaryContainer,
+                    color: AppColors.primary,
                     size: 24,
                   ),
                   const SizedBox(width: 14),
@@ -319,7 +311,7 @@ class _AnimatedSearchPromptState extends State<_AnimatedSearchPrompt> {
     final style = AppTheme.body(
       fontSize: 15,
       fontWeight: FontWeight.w700,
-      color: AppColors.primaryContainer,
+      color: AppColors.onSurfaceVariant,
       height: 1.45,
     );
 
@@ -334,7 +326,7 @@ class _AnimatedSearchPromptState extends State<_AnimatedSearchPrompt> {
                 alignment: Alignment.centerLeft,
                 children: [
                   ...previousChildren,
-                  if (currentChild != null) currentChild,
+                  ?currentChild,
                 ],
               );
             },
