@@ -52,6 +52,10 @@ class _ChatListScreenState extends State<ChatListScreen> {
   @override
   Widget build(BuildContext context) {
     final uid = _currentUserId;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth < 380;
+    final horizontalPadding = isCompact ? 12.0 : 16.0;
+    final listGap = isCompact ? 10.0 : 14.0;
     if (uid == null || uid.isEmpty) {
       return widget.showScaffold
           ? const Scaffold(
@@ -118,9 +122,14 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       },
                       child: ListView.separated(
                         physics: const AlwaysScrollableScrollPhysics(),
-                        padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
+                        padding: EdgeInsets.fromLTRB(
+                          horizontalPadding,
+                          isCompact ? 8 : 10,
+                          horizontalPadding,
+                          24,
+                        ),
                         itemCount: filtered.length,
-                        separatorBuilder: (_, _) => const SizedBox(height: 16),
+                        separatorBuilder: (_, _) => SizedBox(height: listGap),
                         itemBuilder: (context, index) {
                           final conversation = filtered[index];
                           return _ConversationTile(
@@ -184,6 +193,8 @@ class _ChatListHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
@@ -196,42 +207,30 @@ class _ChatListHeader extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+        padding: EdgeInsets.fromLTRB(
+          isCompact ? 12 : 16,
+          isCompact ? 8 : 12,
+          isCompact ? 12 : 16,
+          isCompact ? 12 : 16,
+        ),
         child: Column(
           children: [
             SizedBox(
-              height: 52,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
-                  Align(
-                    alignment: Alignment.centerLeft,
-                    child: _HeaderIconButton(
-                      icon: Icons.location_on_outlined,
-                      onTap: () {},
-                    ),
+              height: isCompact ? 44 : 50,
+              child: Center(
+                child: Text(
+                  'Messages',
+                  style: AppTheme.headline(
+                    fontSize: isCompact ? 24 : 28,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
                   ),
-                  Text(
-                    'Triozy',
-                    style: AppTheme.headline(
-                      fontSize: 28,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
-                    ),
-                  ),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: _HeaderIconButton(
-                      icon: Icons.search_rounded,
-                      onTap: focusNode.requestFocus,
-                    ),
-                  ),
-                ],
+                ),
               ),
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: isCompact ? 10 : 14),
             Container(
-              height: 58,
+              height: isCompact ? 50 : 56,
               decoration: BoxDecoration(
                 color: AppColors.surfaceContainerLowest,
                 borderRadius: BorderRadius.circular(20),
@@ -250,18 +249,18 @@ class _ChatListHeader extends StatelessWidget {
                 controller: controller,
                 focusNode: focusNode,
                 style: AppTheme.body(
-                  fontSize: 16,
+                  fontSize: isCompact ? 14 : 16,
                   color: AppColors.onSurfaceVariant,
                 ),
                 decoration: InputDecoration(
                   hintText: 'Search messages...',
                   hintStyle: AppTheme.body(
-                    fontSize: 16,
+                    fontSize: isCompact ? 14 : 16,
                     color: AppColors.slate500,
                   ),
                   prefixIcon: const Icon(
                     Icons.search_rounded,
-                    size: 28,
+                    size: 24,
                     color: AppColors.slate500,
                   ),
                   suffixIcon: controller.text.trim().isEmpty
@@ -276,14 +275,16 @@ class _ChatListHeader extends StatelessWidget {
                   border: InputBorder.none,
                   enabledBorder: InputBorder.none,
                   focusedBorder: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 18),
+                  contentPadding: EdgeInsets.symmetric(
+                    vertical: isCompact ? 14 : 17,
+                  ),
                 ),
               ),
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: isCompact ? 10 : 14),
             Container(
-              height: 56,
-              padding: const EdgeInsets.all(6),
+              height: isCompact ? 48 : 54,
+              padding: const EdgeInsets.all(5),
               decoration: BoxDecoration(
                 color: AppColors.surfaceContainerHighest,
                 borderRadius: BorderRadius.circular(18),
@@ -316,25 +317,6 @@ class _ChatListHeader extends StatelessWidget {
   }
 }
 
-class _HeaderIconButton extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback onTap;
-
-  const _HeaderIconButton({required this.icon, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: Colors.transparent,
-      child: InkResponse(
-        onTap: onTap,
-        radius: 24,
-        child: Icon(icon, color: AppColors.primary, size: 30),
-      ),
-    );
-  }
-}
-
 class _SegmentButton extends StatelessWidget {
   final String label;
   final bool selected;
@@ -348,6 +330,7 @@ class _SegmentButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -372,8 +355,10 @@ class _SegmentButton extends StatelessWidget {
         ),
         child: Text(
           label,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: AppTheme.body(
-            fontSize: 15,
+            fontSize: isCompact ? 13 : 15,
             fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
             color: selected ? AppColors.primary : AppColors.onSurfaceVariant,
           ),
@@ -396,6 +381,7 @@ class _ConversationTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
     final peer = conversation.peerMetaFor(currentUserId);
     final unreadCount = conversation.unreadCountFor(currentUserId);
     final isPeerTyping = conversation.isPeerTypingFor(currentUserId);
@@ -415,13 +401,16 @@ class _ConversationTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(isCompact ? 18 : 22),
         onTap: onTap,
         child: Ink(
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+          padding: EdgeInsets.symmetric(
+            horizontal: isCompact ? 12 : 16,
+            vertical: isCompact ? 12 : 16,
+          ),
           decoration: BoxDecoration(
             color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(isCompact ? 18 : 22),
             border: Border.all(
               color: AppColors.outlineVariant.withValues(alpha: 0.28),
             ),
@@ -440,7 +429,7 @@ class _ConversationTile extends StatelessWidget {
                 photoUrl: photoUrl,
                 showPresence: isUnread || isPeerTyping,
               ),
-              const SizedBox(width: 16),
+              SizedBox(width: isCompact ? 10 : 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -454,7 +443,7 @@ class _ConversationTile extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTheme.headline(
-                              fontSize: 24,
+                              fontSize: isCompact ? 18 : 22,
                               fontWeight: isUnread
                                   ? FontWeight.w700
                                   : FontWeight.w600,
@@ -464,11 +453,11 @@ class _ConversationTile extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: isCompact ? 6 : 8),
                         Text(
                           _formatConversationTime(conversation.lastMessageTime),
                           style: AppTheme.body(
-                            fontSize: 13,
+                            fontSize: isCompact ? 11 : 12,
                             fontWeight: isUnread
                                 ? FontWeight.w700
                                 : FontWeight.w600,
@@ -479,13 +468,13 @@ class _ConversationTile extends StatelessWidget {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 4),
+                    SizedBox(height: isCompact ? 3 : 4),
                     Text(
                       listingTitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTheme.body(
-                        fontSize: 14,
+                        fontSize: isCompact ? 12 : 14,
                         fontWeight: isUnread
                             ? FontWeight.w700
                             : FontWeight.w500,
@@ -494,7 +483,7 @@ class _ConversationTile extends StatelessWidget {
                             : AppColors.onSurfaceVariant,
                       ),
                     ),
-                    const SizedBox(height: 6),
+                    SizedBox(height: isCompact ? 4 : 6),
                     Row(
                       children: [
                         Expanded(
@@ -503,7 +492,7 @@ class _ConversationTile extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTheme.body(
-                              fontSize: 15,
+                              fontSize: isCompact ? 13 : 15,
                               fontWeight: FontWeight.w500,
                               color: isUnread
                                   ? AppColors.onSurface
@@ -578,12 +567,14 @@ class _Avatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final initial = name.isEmpty ? '?' : name[0].toUpperCase();
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+    final size = isCompact ? 48.0 : 56.0;
     return Stack(
       clipBehavior: Clip.none,
       children: [
         Container(
-          width: 58,
-          height: 58,
+          width: size,
+          height: size,
           decoration: const BoxDecoration(
             shape: BoxShape.circle,
             color: AppColors.surfaceContainerHigh,
@@ -594,7 +585,7 @@ class _Avatar extends StatelessWidget {
                     child: Text(
                       initial,
                       style: AppTheme.headline(
-                        fontSize: 20,
+                        fontSize: isCompact ? 18 : 20,
                         fontWeight: FontWeight.w600,
                         color: AppColors.slate500,
                       ),
@@ -607,7 +598,7 @@ class _Avatar extends StatelessWidget {
                       child: Text(
                         initial,
                         style: AppTheme.headline(
-                          fontSize: 20,
+                          fontSize: isCompact ? 18 : 20,
                           fontWeight: FontWeight.w600,
                           color: AppColors.slate500,
                         ),
@@ -626,7 +617,10 @@ class _Avatar extends StatelessWidget {
               decoration: BoxDecoration(
                 color: AppColors.secondary,
                 shape: BoxShape.circle,
-                border: Border.all(color: AppColors.surfaceContainerLowest, width: 3),
+                border: Border.all(
+                  color: AppColors.surfaceContainerLowest,
+                  width: 3,
+                ),
               ),
             ),
           ),
@@ -663,7 +657,7 @@ class _ErrorState extends StatelessWidget {
             ),
             const SizedBox(height: 18),
             Text(
-              'Couldn’t load chats',
+              "Couldn't load chats",
               style: AppTheme.headline(fontSize: 24, color: AppColors.primary),
             ),
             const SizedBox(height: 10),

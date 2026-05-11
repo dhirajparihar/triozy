@@ -283,10 +283,10 @@ class _HousingEmptyState extends StatelessWidget {
             width: 56,
             height: 56,
             decoration: BoxDecoration(
-              color: AppColors.secondaryContainer.withValues(alpha: 0.7),
+              color: AppColors.primaryContainer,
               borderRadius: AppTheme.radius(16),
             ),
-            child: Icon(icon, color: AppColors.secondary, size: 28),
+            child: Icon(icon, color: AppColors.onPrimaryContainer, size: 28),
           ),
           const SizedBox(height: 14),
           Text(title, style: AppTheme.headline(fontSize: 20)),

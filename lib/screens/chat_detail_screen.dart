@@ -263,7 +263,12 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
                       return ListView.builder(
                         controller: _scrollController,
-                        padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+                        padding: EdgeInsets.fromLTRB(
+                          MediaQuery.sizeOf(context).width < 380 ? 12 : 16,
+                          MediaQuery.sizeOf(context).width < 380 ? 12 : 16,
+                          MediaQuery.sizeOf(context).width < 380 ? 12 : 16,
+                          18,
+                        ),
                         itemCount: messages.length + 1,
                         itemBuilder: (context, index) {
                           if (index == 0) {
@@ -428,13 +433,19 @@ class _DetailHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
     final peer = conversation?.peerMetaFor(currentUserId);
     final peerName = (peer?.name ?? '').trim();
     final name = peerName.isEmpty ? 'Messages' : peerName;
     final photoUrl = (peer?.photoUrl ?? '').trim();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 6, 16, 8),
+      padding: EdgeInsets.fromLTRB(
+        isCompact ? 8 : 14,
+        isCompact ? 4 : 6,
+        isCompact ? 8 : 14,
+        isCompact ? 6 : 8,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -443,14 +454,14 @@ class _DetailHeader extends StatelessWidget {
             icon: const Icon(
               Icons.arrow_back_rounded,
               color: AppColors.primary,
-              size: 34,
+              size: 30,
             ),
           ),
           Expanded(
             child: Row(
               children: [
                 _PeerAvatar(name: name, photoUrl: photoUrl),
-                const SizedBox(width: 12),
+                SizedBox(width: isCompact ? 8 : 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -461,16 +472,16 @@ class _DetailHeader extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTheme.headline(
-                          fontSize: 24,
+                          fontSize: isCompact ? 18 : 22,
                           fontWeight: FontWeight.w700,
                           color: AppColors.primary,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: isCompact ? 3 : 4),
                       Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 5,
+                          horizontal: 10,
+                          vertical: 4,
                         ),
                         decoration: BoxDecoration(
                           color: AppColors.secondaryContainer,
@@ -488,7 +499,7 @@ class _DetailHeader extends StatelessWidget {
                             Text(
                               'Verified',
                               style: AppTheme.body(
-                                fontSize: 12,
+                                fontSize: isCompact ? 10 : 12,
                                 fontWeight: FontWeight.w700,
                                 color: AppColors.onSecondaryContainer,
                               ),
@@ -507,7 +518,7 @@ class _DetailHeader extends StatelessWidget {
             icon: const Icon(
               Icons.more_vert_rounded,
               color: AppColors.primary,
-              size: 30,
+              size: 26,
             ),
           ),
         ],
@@ -529,7 +540,12 @@ class _ListingPreview extends StatelessWidget {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.fromLTRB(18, 10, 18, 18),
+      padding: EdgeInsets.fromLTRB(
+        MediaQuery.sizeOf(context).width < 380 ? 12 : 16,
+        8,
+        MediaQuery.sizeOf(context).width < 380 ? 12 : 16,
+        MediaQuery.sizeOf(context).width < 380 ? 12 : 16,
+      ),
       decoration: BoxDecoration(
         color: AppColors.surfaceContainerLowest,
         border: Border(
@@ -567,7 +583,7 @@ class _ListingPreview extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(width: 14),
+              SizedBox(width: isCompact ? 10 : 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -659,10 +675,16 @@ class _Composer extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
     return SafeArea(
       top: false,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(14, 12, 14, 16),
+        padding: EdgeInsets.fromLTRB(
+          isCompact ? 10 : 14,
+          isCompact ? 8 : 12,
+          isCompact ? 10 : 14,
+          isCompact ? 10 : 16,
+        ),
         decoration: BoxDecoration(
           color: AppColors.surfaceContainerLowest,
           border: Border(
@@ -679,14 +701,17 @@ class _Composer extends StatelessWidget {
               icon: const Icon(
                 Icons.add_circle_outline_rounded,
                 color: AppColors.onSurfaceVariant,
-                size: 36,
+                size: 32,
               ),
             ),
-            const SizedBox(width: 6),
+            SizedBox(width: isCompact ? 2 : 6),
             Expanded(
               child: Container(
-                constraints: const BoxConstraints(minHeight: 56),
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 6),
+                constraints: BoxConstraints(minHeight: isCompact ? 48 : 54),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isCompact ? 12 : 16,
+                  vertical: 6,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.surfaceContainerLowest,
                   borderRadius: BorderRadius.circular(18),
@@ -702,13 +727,13 @@ class _Composer extends StatelessWidget {
                     textInputAction: TextInputAction.newline,
                     onChanged: onChanged,
                     style: AppTheme.body(
-                      fontSize: 16,
+                      fontSize: isCompact ? 14 : 16,
                       color: AppColors.onSurface,
                     ),
                     decoration: InputDecoration(
                       hintText: 'Type a message...',
                       hintStyle: AppTheme.body(
-                        fontSize: 16,
+                        fontSize: isCompact ? 14 : 16,
                         color: AppColors.slate500,
                       ),
                       border: InputBorder.none,
@@ -721,13 +746,13 @@ class _Composer extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: isCompact ? 8 : 12),
             GestureDetector(
               onTap: canSend ? onSend : null,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
-                width: 58,
-                height: 58,
+                width: isCompact ? 50 : 56,
+                height: isCompact ? 50 : 56,
                 decoration: BoxDecoration(
                   color: canSend
                       ? AppColors.primary
@@ -737,7 +762,7 @@ class _Composer extends StatelessWidget {
                 child: const Icon(
                   Icons.send_rounded,
                   color: AppColors.onPrimary,
-                  size: 28,
+                  size: 26,
                 ),
               ),
             ),
@@ -757,9 +782,11 @@ class _PeerAvatar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final initial = name.isEmpty ? '?' : name[0].toUpperCase();
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+    final size = isCompact ? 46.0 : 54.0;
     return Container(
-      width: 56,
-      height: 56,
+      width: size,
+      height: size,
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
         color: AppColors.surfaceContainerHigh,
@@ -770,7 +797,7 @@ class _PeerAvatar extends StatelessWidget {
                 child: Text(
                   initial,
                   style: AppTheme.headline(
-                    fontSize: 22,
+                    fontSize: isCompact ? 18 : 22,
                     fontWeight: FontWeight.w700,
                     color: AppColors.primary,
                   ),
@@ -783,7 +810,7 @@ class _PeerAvatar extends StatelessWidget {
                   child: Text(
                     initial,
                     style: AppTheme.headline(
-                      fontSize: 22,
+                      fontSize: isCompact ? 18 : 22,
                       fontWeight: FontWeight.w700,
                       color: AppColors.primary,
                     ),
@@ -844,6 +871,7 @@ class _MessageBubble extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
     final bubbleColor = isOwn
         ? AppColors.primary
         : AppColors.surfaceContainerLow;
@@ -851,7 +879,8 @@ class _MessageBubble extends StatelessWidget {
     final timeColor = message.isFailed
         ? AppColors.error
         : (isOwn ? AppColors.slate500 : AppColors.onSurfaceVariant);
-    final maxWidth = MediaQuery.of(context).size.width * 0.78;
+    final maxWidth =
+        MediaQuery.of(context).size.width * (isCompact ? 0.82 : 0.78);
 
     return Align(
       alignment: isOwn ? Alignment.centerRight : Alignment.centerLeft,
@@ -859,8 +888,8 @@ class _MessageBubble extends StatelessWidget {
         padding: EdgeInsets.only(
           top: groupedWithPrevious ? 4 : 8,
           bottom: 8,
-          left: isOwn ? 42 : 0,
-          right: isOwn ? 0 : 42,
+          left: isOwn ? (isCompact ? 26 : 42) : 0,
+          right: isOwn ? 0 : (isCompact ? 26 : 42),
         ),
         child: ConstrainedBox(
           constraints: BoxConstraints(maxWidth: maxWidth),
@@ -873,8 +902,8 @@ class _MessageBubble extends StatelessWidget {
                 onTap: message.isFailed ? onRetry : null,
                 child: Container(
                   padding: const EdgeInsets.symmetric(
-                    horizontal: 18,
-                    vertical: 16,
+                    horizontal: 16,
+                    vertical: 13,
                   ),
                   decoration: BoxDecoration(
                     color: bubbleColor,
@@ -895,7 +924,7 @@ class _MessageBubble extends StatelessWidget {
                   child: Text(
                     message.text,
                     style: AppTheme.body(
-                      fontSize: 15,
+                      fontSize: isCompact ? 14 : 15,
                       fontWeight: FontWeight.w500,
                       color: textColor,
                       height: 1.55,
