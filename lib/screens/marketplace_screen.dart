@@ -342,7 +342,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     horizontalPadding,
                     12,
                     horizontalPadding,
-                    120,
+                    24,
                   ),
                   sliver: const SliverToBoxAdapter(
                     child: _MarketplaceSkeleton(),
@@ -367,7 +367,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                     horizontalPadding,
                     12,
                     horizontalPadding,
-                    120,
+                    24,
                   ),
                   sliver: SliverGrid.builder(
                     itemCount: _items.length,
@@ -496,13 +496,17 @@ class _SellItemScreenState extends State<SellItemScreen> {
   String _contact = 'Chat Only';
   bool _negotiable = true;
   bool _submitting = false;
+  bool _detectingPickupLocation = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final address = context.read<LocationProvider>().address.trim();
-      if (address.isNotEmpty && _locationController.text.trim().isEmpty) {
+      final hasResolvedAddress = address.isNotEmpty &&
+          address != 'Locating...' &&
+          address != 'Location unavailable';
+      if (hasResolvedAddress && _locationController.text.trim().isEmpty) {
         _locationController.text = address;
       }
     });
@@ -578,6 +582,43 @@ class _SellItemScreenState extends State<SellItemScreen> {
       urls.add(url);
     }
     return urls;
+  }
+
+  Future<void> _detectPickupLocation() async {
+    final locationProvider = context.read<LocationProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    setState(() => _detectingPickupLocation = true);
+    try {
+      await locationProvider.refreshLocation();
+      if (!mounted) {
+        return;
+      }
+
+      final address = locationProvider.address.trim();
+      final hasResolvedAddress = address.isNotEmpty &&
+          address != 'Locating...' &&
+          address != 'Location unavailable';
+      if (!hasResolvedAddress) {
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Could not detect your location')),
+        );
+        return;
+      }
+
+      setState(() => _locationController.text = address);
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not detect location: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _detectingPickupLocation = false);
+      }
+    }
   }
 
   Future<void> _submit() async {
@@ -657,6 +698,11 @@ class _SellItemScreenState extends State<SellItemScreen> {
   @override
   Widget build(BuildContext context) {
     final keyboard = MediaQuery.of(context).viewInsets.bottom;
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth < 380;
+    final horizontalPadding = isCompact ? 12.0 : 16.0;
+    final sectionGap = isCompact ? 14.0 : 18.0;
+    final fieldGap = isCompact ? 10.0 : 14.0;
 
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
@@ -669,24 +715,29 @@ class _SellItemScreenState extends State<SellItemScreen> {
       body: Form(
         key: _formKey,
         child: ListView(
-          padding: EdgeInsets.fromLTRB(20, 8, 20, 120 + keyboard),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            8,
+            horizontalPadding,
+            24 + keyboard,
+          ),
           children: [
             Text(
               'Moving out? Sell unused items easily.',
               style: AppTheme.body(
-                fontSize: 15,
+                fontSize: isCompact ? 13 : 15,
                 fontWeight: FontWeight.w500,
                 color: AppColors.onSurfaceVariant,
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: isCompact ? 14 : 20),
             _ImageUploadSection(
               images: _images,
               onCameraTap: () => _pickImages(ImageSource.camera),
               onGalleryTap: () => _pickImages(ImageSource.gallery),
               onRemove: (index) => setState(() => _images.removeAt(index)),
             ),
-            const SizedBox(height: 22),
+            SizedBox(height: isCompact ? 16 : 22),
             _FormSection(
               title: 'Item Details',
               child: Column(
@@ -700,7 +751,7 @@ class _SellItemScreenState extends State<SellItemScreen> {
                         : null,
                     onChanged: (_) => setState(() {}),
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: fieldGap),
                   _ModernTextField(
                     controller: _priceController,
                     label: 'Selling Price',
@@ -728,7 +779,7 @@ class _SellItemScreenState extends State<SellItemScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: sectionGap),
             _FormSection(
               title: 'Category',
               child: _ChipWrap(
@@ -737,7 +788,7 @@ class _SellItemScreenState extends State<SellItemScreen> {
                 onSelected: (value) => setState(() => _category = value),
               ),
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: sectionGap),
             _FormSection(
               title: 'Condition',
               child: _ChipWrap(
@@ -746,7 +797,7 @@ class _SellItemScreenState extends State<SellItemScreen> {
                 onSelected: (value) => setState(() => _condition = value),
               ),
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: sectionGap),
             _FormSection(
               title: 'More Info',
               child: Column(
@@ -766,7 +817,7 @@ class _SellItemScreenState extends State<SellItemScreen> {
                       }
                     },
                   ),
-                  const SizedBox(height: 14),
+                  SizedBox(height: fieldGap),
                   _ModernTextField(
                     controller: _descriptionController,
                     label: 'Description',
@@ -778,7 +829,7 @@ class _SellItemScreenState extends State<SellItemScreen> {
                         : null,
                     onChanged: (_) => setState(() {}),
                   ),
-                  const SizedBox(height: 8),
+                  SizedBox(height: isCompact ? 8 : 10),
                   _ModernTextField(
                     controller: _locationController,
                     label: 'Pickup Location',
@@ -789,22 +840,38 @@ class _SellItemScreenState extends State<SellItemScreen> {
                         : null,
                     onChanged: (_) => setState(() {}),
                   ),
-                  const SizedBox(height: 12),
-                  Container(
-                    height: 96,
-                    decoration: BoxDecoration(
-                      color: AppColors.blue50,
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: Center(
-                      child: Text(
-                        _locationController.text.trim().isEmpty
-                            ? 'Location preview'
-                            : _locationController.text.trim(),
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTheme.body(
-                          fontWeight: FontWeight.w700,
+                  SizedBox(height: isCompact ? 8 : 10),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: OutlinedButton.icon(
+                      onPressed: _detectingPickupLocation
+                          ? null
+                          : _detectPickupLocation,
+                      icon: _detectingPickupLocation
+                          ? const SizedBox(
+                              width: 16,
+                              height: 16,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : const Icon(Icons.my_location_rounded, size: 18),
+                      label: Text(
+                        _detectingPickupLocation
+                            ? 'Detecting location'
+                            : 'Detect your location',
+                      ),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: BorderSide(
+                          color: AppColors.outlineVariant.withValues(
+                            alpha: 0.65,
+                          ),
+                        ),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 12,
+                        ),
+                        textStyle: AppTheme.button(
+                          fontSize: 13,
                           color: AppColors.primary,
                         ),
                       ),
@@ -813,7 +880,7 @@ class _SellItemScreenState extends State<SellItemScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: sectionGap),
             _FormSection(
               title: 'Leaving City / Urgency',
               child: _ChipWrap(
@@ -822,7 +889,7 @@ class _SellItemScreenState extends State<SellItemScreen> {
                 onSelected: (value) => setState(() => _urgency = value),
               ),
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: sectionGap),
             _FormSection(
               title: 'Delivery Option',
               child: Column(
@@ -832,7 +899,7 @@ class _SellItemScreenState extends State<SellItemScreen> {
                     selected: _delivery == 'Self Pickup Only',
                     onTap: () => setState(() => _delivery = 'Self Pickup Only'),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: isCompact ? 8 : 10),
                   _SelectableOptionRow(
                     label: 'Can Deliver Nearby',
                     selected: _delivery == 'Can Deliver Nearby',
@@ -842,7 +909,7 @@ class _SellItemScreenState extends State<SellItemScreen> {
                 ],
               ),
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: sectionGap),
             _FormSection(
               title: 'Contact Preference',
               child: SegmentedButton<String>(
@@ -863,7 +930,7 @@ class _SellItemScreenState extends State<SellItemScreen> {
                     setState(() => _contact = value.first),
               ),
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: sectionGap),
             _MarketplacePreviewCard(
               title: _titleController.text.trim().isEmpty
                   ? 'Your item title'
@@ -884,7 +951,12 @@ class _SellItemScreenState extends State<SellItemScreen> {
       bottomNavigationBar: SafeArea(
         top: false,
         child: Container(
-          padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+          padding: EdgeInsets.fromLTRB(
+            horizontalPadding,
+            10,
+            horizontalPadding,
+            14,
+          ),
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
             border: Border(
@@ -894,7 +966,7 @@ class _SellItemScreenState extends State<SellItemScreen> {
             ),
           ),
           child: SizedBox(
-            height: 56,
+            height: isCompact ? 50 : 54,
             child: ElevatedButton(
               onPressed: _submitting ? null : _submit,
               style: ElevatedButton.styleFrom(
@@ -916,7 +988,7 @@ class _SellItemScreenState extends State<SellItemScreen> {
                   : Text(
                       'Post Item',
                       style: AppTheme.body(
-                        fontSize: 16,
+                        fontSize: isCompact ? 15 : 16,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
                       ),
@@ -1275,6 +1347,8 @@ class _ImageUploadSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+
     return _FormSection(
       title: 'Photos',
       child: Column(
@@ -1282,10 +1356,10 @@ class _ImageUploadSection extends StatelessWidget {
         children: [
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.all(18),
+            padding: EdgeInsets.all(isCompact ? 14 : 18),
             decoration: BoxDecoration(
               color: AppColors.blue50,
-              borderRadius: BorderRadius.circular(22),
+              borderRadius: BorderRadius.circular(isCompact ? 18 : 22),
               border: Border.all(
                 color: AppColors.primary.withValues(alpha: 0.12),
               ),
@@ -1295,55 +1369,84 @@ class _ImageUploadSection extends StatelessWidget {
                 const Icon(
                   Icons.add_photo_alternate_rounded,
                   color: AppColors.primary,
-                  size: 42,
+                  size: 40,
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: isCompact ? 8 : 10),
                 Text(
                   'Upload clear photos for faster responses',
                   textAlign: TextAlign.center,
                   style: AppTheme.body(
+                    fontSize: isCompact ? 13 : 14,
                     fontWeight: FontWeight.w700,
                     color: AppColors.primary,
                   ),
                 ),
-                const SizedBox(height: 14),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton.icon(
+                SizedBox(height: isCompact ? 10 : 14),
+                if (isCompact)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _ResponsiveActionButton(
+                        filled: false,
                         onPressed: onCameraTap,
-                        icon: const Icon(Icons.photo_camera_rounded),
-                        label: const Text('Camera'),
+                        icon: Icons.photo_camera_rounded,
+                        label: 'Camera',
                       ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: FilledButton.icon(
+                      const SizedBox(height: 8),
+                      _ResponsiveActionButton(
+                        filled: true,
                         onPressed: onGalleryTap,
-                        icon: const Icon(Icons.photo_library_rounded),
-                        label: const Text('Gallery'),
+                        icon: Icons.photo_library_rounded,
+                        label: 'Gallery',
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  )
+                else
+                  Row(
+                    children: [
+                      Expanded(
+                        child: _ResponsiveActionButton(
+                          filled: false,
+                          onPressed: onCameraTap,
+                          icon: Icons.photo_camera_rounded,
+                          label: 'Camera',
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: _ResponsiveActionButton(
+                          filled: true,
+                          onPressed: onGalleryTap,
+                          icon: Icons.photo_library_rounded,
+                          label: 'Gallery',
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),
           if (images.isNotEmpty) ...[
-            const SizedBox(height: 14),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: images.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemBuilder: (context, index) {
-                return _PickedImageTile(
-                  image: images[index],
-                  onRemove: () => onRemove(index),
+            SizedBox(height: isCompact ? 10 : 14),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final columns = constraints.maxWidth < 300 ? 2 : 3;
+                final gap = isCompact ? 8.0 : 10.0;
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  itemCount: images.length,
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: columns,
+                    crossAxisSpacing: gap,
+                    mainAxisSpacing: gap,
+                  ),
+                  itemBuilder: (context, index) {
+                    return _PickedImageTile(
+                      image: images[index],
+                      onRemove: () => onRemove(index),
+                    );
+                  },
                 );
               },
             ),
@@ -1351,6 +1454,36 @@ class _ImageUploadSection extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _ResponsiveActionButton extends StatelessWidget {
+  final bool filled;
+  final VoidCallback onPressed;
+  final IconData icon;
+  final String label;
+
+  const _ResponsiveActionButton({
+    required this.filled,
+    required this.onPressed,
+    required this.icon,
+    required this.label,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final button = filled
+        ? FilledButton.icon(
+            onPressed: onPressed,
+            icon: Icon(icon),
+            label: Text(label),
+          )
+        : OutlinedButton.icon(
+            onPressed: onPressed,
+            icon: Icon(icon),
+            label: Text(label),
+          );
+    return button;
   }
 }
 
@@ -1415,11 +1548,13 @@ class _FormSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(isCompact ? 12 : 16),
       decoration: BoxDecoration(
         color: Theme.of(context).colorScheme.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(isCompact ? 18 : 22),
         border: Border.all(
           color: AppColors.outlineVariant.withValues(alpha: 0.25),
         ),
@@ -1427,8 +1562,8 @@ class _FormSection extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: AppTheme.headline(fontSize: 18)),
-          const SizedBox(height: 14),
+          Text(title, style: AppTheme.headline(fontSize: isCompact ? 16 : 18)),
+          SizedBox(height: isCompact ? 10 : 14),
           child,
         ],
       ),
@@ -1463,6 +1598,8 @@ class _ModernTextField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
@@ -1475,6 +1612,10 @@ class _ModernTextField extends StatelessWidget {
         hintText: hint,
         prefixText: prefixText,
         prefixIcon: prefixIcon == null ? null : Icon(prefixIcon),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 12 : 16,
+          vertical: isCompact ? 12 : 16,
+        ),
         filled: true,
         fillColor: Theme.of(
           context,
@@ -1501,12 +1642,17 @@ class _ChipWrap extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+
     return Wrap(
-      spacing: 9,
-      runSpacing: 9,
+      spacing: isCompact ? 6 : 9,
+      runSpacing: isCompact ? 6 : 9,
       children: values.map((value) {
         return ChoiceChip(
           label: Text(value),
+          visualDensity: isCompact
+              ? VisualDensity.compact
+              : VisualDensity.standard,
           selected: selected == value,
           onSelected: (_) => onSelected(value),
         );
@@ -1528,12 +1674,17 @@ class _SelectableOptionRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 160),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        padding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 12 : 14,
+          vertical: isCompact ? 11 : 13,
+        ),
         decoration: BoxDecoration(
           color: selected
               ? AppColors.blue50
@@ -1556,11 +1707,16 @@ class _SelectableOptionRow extends StatelessWidget {
               color: selected ? AppColors.primary : AppColors.slate500,
             ),
             const SizedBox(width: 12),
-            Text(
-              label,
-              style: AppTheme.body(
-                fontWeight: FontWeight.w700,
-                color: selected ? AppColors.primary : AppColors.onSurface,
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: AppTheme.body(
+                  fontSize: isCompact ? 13 : 14,
+                  fontWeight: FontWeight.w700,
+                  color: selected ? AppColors.primary : AppColors.onSurface,
+                ),
               ),
             ),
           ],
@@ -1589,6 +1745,9 @@ class _MarketplacePreviewCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+    final imageSize = isCompact ? 82.0 : 96.0;
+
     return _FormSection(
       title: 'Preview',
       child: Row(
@@ -1596,8 +1755,8 @@ class _MarketplacePreviewCard extends StatelessWidget {
           ClipRRect(
             borderRadius: BorderRadius.circular(16),
             child: SizedBox(
-              width: 96,
-              height: 96,
+              width: imageSize,
+              height: imageSize,
               child: image == null
                   ? Container(
                       color: AppColors.surfaceContainerHigh,
@@ -1616,23 +1775,26 @@ class _MarketplacePreviewCard extends StatelessWidget {
                     ),
             ),
           ),
-          const SizedBox(width: 14),
+          SizedBox(width: isCompact ? 10 : 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 6,
                   children: [
                     _TinyBadge(label: category),
-                    if (urgent) ...[
-                      const SizedBox(width: 6),
+                    if (urgent)
                       const _TinyBadge(label: 'Leaving City', urgent: true),
-                    ],
                   ],
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: isCompact ? 6 : 8),
                 Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                Text(price, style: AppTheme.headline(fontSize: 19)),
+                Text(
+                  price,
+                  style: AppTheme.headline(fontSize: isCompact ? 17 : 19),
+                ),
                 const SizedBox(height: 5),
                 Text(
                   location,

@@ -1,6 +1,7 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -8,7 +9,9 @@ import 'package:url_launcher/url_launcher.dart';
 import '../models/chat_model.dart';
 import '../models/listing_model.dart';
 import '../providers/chat_provider.dart';
+import '../providers/location_provider.dart';
 import '../services/database_service.dart';
+import '../services/location_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'chat_detail_screen.dart';
@@ -205,33 +208,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
                       style: AppTheme.headline(fontSize: 20),
                     ),
                     const SizedBox(height: 12),
-                    Container(
-                      height: 150,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                      child: Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(
-                              Icons.map_outlined,
-                              size: 32,
-                              color: AppColors.primary,
-                            ),
-                            const SizedBox(height: 10),
-                            Text(
-                              listing.location,
-                              style: AppTheme.body(
-                                fontSize: 14,
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
+                    _ListingLocationPreview(location: listing.location),
                   ],
                 ),
               ),
@@ -1430,6 +1407,294 @@ class _ContactIconButton extends StatelessWidget {
       ),
     );
   }
+}
+
+class _ListingLocationPreview extends StatefulWidget {
+  final String location;
+
+  const _ListingLocationPreview({required this.location});
+
+  @override
+  State<_ListingLocationPreview> createState() =>
+      _ListingLocationPreviewState();
+}
+
+class _ListingLocationPreviewState extends State<_ListingLocationPreview> {
+  final _locationService = LocationService();
+  bool _loading = true;
+  double? _latitude;
+  double? _longitude;
+  String? _distanceLabel;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _resolveLocation());
+  }
+
+  @override
+  void didUpdateWidget(covariant _ListingLocationPreview oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.location != widget.location) {
+      _resolveLocation();
+    }
+  }
+
+  Future<void> _resolveLocation() async {
+    final query = widget.location.trim();
+    if (query.isEmpty) {
+      setState(() => _loading = false);
+      return;
+    }
+
+    setState(() => _loading = true);
+    try {
+      final coordinates = await _locationService.getCoordinatesFromAddress(query);
+      if (!mounted || query != widget.location.trim()) {
+        return;
+      }
+
+      final currentLocation = context.read<LocationProvider>();
+      String? distanceLabel;
+      if (currentLocation.latitude != null &&
+          currentLocation.longitude != null) {
+        final meters = Geolocator.distanceBetween(
+          currentLocation.latitude!,
+          currentLocation.longitude!,
+          coordinates.latitude,
+          coordinates.longitude,
+        );
+        distanceLabel = _formatDistance(meters);
+      }
+
+      setState(() {
+        _latitude = coordinates.latitude;
+        _longitude = coordinates.longitude;
+        _distanceLabel = distanceLabel;
+        _loading = false;
+      });
+    } catch (_) {
+      if (!mounted || query != widget.location.trim()) {
+        return;
+      }
+      setState(() => _loading = false);
+    }
+  }
+
+  String _formatDistance(double meters) {
+    if (meters < 1000) {
+      return '${meters.round()} m away';
+    }
+    final kilometers = meters / 1000;
+    final value = kilometers < 10
+        ? kilometers.toStringAsFixed(1)
+        : kilometers.toStringAsFixed(0);
+    return '$value km away';
+  }
+
+  Future<void> _openMaps() async {
+    final destination = _latitude != null && _longitude != null
+        ? '$_latitude,$_longitude'
+        : widget.location.trim();
+    if (destination.isEmpty) {
+      return;
+    }
+
+    final currentLocation = context.read<LocationProvider>();
+    final origin =
+        currentLocation.latitude != null && currentLocation.longitude != null
+        ? '${currentLocation.latitude},${currentLocation.longitude}'
+        : null;
+    final uri = Uri.https('www.google.com', '/maps/dir/', {
+      'api': '1',
+      if (origin != null) 'origin': origin,
+      'destination': destination,
+      'travelmode': 'driving',
+    });
+
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+    if (!opened && mounted) {
+      await launchUrl(uri);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final subtitle = _loading
+        ? 'Finding distance...'
+        : _distanceLabel ?? 'Open directions in Google Maps';
+
+    return InkWell(
+      onTap: _openMaps,
+      borderRadius: BorderRadius.circular(22),
+      child: Container(
+        height: 150,
+        width: double.infinity,
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(22),
+          border: Border.all(
+            color: AppColors.outlineVariant.withValues(alpha: 0.36),
+          ),
+        ),
+        child: Stack(
+          children: [
+            Positioned.fill(
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(22),
+                child: CustomPaint(painter: _MapPreviewPainter()),
+              ),
+            ),
+            Positioned(
+              left: 14,
+              top: 14,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 8,
+                ),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: AppTheme.shadow(
+                    blur: 12,
+                    offsetY: 4,
+                    alpha: 0.06,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Open in Maps',
+                      style: AppTheme.body(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w800,
+                        color: AppColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Icon(
+                      Icons.open_in_new_rounded,
+                      size: 16,
+                      color: AppColors.primary,
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(
+                    Icons.location_pin,
+                    color: AppColors.error,
+                    size: 44,
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    constraints: const BoxConstraints(maxWidth: 260),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceContainerLowest.withValues(
+                        alpha: 0.92,
+                      ),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(
+                          widget.location,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: AppTheme.body(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.onSurface,
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          subtitle,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.center,
+                          style: AppTheme.label(
+                            fontSize: 11,
+                            color: _distanceLabel != null
+                                ? AppColors.primary
+                                : AppColors.onSurfaceVariant,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _MapPreviewPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final background = Paint()..color = AppColors.blue50;
+    canvas.drawRect(Offset.zero & size, background);
+
+    final roadPaint = Paint()
+      ..color = AppColors.surfaceContainerLowest
+      ..strokeWidth = 7
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final minorRoadPaint = Paint()
+      ..color = AppColors.outlineVariant.withValues(alpha: 0.62)
+      ..strokeWidth = 2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round;
+    final greenPaint = Paint()
+      ..color = AppColors.green50.withValues(alpha: 0.85)
+      ..style = PaintingStyle.fill;
+
+    canvas.drawCircle(Offset(size.width * 0.18, size.height * 0.78), 54, greenPaint);
+    canvas.drawCircle(Offset(size.width * 0.88, size.height * 0.18), 44, greenPaint);
+
+    final mainPath = Path()
+      ..moveTo(-20, size.height * 0.35)
+      ..quadraticBezierTo(
+        size.width * 0.35,
+        size.height * 0.18,
+        size.width * 0.62,
+        size.height * 0.42,
+      )
+      ..quadraticBezierTo(
+        size.width * 0.82,
+        size.height * 0.60,
+        size.width + 20,
+        size.height * 0.48,
+      );
+    canvas.drawPath(mainPath, roadPaint);
+
+    for (var i = 0; i < 5; i++) {
+      final y = size.height * (0.18 + i * 0.16);
+      canvas.drawLine(Offset(0, y), Offset(size.width, y + 18), minorRoadPaint);
+    }
+    for (var i = 0; i < 4; i++) {
+      final x = size.width * (0.18 + i * 0.22);
+      canvas.drawLine(Offset(x, 0), Offset(x - 28, size.height), minorRoadPaint);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
 class _PgParsedDetails {
