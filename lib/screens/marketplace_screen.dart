@@ -197,25 +197,18 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final location = context.watch<LocationProvider>().address.trim();
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth < 380;
+    final horizontalPadding = isCompact ? 12.0 : 16.0;
+    final sectionGap = isCompact ? 10.0 : 14.0;
+    final gridSpacing = isCompact ? 10.0 : 14.0;
+    final gridCrossAxisCount = screenWidth < 340 ? 1 : 2;
+    final gridAspectRatio = gridCrossAxisCount == 1
+        ? 0.92
+        : (isCompact ? 0.70 : 0.66);
 
     return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      floatingActionButton: FloatingActionButton.extended(
-        heroTag: 'sell_item_fab',
-        onPressed: _openSellForm,
-        backgroundColor: AppColors.primary,
-        foregroundColor: Colors.white,
-        icon: const Icon(Icons.add_rounded),
-        label: Text(
-          'Sell Item',
-          style: AppTheme.body(
-            fontSize: 14,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
-          ),
-        ),
-      ),
+      backgroundColor: AppColors.background,
       body: SafeArea(
         child: RefreshIndicator(
           onRefresh: _loadItems,
@@ -226,7 +219,12 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
             slivers: [
               SliverToBoxAdapter(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 14, 20, 8),
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    12,
+                    horizontalPadding,
+                    8,
+                  ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -250,25 +248,48 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                           Expanded(
                             child: Text(
                               'Marketplace',
-                              style: AppTheme.headline(fontSize: 30),
+                              style: AppTheme.headline(
+                                fontSize: isCompact ? 24 : 28,
+                              ),
                             ),
                           ),
+                          const SizedBox(width: 10),
+                          isCompact
+                              ? IconButton.filled(
+                                  onPressed: _openSellForm,
+                                  icon: const Icon(Icons.add_rounded),
+                                  tooltip: 'Sell item',
+                                  style: IconButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    foregroundColor: AppColors.onPrimary,
+                                  ),
+                                )
+                              : FilledButton.icon(
+                                  onPressed: _openSellForm,
+                                  icon: const Icon(Icons.add_rounded, size: 18),
+                                  label: const Text('Sell'),
+                                  style: FilledButton.styleFrom(
+                                    backgroundColor: AppColors.primary,
+                                    foregroundColor: AppColors.onPrimary,
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 14,
+                                      vertical: 12,
+                                    ),
+                                    textStyle: AppTheme.button(fontSize: 14),
+                                  ),
+                                ),
                         ],
                       ),
-                      const SizedBox(height: 6),
+                      SizedBox(height: isCompact ? 4 : 6),
                       Text(
                         'Buy and sell items from people nearby',
                         style: AppTheme.body(
-                          fontSize: 15,
+                          fontSize: isCompact ? 13 : 14,
                           fontWeight: FontWeight.w500,
                           color: AppColors.onSurfaceVariant,
                         ),
                       ),
-                      const SizedBox(height: 14),
-                      _LocationPill(
-                        label: location.isEmpty ? 'Nearby items' : location,
-                      ),
-                      const SizedBox(height: 18),
+                      SizedBox(height: sectionGap),
                       _MarketplaceSearchBar(
                         controller: _searchController,
                         onSubmitted: _loadItems,
@@ -279,7 +300,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                         },
                         onFilterTap: _showFilterSheet,
                       ),
-                      const SizedBox(height: 14),
+                      SizedBox(height: sectionGap),
                       _CategoryRail(
                         categories: _categories,
                         selected: _selectedCategory,
@@ -288,7 +309,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                           _loadItems();
                         },
                       ),
-                      const SizedBox(height: 12),
+                      SizedBox(height: sectionGap),
                       Row(
                         children: [
                           Text(
@@ -316,9 +337,16 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                 ),
               ),
               if (_loading)
-                const SliverPadding(
-                  padding: EdgeInsets.fromLTRB(20, 12, 20, 120),
-                  sliver: SliverToBoxAdapter(child: _MarketplaceSkeleton()),
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    12,
+                    horizontalPadding,
+                    120,
+                  ),
+                  sliver: const SliverToBoxAdapter(
+                    child: _MarketplaceSkeleton(),
+                  ),
                 )
               else if (_error != null)
                 SliverFillRemaining(
@@ -335,15 +363,20 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
                 )
               else
                 SliverPadding(
-                  padding: const EdgeInsets.fromLTRB(20, 12, 20, 120),
+                  padding: EdgeInsets.fromLTRB(
+                    horizontalPadding,
+                    12,
+                    horizontalPadding,
+                    120,
+                  ),
                   sliver: SliverGrid.builder(
                     itemCount: _items.length,
                     gridDelegate:
-                        const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 14,
-                          crossAxisSpacing: 14,
-                          childAspectRatio: 0.62,
+                        SliverGridDelegateWithFixedCrossAxisCount(
+                          crossAxisCount: gridCrossAxisCount,
+                          mainAxisSpacing: gridSpacing,
+                          crossAxisSpacing: gridSpacing,
+                          childAspectRatio: gridAspectRatio,
                         ),
                     itemBuilder: (context, index) {
                       final item = _items[index];
@@ -968,45 +1001,6 @@ class _MarketplaceSearchBar extends StatelessWidget {
   }
 }
 
-class _LocationPill extends StatelessWidget {
-  final String label;
-
-  const _LocationPill({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-      decoration: BoxDecoration(
-        color: AppColors.secondaryContainer.withValues(alpha: 0.72),
-        borderRadius: AppTheme.radius(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(
-            Icons.location_on_rounded,
-            size: 16,
-            color: AppColors.secondary,
-          ),
-          const SizedBox(width: 6),
-          Flexible(
-            child: Text(
-              label,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: AppTheme.label(
-                fontWeight: FontWeight.w800,
-                color: AppColors.secondary,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _CategoryRail extends StatelessWidget {
   final List<String> categories;
   final String selected;
@@ -1104,10 +1098,6 @@ class _MarketplaceItemCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final sellerType = item.highlights.contains('Hostel Essentials')
-        ? 'Student'
-        : 'Working Professional';
-
     return GestureDetector(
       onTap: onTap,
       child: AnimatedContainer(
@@ -1142,35 +1132,6 @@ class _MarketplaceItemCard extends StatelessWidget {
                           errorWidget: (_, _, _) =>
                               Container(color: AppColors.surfaceContainerHigh),
                         ),
-                  Positioned(
-                    top: 9,
-                    right: 9,
-                    child: GestureDetector(
-                      onTap: onSaveTap,
-                      child: Container(
-                        width: 34,
-                        height: 34,
-                        decoration: BoxDecoration(
-                          color: AppColors.surfaceContainerLowest.withValues(
-                            alpha: 0.96,
-                          ),
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          saved
-                              ? Icons.favorite_rounded
-                              : Icons.favorite_border,
-                          size: 19,
-                          color: saved ? AppColors.error : AppColors.onSurface,
-                        ),
-                      ),
-                    ),
-                  ),
-                  Positioned(
-                    left: 9,
-                    top: 9,
-                    child: _TinyBadge(label: sellerType),
-                  ),
                   if (urgent)
                     const Positioned(
                       left: 9,
@@ -1185,52 +1146,67 @@ class _MarketplaceItemCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    '₹${item.price.toStringAsFixed(0)}',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTheme.headline(fontSize: 20),
-                  ),
-                  const SizedBox(height: 5),
-                  Text(
-                    item.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTheme.body(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      height: 1.2,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
                   Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      const Icon(
-                        Icons.location_on_outlined,
-                        size: 14,
-                        color: AppColors.slate500,
-                      ),
-                      const SizedBox(width: 3),
                       Expanded(
                         child: Text(
-                          item.location,
+                          '₹${item.price.toStringAsFixed(0)}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppTheme.label(
-                            fontSize: 11,
-                            color: AppColors.slate500,
+                          style: AppTheme.headline(fontSize: 20),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: IconButton(
+                          onPressed: onSaveTap,
+                          padding: EdgeInsets.zero,
+                          visualDensity: VisualDensity.compact,
+                          tooltip: saved
+                              ? 'Remove from wishlist'
+                              : 'Add to wishlist',
+                          icon: Icon(
+                            saved
+                                ? Icons.favorite_rounded
+                                : Icons.favorite_border,
+                            size: 18,
+                            color: saved
+                                ? AppColors.error
+                                : AppColors.onSurfaceVariant,
                           ),
                         ),
                       ),
                     ],
                   ),
                   const SizedBox(height: 5),
-                  Text(
-                    _postedTime(item.createdAt),
-                    style: AppTheme.label(
-                      fontSize: 11,
-                      color: AppColors.slate400,
-                    ),
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          item.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.body(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            height: 1.2,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        _postedTime(item.createdAt),
+                        maxLines: 1,
+                        style: AppTheme.label(
+                          fontSize: 11,
+                          color: AppColors.slate400,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
@@ -1656,7 +1632,6 @@ class _MarketplacePreviewCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 8),
                 Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
-                const SizedBox(height: 5),
                 Text(price, style: AppTheme.headline(fontSize: 19)),
                 const SizedBox(height: 5),
                 Text(
