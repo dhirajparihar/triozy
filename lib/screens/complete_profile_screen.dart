@@ -1,5 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 
 import '../services/auth_service.dart';
@@ -21,6 +22,15 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
   String? _gender;
   bool _saving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null && (user.displayName ?? '').trim().isNotEmpty) {
+      _nameController.text = user.displayName!;
+    }
+  }
 
   @override
   void dispose() {
@@ -100,12 +110,16 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                 hint: 'Aarav Sharma',
               ),
               const SizedBox(height: 14),
-              _AppField(
+              TextFormField(
                 controller: _phoneController,
-                label: 'Phone number',
-                hint: '10-digit mobile number',
                 keyboardType: TextInputType.phone,
+                inputFormatters: [
+                  FilteringTextInputFormatter.digitsOnly,
+                  LengthLimitingTextInputFormatter(10),
+                ],
                 validator: Validators.validatePhoneNumber,
+                decoration: _inputDecoration('Phone number')
+                    .copyWith(hintText: '10-digit mobile number'),
               ),
               const SizedBox(height: 14),
               DropdownButtonFormField<String>(
