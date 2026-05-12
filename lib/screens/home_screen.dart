@@ -150,7 +150,7 @@ class HomeScreenState extends State<HomeScreen> {
       color: AppColors.primary,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(horizontalPadding, 0, horizontalPadding, 110),
+        padding: EdgeInsets.fromLTRB(horizontalPadding, 0, horizontalPadding, 24),
         children: [
           _HeroSection(
             onSearchTap: widget.onSearchTapped ?? widget.onExploreTapped,
@@ -245,18 +245,18 @@ class _HeroSection extends StatelessWidget {
       child: Stack(
         children: [
           Positioned(
-            right: isCompact ? -15 : -5,
-            bottom: isCompact ? 55 : 60,
+            right: isCompact ? -30 : -20,
+            top: 0,
+            bottom: isCompact ? 16 : 20,
             child: Image.asset(
-              'assets/images/image.png',
-              height: isCompact ? 210 : 250,
+              'assets/images/suitcase2-removebg-preview.png',
               fit: BoxFit.contain,
             ),
           ),
           Padding(
             padding: EdgeInsets.fromLTRB(
-              isCompact ? 20 : 24, isCompact ? 24 : 28,
-              isCompact ? 20 : 24, isCompact ? 20 : 24,
+              isCompact ? 16 : 20, isCompact ? 20 : 24,
+              isCompact ? 16 : 20, isCompact ? 16 : 20,
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -264,10 +264,10 @@ class _HeroSection extends StatelessWidget {
           RichText(
             text: TextSpan(
               style: AppTheme.headline(
-                fontSize: isCompact ? 24 : 28,
+                fontSize: isCompact ? 22 : 26,
                 fontWeight: FontWeight.w800,
                 color: AppColors.textPrimary,
-                height: 1.3,
+                height: 1.2,
                 letterSpacing: -0.3,
               ),
               children: [
@@ -275,27 +275,27 @@ class _HeroSection extends StatelessWidget {
                 TextSpan(
                   text: 'zero.',
                   style: AppTheme.headline(
-                    fontSize: isCompact ? 24 : 28,
+                    fontSize: isCompact ? 22 : 26,
                     fontWeight: FontWeight.w800,
                     color: AppColors.primary,
-                    height: 1.3,
+                    height: 1.2,
                     letterSpacing: -0.3,
                   ),
                 ),
               ],
             ),
           ),
-          SizedBox(height: isCompact ? 10 : 12),
+          SizedBox(height: isCompact ? 6 : 8),
           Text(
             'Find rooms, flatmates and everything\nyou need to settle in.',
             style: AppTheme.body(
-              fontSize: isCompact ? 13 : 14,
+              fontSize: isCompact ? 12 : 13,
               fontWeight: FontWeight.w500,
               color: AppColors.textSecondary,
-              height: 1.5,
+              height: 1.4,
             ),
           ),
-          SizedBox(height: isCompact ? 20 : 24),
+          SizedBox(height: isCompact ? 16 : 20),
           GestureDetector(
             onTap: onSearchTap,
             child: Container(
@@ -546,7 +546,7 @@ class _CategoryCard extends StatelessWidget {
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        padding: EdgeInsets.all(compact ? 12 : 14),
+        padding: EdgeInsets.all(compact ? 10 : 12),
         decoration: BoxDecoration(
           color: bgColor,
           borderRadius: BorderRadius.circular(compact ? 18 : 20),
@@ -558,57 +558,59 @@ class _CategoryCard extends StatelessWidget {
             ),
           ],
         ),
-        child: Column(
+        child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (eyebrow != null)
-              Text(
-                eyebrow!,
-                style: AppTheme.body(
-                  fontSize: compact ? 11 : 12,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.textSecondary,
-                  height: 1.1,
-                ),
-              ),
-            SizedBox(height: eyebrow != null ? 2 : 0),
-            Text(
-              title,
-              style: AppTheme.headline(
-                fontSize: compact ? 18 : 20,
-                fontWeight: FontWeight.w800,
-                color: AppColors.textPrimary,
-                height: 1.15,
-                letterSpacing: -0.2,
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  if (eyebrow != null)
+                    Text(
+                      eyebrow!,
+                      style: AppTheme.body(
+                        fontSize: compact ? 10 : 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                        height: 1.1,
+                      ),
+                    ),
+                  SizedBox(height: eyebrow != null ? 2 : 0),
+                  Text(
+                    title,
+                    style: AppTheme.headline(
+                      fontSize: compact ? 14 : 16,
+                      fontWeight: FontWeight.w800,
+                      color: AppColors.textPrimary,
+                      height: 1.15,
+                      letterSpacing: -0.2,
+                    ),
+                  ),
+                  SizedBox(height: compact ? 2 : 4),
+                  Text(
+                    description,
+                    style: AppTheme.body(
+                      fontSize: compact ? 9 : 10,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textSecondary,
+                      height: 1.2,
+                    ),
+                  ),
+                ],
               ),
             ),
-            SizedBox(height: compact ? 6 : 8),
-            Text(
-              description,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-              style: AppTheme.body(
-                fontSize: compact ? 11 : 12,
-                fontWeight: FontWeight.w400,
-                color: AppColors.textSecondary,
-                height: 1.3,
+            SizedBox(width: compact ? 6 : 8),
+            Container(
+              width: compact ? 28 : 34,
+              height: compact ? 28 : 34,
+              decoration: BoxDecoration(
+                color: iconBgColor.withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(compact ? 10 : 12),
               ),
-            ),
-            SizedBox(height: compact ? 8 : 10),
-            Align(
-              alignment: Alignment.bottomRight,
-              child: Container(
-                width: compact ? 34 : 38,
-                height: compact ? 34 : 38,
-                decoration: BoxDecoration(
-                  color: iconBgColor.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(compact ? 12 : 14),
-                ),
-                child: Icon(
-                  icon,
-                  color: iconBgColor,
-                  size: compact ? 18 : 20,
-                ),
+              child: Icon(
+                icon,
+                color: iconBgColor,
+                size: compact ? 16 : 18,
               ),
             ),
           ],
@@ -851,4 +853,3 @@ class _EmptyFeaturedState extends StatelessWidget {
     );
   }
 }
-

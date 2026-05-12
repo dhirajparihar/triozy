@@ -17,51 +17,121 @@ class HousingFeedScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth < 380;
+    final horizontalPadding = isCompact ? 12.0 : 16.0;
+    final headerSize = isCompact ? 20.0 : 24.0;
+    final tabFontSize = isCompact ? 13.0 : 14.0;
+
     return DefaultTabController(
       length: 3,
       initialIndex: initialTabIndex,
       child: Scaffold(
         backgroundColor: AppColors.background,
-        appBar: AppBar(
-          backgroundColor: AppColors.background,
-          foregroundColor: AppColors.onSurface,
-          elevation: 0,
-          title: Text(
-            'Housing',
-            style: AppTheme.headline(fontSize: 28, fontWeight: FontWeight.w700),
-          ),
-          bottom: TabBar(
-            indicator: BoxDecoration(
-              color: AppColors.surfaceContainerLowest,
-              borderRadius: AppTheme.radius(14),
-              boxShadow: AppTheme.shadow(blur: 16, offsetY: 6, alpha: 0.06),
-            ),
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            labelColor: AppColors.primary,
-            unselectedLabelColor: AppColors.onSurfaceVariant,
-            labelStyle: AppTheme.body(
-              fontSize: 14,
-              fontWeight: FontWeight.w800,
-            ),
-            dividerColor: Colors.transparent,
-            indicatorSize: TabBarIndicatorSize.tab,
-            tabs: const [
-              Tab(text: 'Rooms'),
-              Tab(text: 'Flatmates'),
-              Tab(text: 'PGs'),
+        body: SafeArea(
+          child: Column(
+            children: [
+              // Custom AppBar
+              Padding(
+                padding: EdgeInsets.fromLTRB(horizontalPadding, 12, horizontalPadding, 12),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    _IconBtn(
+                      icon: Icons.arrow_back_rounded,
+                      onTap: () => Navigator.pop(context),
+                      padding: isCompact ? 8 : 10,
+                      size: isCompact ? 18 : 20,
+                    ),
+                    Text(
+                      'Housing',
+                      style: AppTheme.headline(fontSize: headerSize, fontWeight: FontWeight.w800, color: AppColors.inverseSurface),
+                    ),
+                    _IconBtn(
+                      icon: Icons.tune_rounded,
+                      color: AppColors.primary,
+                      onTap: () {},
+                      padding: isCompact ? 8 : 10,
+                      size: isCompact ? 18 : 20,
+                    ),
+                  ],
+                ),
+              ),
+              
+              // TabBar inside a pill
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: horizontalPadding, vertical: isCompact ? 6 : 8),
+                padding: const EdgeInsets.all(4),
+                decoration: BoxDecoration(
+                  color: AppColors.surfaceContainerLowest,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: TabBar(
+                  indicator: BoxDecoration(
+                    color: const Color(0xFFF6F5FF), // AppColors.surfaceContainerLow
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  labelColor: AppColors.primary,
+                  unselectedLabelColor: AppColors.textSecondary,
+                  indicatorSize: TabBarIndicatorSize.tab,
+                  dividerColor: Colors.transparent,
+                  labelStyle: AppTheme.body(fontSize: tabFontSize, fontWeight: FontWeight.w700),
+                  tabs: const [
+                    Tab(text: 'Rooms'),
+                    Tab(text: 'Flatmates'),
+                    Tab(text: 'PGs'),
+                  ],
+                ),
+              ),
+              
+              
+              // TabBarView
+              Expanded(
+                child: const TabBarView(
+                  children: [
+                    _HousingTab(propertyType: PropertyType.room),
+                    _HousingTab(
+                      purpose: ListingPurpose.needRoommate,
+                      includeRoomRequirements: true,
+                    ),
+                    _HousingTab(propertyType: PropertyType.pg),
+                  ],
+                ),
+              ),
             ],
           ),
         ),
-        body: const TabBarView(
-          children: [
-            _HousingTab(propertyType: PropertyType.room),
-            _HousingTab(
-              purpose: ListingPurpose.needRoommate,
-              includeRoomRequirements: true,
-            ),
-            _HousingTab(propertyType: PropertyType.pg),
-          ],
+      ),
+    );
+  }
+}
+
+class _IconBtn extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color color;
+  final double padding;
+  final double size;
+
+  const _IconBtn({
+    required this.icon,
+    required this.onTap,
+    this.color = AppColors.textPrimary,
+    this.padding = 10,
+    this.size = 20,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: EdgeInsets.all(padding),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerLowest,
+          borderRadius: BorderRadius.circular(14),
         ),
+        child: Icon(icon, size: size, color: color),
       ),
     );
   }
@@ -176,11 +246,15 @@ class _HousingTabState extends State<_HousingTab> {
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth < 380;
+    final horizontalPadding = isCompact ? 12.0 : 16.0;
+
+    final list = RefreshIndicator(
       onRefresh: _load,
       color: AppColors.primary,
       child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 110),
+        padding: EdgeInsets.fromLTRB(horizontalPadding, horizontalPadding, horizontalPadding, 24),
         children: [
           if (_loading)
             const _HousingLoadingState()
@@ -193,7 +267,7 @@ class _HousingTabState extends State<_HousingTab> {
           else
             ..._listings.map((listing) {
               return Padding(
-                padding: const EdgeInsets.only(bottom: 16),
+                padding: EdgeInsets.only(bottom: isCompact ? 12 : 16),
                 child: ListingCard(
                   listing: listing,
                   compact: true,
@@ -206,6 +280,8 @@ class _HousingTabState extends State<_HousingTab> {
         ],
       ),
     );
+
+    return list;
   }
 }
 
@@ -268,8 +344,11 @@ class _HousingEmptyState extends StatelessWidget {
       ),
     };
 
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth < 380;
+
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: EdgeInsets.all(isCompact ? 16 : 20),
       decoration: AppTheme.cardDecoration(
         color: AppColors.surfaceContainerLowest,
         radiusValue: 24,
@@ -280,22 +359,22 @@ class _HousingEmptyState extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            width: 56,
-            height: 56,
+            width: isCompact ? 48 : 56,
+            height: isCompact ? 48 : 56,
             decoration: BoxDecoration(
               color: AppColors.primaryContainer,
               borderRadius: AppTheme.radius(16),
             ),
-            child: Icon(icon, color: AppColors.onPrimaryContainer, size: 28),
+            child: Icon(icon, color: AppColors.onPrimaryContainer, size: isCompact ? 24 : 28),
           ),
-          const SizedBox(height: 14),
-          Text(title, style: AppTheme.headline(fontSize: 20)),
-          const SizedBox(height: 6),
+          SizedBox(height: isCompact ? 12 : 14),
+          Text(title, style: AppTheme.headline(fontSize: isCompact ? 18 : 20)),
+          SizedBox(height: isCompact ? 4 : 6),
           Text(
             subtitle,
             textAlign: TextAlign.center,
             style: AppTheme.body(
-              fontSize: 14,
+              fontSize: isCompact ? 13 : 14,
               fontWeight: FontWeight.w500,
               color: AppColors.onSurfaceVariant,
             ),
