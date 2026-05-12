@@ -23,10 +23,13 @@ class ListingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompactScreen = screenWidth < 380;
+
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final isNarrow = width < 360;
+        final isNarrow = isCompactScreen || width < 360;
         final imageHeight = compact
             ? (isNarrow ? 108.0 : 120.0)
             : (width < 380 ? 170.0 : 184.0);
@@ -237,6 +240,10 @@ class _FlatmateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompactScreen = screenWidth < 380;
+    final isNarrow = isCompactScreen || compact;
+
     final displayName = listing.ownerName.trim().isEmpty ? 'User' : listing.ownerName.trim();
     final isLooking = listing.isRequirementPost;
     
@@ -259,10 +266,10 @@ class _FlatmateCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(isNarrow ? 12 : 16),
         decoration: AppTheme.cardDecoration(
           color: AppColors.surfaceContainerLowest,
-          radiusValue: 20,
+          radiusValue: isNarrow ? 16 : 20,
           shadowAlpha: 0.05,
           blur: 24,
           offsetY: 8,
@@ -273,54 +280,50 @@ class _FlatmateCard extends StatelessWidget {
             // Left Column: Avatar & Type Badge
             Column(
               children: [
-                Stack(
-                  children: [
-                    Container(
-                      width: 80,
-                      height: 80,
-                      decoration: BoxDecoration(
-                        color: avatarBgColor,
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: ClipOval(
-                        child: SizedBox(
-                          width: 76,
-                          height: 76,
-                          child: listing.ownerPhotoUrl.isEmpty
-                              ? Text(
-                                  displayName[0].toUpperCase(),
-                                  style: AppTheme.headline(fontSize: 28, color: AppColors.primary),
-                                )
-                              : CachedNetworkImage(
-                                  imageUrl: listing.ownerPhotoUrl,
-                                  fit: BoxFit.cover,
-                                  errorWidget: (_, __, ___) => Text(
-                                    displayName[0].toUpperCase(),
-                                    style: AppTheme.headline(fontSize: 28, color: AppColors.primary),
-                                  ),
-                                ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      bottom: 4,
-                      right: 4,
-                      child: Container(
-                        width: 16,
-                        height: 16,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF10B981),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2.5),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  width: isNarrow ? 64 : 80,
+                  height: isNarrow ? 64 : 80,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.06),
+                        blurRadius: 10,
+                        offset: const Offset(0, 4),
+                      ),
+                    ],
+                  ),
+                  padding: const EdgeInsets.all(3),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: avatarBgColor,
+                      shape: BoxShape.circle,
+                    ),
+                    child: ClipOval(
+                      child: listing.ownerPhotoUrl.isEmpty
+                          ? Center(
+                              child: Text(
+                                displayName[0].toUpperCase(),
+                                style: AppTheme.headline(fontSize: isNarrow ? 24 : 28, color: AppColors.primary),
+                              ),
+                            )
+                          : CachedNetworkImage(
+                              imageUrl: listing.ownerPhotoUrl,
+                              fit: BoxFit.cover,
+                              errorWidget: (_, _, _) => Center(
+                                child: Text(
+                                  displayName[0].toUpperCase(),
+                                  style: AppTheme.headline(fontSize: isNarrow ? 24 : 28, color: AppColors.primary),
+                                ),
+                              ),
+                            ),
+                    ),
+                  ),
+                ),
+                SizedBox(height: isNarrow ? 8 : 12),
+                Container(
+                  padding: EdgeInsets.symmetric(horizontal: isNarrow ? 12 : 16, vertical: isNarrow ? 4 : 6),
                   decoration: BoxDecoration(
                     color: typeBadgeColor,
                     borderRadius: BorderRadius.circular(99),
@@ -328,7 +331,7 @@ class _FlatmateCard extends StatelessWidget {
                   child: Text(
                     listing.propertyTypeLabel,
                     style: AppTheme.label(
-                      fontSize: 12,
+                      fontSize: isNarrow ? 10 : 12,
                       fontWeight: FontWeight.w800,
                       color: typeBadgeTextColor,
                     ),
@@ -336,7 +339,7 @@ class _FlatmateCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(width: 16),
+            SizedBox(width: isNarrow ? 12 : 16),
             // Right Column: Details
             Expanded(
               child: Column(
@@ -352,7 +355,7 @@ class _FlatmateCard extends StatelessWidget {
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                           style: AppTheme.headline(
-                            fontSize: 18,
+                            fontSize: isNarrow ? 16 : 18,
                             fontWeight: FontWeight.w800,
                             color: AppColors.textPrimary,
                           ),
@@ -366,51 +369,51 @@ class _FlatmateCard extends StatelessWidget {
                             child: Icon(
                               isSaved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
                               color: isSaved ? AppColors.tertiary : AppColors.textPrimary,
-                              size: 22,
+                                size: isNarrow ? 20 : 22,
                             ),
                           ),
                         ),
                     ],
                   ),
-                  const SizedBox(height: 4),
+                    SizedBox(height: isNarrow ? 2 : 4),
                   Row(
                     children: [
-                      const Icon(Icons.person_outline_rounded, size: 14, color: AppColors.textSecondary),
+                        Icon(Icons.person_outline_rounded, size: isNarrow ? 12 : 14, color: AppColors.textSecondary),
                       const SizedBox(width: 4),
                       Text(
-                        '${listing.requirementDetails?.genderPreference?.isNotEmpty == true ? listing.requirementDetails!.genderPreference : 'Male'} • ',
-                        style: AppTheme.body(fontSize: 12, color: AppColors.textSecondary),
+                          '${listing.requirementDetails?.genderPreference.isNotEmpty == true ? listing.requirementDetails!.genderPreference : 'Male'} • ',
+                          style: AppTheme.body(fontSize: isNarrow ? 11 : 12, color: AppColors.textSecondary),
                       ),
-                      const Icon(Icons.work_outline_rounded, size: 14, color: AppColors.textSecondary),
+                        Icon(Icons.work_outline_rounded, size: isNarrow ? 12 : 14, color: AppColors.textSecondary),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           'Professional',
-                          style: AppTheme.body(fontSize: 12, color: AppColors.textSecondary),
+                            style: AppTheme.body(fontSize: isNarrow ? 11 : 12, color: AppColors.textSecondary),
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 6),
+                    SizedBox(height: isNarrow ? 4 : 6),
                   Row(
                     children: [
-                      const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
+                        Icon(Icons.location_on_outlined, size: isNarrow ? 12 : 14, color: AppColors.textSecondary),
                       const SizedBox(width: 4),
                       Expanded(
                         child: Text(
                           listing.location,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: AppTheme.body(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                            style: AppTheme.body(fontSize: isNarrow ? 11 : 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 12),
+                    SizedBox(height: isNarrow ? 8 : 12),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      padding: EdgeInsets.symmetric(horizontal: isNarrow ? 8 : 10, vertical: isNarrow ? 4 : 6),
                     decoration: BoxDecoration(
                       color: AppColors.surfaceSecondary,
                       borderRadius: BorderRadius.circular(99),
@@ -418,41 +421,15 @@ class _FlatmateCard extends StatelessWidget {
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
-                        const Icon(Icons.currency_rupee_rounded, size: 14, color: AppColors.primary),
-                        const SizedBox(width: 4),
+                          Icon(Icons.currency_rupee_rounded, size: isNarrow ? 12 : 14, color: AppColors.primary),
+                          SizedBox(width: isNarrow ? 2 : 4),
                         Text(
                           isLooking ? 'Up to ₹${listing.price.toInt()}' : '₹${listing.price.toInt()}',
-                          style: AppTheme.label(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.primary),
+                            style: AppTheme.label(fontSize: isNarrow ? 12 : 13, fontWeight: FontWeight.w800, color: AppColors.primary),
                         ),
                       ],
                     ),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    listing.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTheme.body(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textPrimary,
-                      height: 1.4,
-                    ),
-                  ),
-                  if (isLooking) ...[
-                    const SizedBox(height: 10),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFECFDF5), // pastelMint
-                        borderRadius: BorderRadius.circular(99),
-                      ),
-                      child: Text(
-                        '₹${listing.price.toInt()} budget',
-                        style: AppTheme.label(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF10B981)),
-                      ),
-                    ),
-                  ]
                 ],
               ),
             ),
@@ -476,8 +453,10 @@ class _Badge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: isCompact ? 8 : 10, vertical: isCompact ? 4 : 6),
       decoration: BoxDecoration(
         color: background,
         borderRadius: AppTheme.radius(999),
@@ -485,7 +464,7 @@ class _Badge extends StatelessWidget {
       child: Text(
         label,
         style: AppTheme.label(
-          fontSize: 11,
+          fontSize: isCompact ? 10 : 11,
           fontWeight: FontWeight.w800,
           color: foreground,
         ),
