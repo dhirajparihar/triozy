@@ -35,9 +35,17 @@ class ListingCard extends StatelessWidget {
         final titleSize = compact ? (isNarrow ? 13.0 : 14.0) : 16.0;
         final priceSize = compact ? (isNarrow ? 18.0 : 20.0) : 22.0;
         final maxHighlights = compact ? (isNarrow ? 1 : 2) : 3;
-        final highlights = listing.isRequirementPost
-            ? _requirementHighlights(limit: maxHighlights)
-            : listing.highlights.take(maxHighlights).toList();
+        final highlights = listing.highlights.take(maxHighlights).toList();
+
+        if (listing.isRequirementPost || listing.needsRoommate) {
+          return _FlatmateCard(
+            listing: listing,
+            onTap: onTap,
+            onSaveTap: onSaveTap,
+            isSaved: isSaved,
+            compact: compact,
+          );
+        }
 
         return GestureDetector(
           onTap: onTap,
@@ -58,29 +66,22 @@ class ListingCard extends StatelessWidget {
                     SizedBox(
                       height: imageHeight,
                       width: double.infinity,
-                      child: listing.isRequirementPost
-                          ? _RequirementHeader(
-                              listing: listing,
-                              isNarrow: isNarrow,
-                              compact: compact,
-                            )
-                          : ClipRRect(
-                              borderRadius: const BorderRadius.vertical(
-                                top: Radius.circular(20),
-                              ),
-                              child: SizedBox(
-                                height: imageHeight,
-                                width: double.infinity,
-                                child: listing.imageUrls.isEmpty
-                                    ? _imageFallback()
-                                    : CachedNetworkImage(
-                                        imageUrl: listing.imageUrls.first,
-                                        fit: BoxFit.cover,
-                                        errorWidget: (_, _, _) =>
-                                            _imageFallback(),
-                                      ),
-                              ),
-                            ),
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(20),
+                        ),
+                        child: SizedBox(
+                          height: imageHeight,
+                          width: double.infinity,
+                          child: listing.imageUrls.isEmpty
+                              ? _imageFallback()
+                              : CachedNetworkImage(
+                                  imageUrl: listing.imageUrls.first,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (_, _, _) => _imageFallback(),
+                                ),
+                        ),
+                      ),
                     ),
                     Positioned(
                       left: 12,
@@ -205,28 +206,6 @@ class ListingCard extends StatelessWidget {
     );
   }
 
-  List<String> _requirementHighlights({required int limit}) {
-    final details = listing.requirementDetails;
-    final preference = (listing.genderPreference ?? '').trim();
-    final occupancy = (details?.occupancy ?? '').trim();
-    final highlights = <String>[];
-
-    if (listing.price > 0) {
-      final budget = listing.price % 1 == 0
-          ? listing.price.toInt().toString()
-          : listing.price.toStringAsFixed(0);
-      highlights.add('Rs $budget budget');
-    }
-    if (preference.isNotEmpty) {
-      highlights.add(preference);
-    }
-    if (occupancy.isNotEmpty) {
-      highlights.add(occupancy);
-    }
-
-    return highlights.take(limit).toList();
-  }
-
   Widget _imageFallback() {
     return Container(
       color: AppColors.surfaceContainerHigh,
@@ -241,164 +220,244 @@ class ListingCard extends StatelessWidget {
   }
 }
 
-class _RequirementHeader extends StatelessWidget {
+class _FlatmateCard extends StatelessWidget {
   final ListingModel listing;
-  final bool isNarrow;
+  final VoidCallback onTap;
+  final VoidCallback? onSaveTap;
+  final bool isSaved;
   final bool compact;
 
-  const _RequirementHeader({
+  const _FlatmateCard({
     required this.listing,
-    required this.isNarrow,
-    required this.compact,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final horizontalPadding = compact ? 12.0 : (isNarrow ? 14.0 : 16.0);
-    final bottomPadding = compact ? 12.0 : 16.0;
-    final avatarSize = compact ? 54.0 : (isNarrow ? 64.0 : 72.0);
-    final displayName = listing.ownerName.trim().isEmpty
-        ? 'Triozy user'
-        : listing.ownerName.trim();
-
-    return ClipRRect(
-      borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
-      child: Container(
-        width: double.infinity,
-        padding: EdgeInsets.fromLTRB(
-          horizontalPadding,
-          52,
-          horizontalPadding,
-          bottomPadding,
-        ),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              AppColors.surfaceContainerLow,
-              AppColors.secondaryContainer.withValues(alpha: 0.78),
-            ],
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            _ProfilePhoto(
-              photoUrl: listing.ownerPhotoUrl,
-              name: listing.ownerName,
-              size: avatarSize,
-            ),
-            SizedBox(width: compact ? 12 : 16),
-            Expanded(
-              child: _RequirementIdentity(
-                name: displayName,
-                location: listing.location,
-                isNarrow: isNarrow,
-                compact: compact,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-class _RequirementIdentity extends StatelessWidget {
-  final String name;
-  final String location;
-  final bool isNarrow;
-  final bool compact;
-
-  const _RequirementIdentity({
-    required this.name,
-    required this.location,
-    required this.isNarrow,
+    required this.onTap,
+    this.onSaveTap,
+    this.isSaved = false,
     this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Text(
-          name,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
-          style: AppTheme.body(
-            fontSize: compact ? (isNarrow ? 16 : 18) : (isNarrow ? 18 : 21),
-            fontWeight: FontWeight.w800,
-            color: AppColors.onSurface,
-          ),
+    final displayName = listing.ownerName.trim().isEmpty ? 'User' : listing.ownerName.trim();
+    final isLooking = listing.isRequirementPost;
+    
+    // Determine dynamic avatar background color based on ID
+    final colors = [
+      AppColors.pastelPurple,
+      AppColors.pastelPeach,
+      AppColors.pastelMint,
+    ];
+    final avatarBgColor = colors[listing.id.hashCode % colors.length];
+
+    // Badge configuration
+    final typeBadgeColor = listing.propertyTypeLabel.toLowerCase() == 'flat' 
+      ? const Color(0xFFFFF2EC) 
+      : const Color(0xFFF0F5FF);
+    final typeBadgeTextColor = listing.propertyTypeLabel.toLowerCase() == 'flat' 
+      ? const Color(0xFFF97316) 
+      : const Color(0xFF3B82F6);
+
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: AppTheme.cardDecoration(
+          color: AppColors.surfaceContainerLowest,
+          radiusValue: 20,
+          shadowAlpha: 0.05,
+          blur: 24,
+          offsetY: 8,
         ),
-        SizedBox(height: compact ? 4 : 6),
-        Row(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              Icons.location_on_rounded,
-              size: compact ? 14 : 16,
-              color: AppColors.secondary,
-            ),
-            const SizedBox(width: 4),
-            Expanded(
-              child: Text(
-                location,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: AppTheme.body(
-                  fontSize: compact ? 12 : (isNarrow ? 13 : 14),
-                  fontWeight: FontWeight.w700,
-                  color: AppColors.secondary,
+            // Left Column: Avatar & Type Badge
+            Column(
+              children: [
+                Stack(
+                  children: [
+                    Container(
+                      width: 80,
+                      height: 80,
+                      decoration: BoxDecoration(
+                        color: avatarBgColor,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: ClipOval(
+                        child: SizedBox(
+                          width: 76,
+                          height: 76,
+                          child: listing.ownerPhotoUrl.isEmpty
+                              ? Text(
+                                  displayName[0].toUpperCase(),
+                                  style: AppTheme.headline(fontSize: 28, color: AppColors.primary),
+                                )
+                              : CachedNetworkImage(
+                                  imageUrl: listing.ownerPhotoUrl,
+                                  fit: BoxFit.cover,
+                                  errorWidget: (_, __, ___) => Text(
+                                    displayName[0].toUpperCase(),
+                                    style: AppTheme.headline(fontSize: 28, color: AppColors.primary),
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      bottom: 4,
+                      right: 4,
+                      child: Container(
+                        width: 16,
+                        height: 16,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF10B981),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2.5),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
+                const SizedBox(height: 12),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: typeBadgeColor,
+                    borderRadius: BorderRadius.circular(99),
+                  ),
+                  child: Text(
+                    listing.propertyTypeLabel,
+                    style: AppTheme.label(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w800,
+                      color: typeBadgeTextColor,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(width: 16),
+            // Right Column: Details
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Expanded(
+                        child: Text(
+                          displayName,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.headline(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+                      if (onSaveTap != null)
+                        GestureDetector(
+                          onTap: onSaveTap,
+                          child: Container(
+                            padding: const EdgeInsets.all(4),
+                            child: Icon(
+                              isSaved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                              color: isSaved ? AppColors.tertiary : AppColors.textPrimary,
+                              size: 22,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.person_outline_rounded, size: 14, color: AppColors.textSecondary),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${listing.requirementDetails?.genderPreference?.isNotEmpty == true ? listing.requirementDetails!.genderPreference : 'Male'} • ',
+                        style: AppTheme.body(fontSize: 12, color: AppColors.textSecondary),
+                      ),
+                      const Icon(Icons.work_outline_rounded, size: 14, color: AppColors.textSecondary),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          'Professional',
+                          style: AppTheme.body(fontSize: 12, color: AppColors.textSecondary),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.location_on_outlined, size: 14, color: AppColors.textSecondary),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          listing.location,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.body(fontSize: 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: AppColors.surfaceSecondary,
+                      borderRadius: BorderRadius.circular(99),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.currency_rupee_rounded, size: 14, color: AppColors.primary),
+                        const SizedBox(width: 4),
+                        Text(
+                          isLooking ? 'Up to ₹${listing.price.toInt()}' : '₹${listing.price.toInt()}',
+                          style: AppTheme.label(fontSize: 13, fontWeight: FontWeight.w800, color: AppColors.primary),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    listing.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.body(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w500,
+                      color: AppColors.textPrimary,
+                      height: 1.4,
+                    ),
+                  ),
+                  if (isLooking) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFECFDF5), // pastelMint
+                        borderRadius: BorderRadius.circular(99),
+                      ),
+                      child: Text(
+                        '₹${listing.price.toInt()} budget',
+                        style: AppTheme.label(fontSize: 11, fontWeight: FontWeight.w800, color: const Color(0xFF10B981)),
+                      ),
+                    ),
+                  ]
+                ],
               ),
             ),
           ],
         ),
-      ],
-    );
-  }
-}
-
-class _ProfilePhoto extends StatelessWidget {
-  final String photoUrl;
-  final String name;
-  final double size;
-
-  const _ProfilePhoto({
-    required this.photoUrl,
-    required this.name,
-    required this.size,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final initial = name.trim().isEmpty ? 'T' : name.trim()[0].toUpperCase();
-
-    return ClipOval(
-      child: SizedBox(
-        width: size,
-        height: size,
-        child: photoUrl.trim().isEmpty
-            ? _fallback(initial)
-            : CachedNetworkImage(
-                imageUrl: photoUrl,
-                fit: BoxFit.cover,
-                errorWidget: (_, _, _) => _fallback(initial),
-              ),
-      ),
-    );
-  }
-
-  Widget _fallback(String initial) {
-    return Container(
-      color: AppColors.surfaceContainerLowest,
-      alignment: Alignment.center,
-      child: Text(
-        initial,
-        style: AppTheme.headline(fontSize: 22, color: AppColors.primary),
       ),
     );
   }

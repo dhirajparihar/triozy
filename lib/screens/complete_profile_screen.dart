@@ -192,30 +192,23 @@ class _AppField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
   final String hint;
-  final TextInputType? keyboardType;
-  final String? Function(String?)? validator;
 
   const _AppField({
     required this.controller,
     required this.label,
     required this.hint,
-    this.keyboardType,
-    this.validator,
   });
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
-      keyboardType: keyboardType,
-      validator:
-          validator ??
-          (value) {
-            if ((value ?? '').trim().isEmpty) {
-              return 'Required';
-            }
-            return null;
-          },
+      validator: (value) {
+        if ((value ?? '').trim().isEmpty) {
+          return 'Required';
+        }
+        return null;
+      },
       decoration: InputDecoration(
         labelText: label,
         hintText: hint,

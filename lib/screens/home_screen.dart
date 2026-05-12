@@ -139,17 +139,29 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth < 380;
+    final horizontalPadding = isCompact ? 16.0 : 20.0;
+    final cardHeight = isCompact ? 265.0 : 280.0;
+    final cardWidth = isCompact ? 180.0 : 200.0;
+
     return RefreshIndicator(
       onRefresh: _loadData,
       color: AppColors.primary,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.fromLTRB(20, 0, 20, 110),
+        padding: EdgeInsets.fromLTRB(horizontalPadding, 0, horizontalPadding, 110),
         children: [
           _HeroSection(
             onSearchTap: widget.onSearchTapped ?? widget.onExploreTapped,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: isCompact ? 16 : 20),
+          _SectionHeader(
+            title: 'Find your need',
+            actionLabel: 'View all',
+            onActionTap: widget.onExploreTapped,
+          ),
+          SizedBox(height: isCompact ? 10 : 12),
           _QuickActions(
             hasPublishedRequirement: _hasPublishedRequirement,
             onFindRoomTap:
@@ -159,28 +171,28 @@ class HomeScreenState extends State<HomeScreen> {
                 widget.onPropertyTypeSelected?.call(PropertyType.item),
             onAllServicesTap: widget.onSearchTapped ?? widget.onExploreTapped,
           ),
-          const SizedBox(height: 30),
+          SizedBox(height: isCompact ? 28 : 32),
           _SectionHeader(
-            title: 'Explore',
+            title: 'Recommended for you',
             actionLabel: 'See all',
             onActionTap: widget.onExploreTapped,
           ),
-          const SizedBox(height: 16),
+          SizedBox(height: isCompact ? 14 : 16),
           if (_loading)
             const _HomeLoadingState()
           else if (_featured.isEmpty)
             const _EmptyFeaturedState()
           else
             SizedBox(
-              height: 370,
+              height: cardHeight,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: _featured.length,
-                separatorBuilder: (_, _) => const SizedBox(width: 18),
+                separatorBuilder: (_, _) => SizedBox(width: isCompact ? 12 : 14),
                 itemBuilder: (context, index) {
                   final listing = _featured[index];
                   return SizedBox(
-                    width: 324,
+                    width: cardWidth,
                     child: _FeaturedHomeCard(
                       listing: listing,
                       isSaved: _savedIds.contains(listing.id),
@@ -205,64 +217,129 @@ class _HeroSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth < 380;
+
     return Container(
-      padding: const EdgeInsets.all(26),
+
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFFF6F9FF), Color(0xFFEAF1FF)],
+          colors: [
+            Color(0xFFEEF2FF),
+            Color(0xFFE8EAFF),
+            Color(0xFFF0EDFF),
+          ],
         ),
-        borderRadius: BorderRadius.circular(32),
-        border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.18),
-        ),
+        borderRadius: BorderRadius.circular(28),
+        boxShadow: [
+          BoxShadow(
+            color: AppColors.primary.withValues(alpha: 0.08),
+            blurRadius: 24,
+            offset: const Offset(0, 8),
+          ),
+        ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      clipBehavior: Clip.hardEdge,
+      child: Stack(
         children: [
-          Text(
-            'Move to a new city without starting from zero.',
-            style: AppTheme.headline(
-              fontSize: 25,
-              fontWeight: FontWeight.w800,
-              color: AppColors.onSurface,
-              height: 1.5,
-              letterSpacing: 0,
+          Positioned(
+            right: isCompact ? -15 : -5,
+            bottom: isCompact ? 55 : 60,
+            child: Image.asset(
+              'assets/images/image.png',
+              height: isCompact ? 210 : 250,
+              fit: BoxFit.contain,
             ),
           ),
-          const SizedBox(height: 24),
+          Padding(
+            padding: EdgeInsets.fromLTRB(
+              isCompact ? 20 : 24, isCompact ? 24 : 28,
+              isCompact ? 20 : 24, isCompact ? 20 : 24,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          RichText(
+            text: TextSpan(
+              style: AppTheme.headline(
+                fontSize: isCompact ? 24 : 28,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+                height: 1.3,
+                letterSpacing: -0.3,
+              ),
+              children: [
+                const TextSpan(text: 'Move to a new city\nwithout starting\nfrom '),
+                TextSpan(
+                  text: 'zero.',
+                  style: AppTheme.headline(
+                    fontSize: isCompact ? 24 : 28,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.primary,
+                    height: 1.3,
+                    letterSpacing: -0.3,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(height: isCompact ? 10 : 12),
+          Text(
+            'Find rooms, flatmates and everything\nyou need to settle in.',
+            style: AppTheme.body(
+              fontSize: isCompact ? 13 : 14,
+              fontWeight: FontWeight.w500,
+              color: AppColors.textSecondary,
+              height: 1.5,
+            ),
+          ),
+          SizedBox(height: isCompact ? 20 : 24),
           GestureDetector(
             onTap: onSearchTap,
             child: Container(
               width: double.infinity,
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+              padding: EdgeInsets.only(left: isCompact ? 16 : 20, right: 6, top: 6, bottom: 6),
               decoration: BoxDecoration(
-                color: AppColors.surfaceContainerLowest,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(
-                  color: AppColors.outlineVariant.withValues(alpha: 0.55),
-                  width: 1.2,
-                ),
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(999),
                 boxShadow: [
                   BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    blurRadius: 24,
-                    offset: const Offset(0, 10),
+                    color: AppColors.primary.withValues(alpha: 0.1),
+                    blurRadius: 20,
+                    offset: const Offset(0, 6),
                   ),
                 ],
               ),
               child: Row(
                 children: [
-                  const Icon(
-                    Icons.search_rounded,
-                    color: AppColors.primary,
-                    size: 24,
+                  Expanded(child: _AnimatedSearchPrompt()),
+                  Container(
+                    width: isCompact ? 42 : 46,
+                    height: isCompact ? 42 : 46,
+                    decoration: BoxDecoration(
+                      gradient: AppColors.primaryGradient,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.primary.withValues(alpha: 0.3),
+                          blurRadius: 10,
+                          offset: const Offset(0, 4),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.search_rounded,
+                      color: Colors.white,
+                      size: isCompact ? 20 : 22,
+                    ),
                   ),
-                  const SizedBox(width: 14),
-                  const Expanded(child: _AnimatedSearchPrompt()),
                 ],
               ),
+            ),
+          ),
+              ],
             ),
           ),
         ],
@@ -309,9 +386,9 @@ class _AnimatedSearchPromptState extends State<_AnimatedSearchPrompt> {
   @override
   Widget build(BuildContext context) {
     final style = AppTheme.body(
-      fontSize: 15,
-      fontWeight: FontWeight.w700,
-      color: AppColors.onSurfaceVariant,
+      fontSize: 14,
+      fontWeight: FontWeight.w500,
+      color: AppColors.textSecondary,
       height: 1.45,
     );
 
@@ -375,92 +452,64 @@ class _QuickActions extends StatelessWidget {
     final width = MediaQuery.sizeOf(context).width;
     final compact = width < 380;
     final gap = compact ? 10.0 : 12.0;
-    final shortCardHeight = compact ? 108.0 : 116.0;
-    final tallCardHeight = compact ? 158.0 : 170.0;
-    final tallestCardHeight = compact ? 174.0 : 188.0;
-    final allServicesHeight = compact ? 94.0 : 102.0;
-    final eyebrowSize = compact ? 14.0 : 15.0;
-    final titleSize = compact ? 17.0 : 18.0;
-    final allServicesTitleSize = compact ? 20.0 : 21.0;
 
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Find your need',
-          style: AppTheme.headline(
-            fontSize: 15,
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF42526A),
-            height: 1.15,
-            letterSpacing: 0,
-          ),
-        ),
-        SizedBox(height: gap),
         Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
-              child: Column(
-                children: [
-                  _ServiceActionCard(
-                    height: shortCardHeight,
-                    eyebrow: hasPublishedRequirement
-                        ? 'Looking for'
-                        : 'Publish Requirement',
-                    title: hasPublishedRequirement ? 'PG' : 'Room',
-                    icon: Icons.meeting_room_rounded,
-                    iconColor: const Color(0xFF3A86FF),
-                    onTap: onFindRoomTap,
-                    alignIconBottom: true,
-                    compact: compact,
-                    eyebrowSize: eyebrowSize,
-                    titleSize: titleSize,
-                  ),
-                  SizedBox(height: gap),
-                  _ServiceActionCard(
-                    height: tallCardHeight,
-                    eyebrow: 'Your daily essentials',
-                    title: 'Marketplace',
-                    icon: Icons.shopping_bag_rounded,
-                    iconColor: const Color(0xFF3A86FF),
-                    onTap: onMarketplaceTap,
-                    alignIconBottom: true,
-                    compact: compact,
-                    eyebrowSize: eyebrowSize,
-                    titleSize: titleSize,
-                  ),
-                ],
+              child: _CategoryCard(
+                eyebrow: hasPublishedRequirement ? 'Looking for' : 'Looking for',
+                title: hasPublishedRequirement ? 'PG' : 'PG',
+                description: 'Safe, convenient and budget-friendly PGs.',
+                icon: Icons.apartment_rounded,
+                bgColor: AppColors.accentLavender,
+                iconBgColor: AppColors.primary,
+                onTap: onFindRoomTap,
+                compact: compact,
               ),
             ),
             SizedBox(width: gap),
             Expanded(
-              child: Column(
-                children: [
-                  _ServiceActionCard(
-                    height: tallestCardHeight,
-                    eyebrow: 'Match',
-                    title: 'Flatmates',
-                    icon: Icons.groups_rounded,
-                    iconColor: const Color(0xFF3A86FF),
-                    onTap: onFlatmatesTap,
-                    alignIconBottom: true,
-                    compact: compact,
-                    eyebrowSize: eyebrowSize,
-                    titleSize: titleSize,
-                  ),
-                  SizedBox(height: gap),
-                  _ServiceActionCard(
-                    height: allServicesHeight,
-                    title: 'All\nServices',
-                    icon: Icons.apps_rounded,
-                    iconColor: const Color(0xFF3A86FF),
-                    onTap: onAllServicesTap,
-                    showIcon: false,
-                    compact: compact,
-                    titleSize: allServicesTitleSize,
-                  ),
-                ],
+              child: _CategoryCard(
+                eyebrow: 'Match',
+                title: 'Flatmates',
+                description: 'Find verified flatmates and live better.',
+                icon: Icons.groups_rounded,
+                bgColor: AppColors.pastelPurple,
+                iconBgColor: const Color(0xFF8B5CF6),
+                onTap: onFlatmatesTap,
+                compact: compact,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: gap),
+        Row(
+          children: [
+            Expanded(
+              child: _CategoryCard(
+                eyebrow: 'Buy & Sell',
+                title: 'Marketplace',
+                description: 'Buy and sell used books, furniture, and more.',
+                icon: Icons.storefront_rounded,
+                bgColor: AppColors.pastelPeach,
+                iconBgColor: const Color(0xFFF97316),
+                onTap: onMarketplaceTap,
+                compact: compact,
+              ),
+            ),
+            SizedBox(width: gap),
+            Expanded(
+              child: _CategoryCard(
+                eyebrow: 'All',
+                title: 'Services',
+                description: 'From flatmates to essentials, find it all here.',
+                icon: Icons.grid_view_rounded,
+                bgColor: AppColors.pastelMint,
+                iconBgColor: const Color(0xFF10B981),
+                onTap: onAllServicesTap,
+                compact: compact,
               ),
             ),
           ],
@@ -470,124 +519,95 @@ class _QuickActions extends StatelessWidget {
   }
 }
 
-class _ServiceActionCard extends StatelessWidget {
-  final double height;
+class _CategoryCard extends StatelessWidget {
   final String? eyebrow;
   final String title;
+  final String description;
   final IconData icon;
-  final Color iconColor;
+  final Color bgColor;
+  final Color iconBgColor;
   final VoidCallback? onTap;
-  final bool alignIconBottom;
-  final bool showIcon;
   final bool compact;
-  final double? eyebrowSize;
-  final double? titleSize;
 
-  const _ServiceActionCard({
-    required this.height,
+  const _CategoryCard({
     this.eyebrow,
     required this.title,
+    required this.description,
     required this.icon,
-    required this.iconColor,
+    required this.bgColor,
+    required this.iconBgColor,
     this.onTap,
-    this.alignIconBottom = false,
-    this.showIcon = true,
     this.compact = false,
-    this.eyebrowSize,
-    this.titleSize,
   });
 
   @override
   Widget build(BuildContext context) {
-    final iconSize = alignIconBottom
-        ? (compact ? 60.0 : 68.0)
-        : (compact ? 46.0 : 50.0);
-    final iconGlyphSize = alignIconBottom
-        ? (compact ? 30.0 : 34.0)
-        : (compact ? 24.0 : 26.0);
-
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: Container(
-        height: height,
-        width: double.infinity,
-        padding: EdgeInsets.all(compact ? 14 : 16),
+        padding: EdgeInsets.all(compact ? 12 : 14),
         decoration: BoxDecoration(
-          color: const Color(0xFFF4F8FF),
-          borderRadius: BorderRadius.circular(compact ? 20 : 24),
-          border: Border.all(
-            color: const Color(0xFFE5E7EB).withValues(alpha: 0.72),
-          ),
+          color: bgColor,
+          borderRadius: BorderRadius.circular(compact ? 18 : 20),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF14213D).withValues(alpha: 0.035),
-              blurRadius: 22,
-              offset: const Offset(0, 10),
+              color: iconBgColor.withValues(alpha: 0.05),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
             ),
           ],
         ),
-        child: Stack(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            if (showIcon)
-              Positioned(
-                right: alignIconBottom ? -6 : 2,
-                bottom: alignIconBottom ? -4 : null,
-                top: alignIconBottom ? null : 6,
-                child: Container(
-                  width: iconSize,
-                  height: iconSize,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.78),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(
-                    icon,
-                    color: iconColor,
-                    size: iconGlyphSize,
-                  ),
+            if (eyebrow != null)
+              Text(
+                eyebrow!,
+                style: AppTheme.body(
+                  fontSize: compact ? 11 : 12,
+                  fontWeight: FontWeight.w500,
+                  color: AppColors.textSecondary,
+                  height: 1.1,
                 ),
               ),
-            Positioned.fill(
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: Padding(
-                  padding: EdgeInsets.only(
-                    right: showIcon && !alignIconBottom ? 46 : 0,
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      if (eyebrow != null) ...[
-                        Text(
-                          eyebrow!,
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTheme.body(
-                            fontSize: eyebrowSize ?? 15,
-                            fontWeight: FontWeight.w500,
-                            color: const Color(0xFF536178),
-                            height: 1.22,
-                            letterSpacing: 0,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                      ],
-                      Text(
-                        title,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTheme.headline(
-                          fontSize: titleSize ?? 18,
-                          fontWeight: FontWeight.w800,
-                          color: const Color(0xFF111827),
-                          height: 1.08,
-                          letterSpacing: 0,
-                        ),
-                      ),
-                    ],
-                  ),
+            SizedBox(height: eyebrow != null ? 2 : 0),
+            Text(
+              title,
+              style: AppTheme.headline(
+                fontSize: compact ? 18 : 20,
+                fontWeight: FontWeight.w800,
+                color: AppColors.textPrimary,
+                height: 1.15,
+                letterSpacing: -0.2,
+              ),
+            ),
+            SizedBox(height: compact ? 6 : 8),
+            Text(
+              description,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.body(
+                fontSize: compact ? 11 : 12,
+                fontWeight: FontWeight.w400,
+                color: AppColors.textSecondary,
+                height: 1.3,
+              ),
+            ),
+            SizedBox(height: compact ? 8 : 10),
+            Align(
+              alignment: Alignment.bottomRight,
+              child: Container(
+                width: compact ? 34 : 38,
+                height: compact ? 34 : 38,
+                decoration: BoxDecoration(
+                  color: iconBgColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(compact ? 12 : 14),
+                ),
+                child: Icon(
+                  icon,
+                  color: iconBgColor,
+                  size: compact ? 18 : 20,
                 ),
               ),
             ),
@@ -611,37 +631,40 @@ class _SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth < 380;
+
     return Row(
       children: [
         Expanded(
           child: Text(
             title,
             style: AppTheme.headline(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: AppColors.primary,
+              fontSize: isCompact ? 18 : 20,
+              fontWeight: FontWeight.w800,
+              color: AppColors.textPrimary,
+              letterSpacing: -0.2,
             ),
           ),
         ),
-        TextButton(
-          onPressed: onActionTap,
-          style: TextButton.styleFrom(padding: EdgeInsets.zero),
+        GestureDetector(
+          onTap: onActionTap,
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
                 actionLabel,
                 style: AppTheme.body(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w700,
+                  fontSize: isCompact ? 13 : 14,
+                  fontWeight: FontWeight.w600,
                   color: AppColors.primary,
                 ),
               ),
-              const SizedBox(width: 4),
-              const Icon(
-                Icons.chevron_right_rounded,
+              const SizedBox(width: 2),
+              Icon(
+                Icons.arrow_forward_rounded,
                 color: AppColors.primary,
-                size: 22,
+                size: isCompact ? 16 : 18,
               ),
             ],
           ),
@@ -666,107 +689,76 @@ class _FeaturedHomeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final typeLabel = listing.propertyType == PropertyType.pg ? 'PG'
+        : listing.propertyType == PropertyType.flat ? 'Flatmate'
+        : listing.propertyType == PropertyType.room ? 'Room' : 'Item';
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        decoration: AppTheme.cardDecoration(
-          color: AppColors.surfaceContainerLowest,
-          radiusValue: 22,
-          shadowAlpha: 0.05,
-          blur: 24,
-          offsetY: 10,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
+            ),
+          ],
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(22)),
-              child: SizedBox(
-                height: 210,
-                width: double.infinity,
+            Expanded(
+              child: ClipRRect(
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
                     listing.imageUrls.isEmpty
                         ? Container(
-                            color: AppColors.surfaceContainerHigh,
+                            color: AppColors.accentLavender,
                             alignment: Alignment.center,
-                            child: const Icon(
-                              Icons.home_work_outlined,
-                              color: AppColors.primary,
-                              size: 40,
-                            ),
+                            child: Icon(Icons.home_work_outlined,
+                              color: AppColors.primary.withValues(alpha: 0.4), size: 36),
                           )
                         : CachedNetworkImage(
                             imageUrl: listing.imageUrls.first,
                             fit: BoxFit.cover,
                             errorWidget: (_, _, _) => Container(
-                              color: AppColors.surfaceContainerHigh,
+                              color: AppColors.accentLavender,
                               alignment: Alignment.center,
-                              child: const Icon(
-                                Icons.home_work_outlined,
-                                color: AppColors.primary,
-                                size: 40,
-                              ),
+                              child: Icon(Icons.home_work_outlined,
+                                color: AppColors.primary.withValues(alpha: 0.4), size: 36),
                             ),
                           ),
                     Positioned(
-                      top: 14,
-                      left: 14,
+                      bottom: 8, left: 8,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 7,
-                        ),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                         decoration: BoxDecoration(
-                          color: AppColors.secondaryContainer.withValues(
-                            alpha: 0.96,
-                          ),
-                          borderRadius: BorderRadius.circular(999),
+                          gradient: AppColors.primaryGradient,
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.verified_outlined,
-                              size: 15,
-                              color: AppColors.onSecondaryContainer,
-                            ),
-                            const SizedBox(width: 5),
-                            Text(
-                              'Verified',
-                              style: AppTheme.body(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w700,
-                                color: AppColors.onSecondaryContainer,
-                              ),
-                            ),
-                          ],
-                        ),
+                        child: Text(typeLabel,
+                          style: AppTheme.body(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white)),
                       ),
                     ),
                     Positioned(
-                      top: 12,
-                      right: 12,
+                      top: 8, right: 8,
                       child: GestureDetector(
                         onTap: onSaveTap,
                         child: Container(
-                          width: 42,
-                          height: 42,
+                          width: 32, height: 32,
                           decoration: BoxDecoration(
-                            color: AppColors.surfaceContainerLowest.withValues(
-                              alpha: 0.86,
-                            ),
+                            color: Colors.white.withValues(alpha: 0.9),
                             shape: BoxShape.circle,
                           ),
                           child: Icon(
-                            isSaved
-                                ? Icons.favorite_rounded
-                                : Icons.favorite_border_rounded,
-                            color: isSaved
-                                ? AppColors.tertiary
-                                : AppColors.primary,
-                            size: 22,
+                            isSaved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
+                            color: isSaved ? AppColors.tertiary : AppColors.textSecondary,
+                            size: 16,
                           ),
                         ),
                       ),
@@ -776,91 +768,30 @@ class _FeaturedHomeCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 18),
+              padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  Text(listing.title,
+                    maxLines: 1, overflow: TextOverflow.ellipsis,
+                    style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary, height: 1.2)),
+                  const SizedBox(height: 4),
+                  Row(children: [
+                    Icon(Icons.location_on_rounded, size: 12, color: AppColors.textSecondary),
+                    const SizedBox(width: 3),
+                    Expanded(child: Text(listing.location,
+                      maxLines: 1, overflow: TextOverflow.ellipsis,
+                      style: AppTheme.body(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary))),
+                  ]),
+                  const SizedBox(height: 6),
+                  RichText(text: TextSpan(
+                    style: AppTheme.headline(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
                     children: [
-                      Expanded(
-                        child: RichText(
-                          text: TextSpan(
-                            style: AppTheme.headline(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
-                            ),
-                            children: [
-                              TextSpan(text: listing.priceLabel),
-                              TextSpan(
-                                text: listing.price > 0 ? ' /mo' : '',
-                                style: AppTheme.body(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.w500,
-                                  color: AppColors.slate500,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.star_border_rounded,
-                            size: 18,
-                            color: AppColors.primary,
-                          ),
-                          const SizedBox(width: 3),
-                          Text(
-                            _ratingLabel(listing),
-                            style: AppTheme.body(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w700,
-                              color: AppColors.primary,
-                            ),
-                          ),
-                        ],
-                      ),
+                      TextSpan(text: listing.priceLabel),
+                      TextSpan(text: listing.price > 0 ? ' /month' : '',
+                        style: AppTheme.body(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
                     ],
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    listing.title,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTheme.body(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.onSurface,
-                      height: 1.35,
-                    ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      const Icon(
-                        Icons.location_on_outlined,
-                        size: 18,
-                        color: AppColors.slate500,
-                      ),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          listing.location,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTheme.body(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w500,
-                            color: AppColors.slate500,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
+                  )),
                 ],
               ),
             ),
@@ -868,12 +799,6 @@ class _FeaturedHomeCard extends StatelessWidget {
         ),
       ),
     );
-  }
-
-  String _ratingLabel(ListingModel listing) {
-    final highlightsCount = listing.highlights.isEmpty ? 0 : listing.highlights.length;
-    final rating = (4.6 + (highlightsCount.clamp(0, 4) * 0.1)).clamp(4.6, 4.9);
-    return rating.toStringAsFixed(1);
   }
 }
 
@@ -883,20 +808,20 @@ class _HomeLoadingState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 370,
+      height: 280,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: 2,
-        separatorBuilder: (_, _) => const SizedBox(width: 18),
+        itemCount: 3,
+        separatorBuilder: (_, _) => const SizedBox(width: 14),
         itemBuilder: (_, index) {
           return Container(
-            width: 324,
-            decoration: AppTheme.cardDecoration(
-              color: AppColors.surfaceContainerLowest,
-              radiusValue: 22,
-              shadowAlpha: 0.04,
-              blur: 18,
-              offsetY: 8,
+            width: 200,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4)),
+              ],
             ),
           );
         },
@@ -912,22 +837,18 @@ class _EmptyFeaturedState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(24),
-      decoration: AppTheme.cardDecoration(
-        color: AppColors.surfaceContainerLowest,
-        radiusValue: 20,
-        shadowAlpha: 0.04,
-        blur: 18,
-        offsetY: 8,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: [
+          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4)),
+        ],
       ),
       child: Text(
         'Featured verified homes will appear here once listings are available.',
-        style: AppTheme.body(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          color: AppColors.slate500,
-          height: 1.6,
-        ),
+        style: AppTheme.body(fontSize: 14, fontWeight: FontWeight.w500, color: AppColors.textSecondary, height: 1.6),
       ),
     );
   }
 }
+
