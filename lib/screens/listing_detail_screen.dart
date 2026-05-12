@@ -1507,7 +1507,7 @@ class _ListingLocationPreviewState extends State<_ListingLocationPreview> {
         : null;
     final uri = Uri.https('www.google.com', '/maps/dir/', {
       'api': '1',
-      if (origin != null) 'origin': origin,
+      'origin': ?origin,
       'destination': destination,
       'travelmode': 'driving',
     });

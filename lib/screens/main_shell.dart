@@ -240,7 +240,7 @@ class _MainShellState extends State<MainShell> {
                 top: _currentIndex == 0
                     ? MediaQuery.of(context).padding.top + 60
                     : MediaQuery.of(context).padding.top,
-                bottom: MediaQuery.of(context).padding.bottom + 76,
+                bottom: MediaQuery.of(context).padding.bottom + 80,
               ),
               child: IndexedStack(index: _currentIndex, children: _screens),
             ),

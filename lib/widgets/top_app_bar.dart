@@ -36,13 +36,13 @@ class TriozyTopAppBar extends StatelessWidget {
     final screenHeight = MediaQuery.of(context).size.height;
     final isSmallScreen = screenHeight < 700;
     
-    final greetingFontSize = isSmallScreen ? 15.0 : 18.0;
-    final locationFontSize = isSmallScreen ? 11.0 : 12.0;
-    final dropdownIconSize = isSmallScreen ? 12.0 : 14.0;
-    final avatarSize = isSmallScreen ? 34.0 : 38.0;
-    final appBarHeight = isSmallScreen ? 52.0 : 56.0;
+    final greetingFontSize = isSmallScreen ? 18.0 : 22.0;
+    final locationFontSize = isSmallScreen ? 12.0 : 13.0;
+    final dropdownIconSize = isSmallScreen ? 14.0 : 16.0;
+    final avatarSize = isSmallScreen ? 40.0 : 44.0;
+    final appBarHeight = isSmallScreen ? 56.0 : 62.0;
     final topPadding = isSmallScreen ? 6.0 : 8.0;
-    final bottomPadding = isSmallScreen ? 1.0 : 2.0;
+    final bottomPadding = isSmallScreen ? 2.0 : 4.0;
 
     return SafeArea(
       bottom: false,
@@ -60,21 +60,39 @@ class TriozyTopAppBar extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(
-                      greeting,
-                      style: AppTheme.headline(
-                        fontSize: greetingFontSize,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.primary,
-                        letterSpacing: -0.2,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    SizedBox(height: isSmallScreen ? 1.0 : 2.0),
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        Flexible(
+                          child: Text(
+                            greeting,
+                            style: AppTheme.headline(
+                              fontSize: greetingFontSize,
+                              fontWeight: FontWeight.w800,
+                              color: AppColors.textPrimary,
+                              letterSpacing: -0.3,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _getGreetingEmoji(),
+                          style: TextStyle(fontSize: greetingFontSize),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: isSmallScreen ? 2.0 : 3.0),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          Icons.location_on_rounded,
+                          color: AppColors.primary,
+                          size: locationFontSize + 2,
+                        ),
+                        const SizedBox(width: 3),
                         Flexible(
                           child: Text(
                             cityLabel,
@@ -83,14 +101,14 @@ class TriozyTopAppBar extends StatelessWidget {
                             style: AppTheme.body(
                               fontSize: locationFontSize,
                               fontWeight: FontWeight.w500,
-                              color: AppColors.textPrimary,
+                              color: AppColors.textSecondary,
                             ),
                           ),
                         ),
                         const SizedBox(width: 2),
                         Icon(
                           Icons.keyboard_arrow_down_rounded,
-                          color: AppColors.primary,
+                          color: AppColors.textSecondary,
                           size: dropdownIconSize,
                         ),
                       ],
@@ -110,6 +128,13 @@ class TriozyTopAppBar extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  String _getGreetingEmoji() {
+    final hour = DateTime.now().hour;
+    if (hour < 12) return '☀️';
+    if (hour < 17) return '👋';
+    return '🌙';
   }
 
   String _getGreeting() {
@@ -149,9 +174,9 @@ class TriozyTopAppBar extends StatelessWidget {
       builder: (context) => Container(
         decoration: BoxDecoration(
           color: AppColors.background,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
         ),
-        padding: EdgeInsets.all(20),
+        padding: EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -159,17 +184,17 @@ class TriozyTopAppBar extends StatelessWidget {
               width: 40,
               height: 4,
               decoration: BoxDecoration(
-                color: AppColors.surfaceContainerLow,
+                color: AppColors.outlineVariant,
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 24),
             Text(
               'Select Location',
               style: AppTheme.headline(
-                fontSize: 18,
-                fontWeight: FontWeight.w600,
-                color: AppColors.primary,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
               ),
             ),
             SizedBox(height: 24),
@@ -190,7 +215,7 @@ class TriozyTopAppBar extends StatelessWidget {
                 onAutoDetectLocation?.call();
               },
             ),
-            SizedBox(height: 20),
+            SizedBox(height: 24),
           ],
         ),
       ),
@@ -213,27 +238,35 @@ class _LocationOption extends StatelessWidget {
   Widget build(BuildContext context) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(12),
+      borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: EdgeInsets.symmetric(horizontal: 18, vertical: 16),
         decoration: BoxDecoration(
-          color: AppColors.surfaceContainerLow,
-          borderRadius: BorderRadius.circular(12),
+          color: AppColors.accentLavender,
+          borderRadius: BorderRadius.circular(16),
         ),
         child: Row(
           children: [
-            Icon(
-              icon,
-              color: AppColors.primary,
-              size: 24,
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                gradient: AppColors.primaryGradient,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                color: Colors.white,
+                size: 20,
+              ),
             ),
-            SizedBox(width: 12),
+            SizedBox(width: 14),
             Text(
               title,
               style: AppTheme.body(
                 fontSize: 15,
-                fontWeight: FontWeight.w500,
-                color: AppColors.primary,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textPrimary,
               ),
             ),
           ],
@@ -253,7 +286,7 @@ class _AvatarButton extends StatelessWidget {
     required this.avatarUrl,
     required this.onTap,
     required this.showChatDot,
-    this.size = 38,
+    this.size = 44,
   });
 
   @override
@@ -269,11 +302,18 @@ class _AvatarButton extends StatelessWidget {
             height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: AppColors.surfaceContainerLow,
+              color: AppColors.accentLavender,
               border: Border.all(
-                color: AppColors.surfaceContainerLowest,
+                color: AppColors.primary.withValues(alpha: 0.15),
                 width: 2,
               ),
+              boxShadow: [
+                BoxShadow(
+                  color: AppColors.primary.withValues(alpha: 0.12),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
             clipBehavior: Clip.antiAlias,
             child: avatarUrl != null && avatarUrl!.trim().isNotEmpty
@@ -287,13 +327,13 @@ class _AvatarButton extends StatelessWidget {
         ),
         if (showChatDot)
           Positioned(
-            right: -1,
-            top: -1,
+            right: 0,
+            top: 0,
             child: Container(
-              width: 10,
-              height: 10,
+              width: 12,
+              height: 12,
               decoration: BoxDecoration(
-                color: AppColors.secondary,
+                gradient: AppColors.primaryGradient,
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: AppColors.background,
@@ -308,11 +348,11 @@ class _AvatarButton extends StatelessWidget {
 
   Widget _placeholder() {
     return Container(
-      color: const Color(0xFFE9EEF8),
+      color: AppColors.accentLavender,
       child: Icon(
         Icons.person_rounded,
         size: size * 0.52,
-        color: const Color(0xFF78B9C8),
+        color: AppColors.primary.withValues(alpha: 0.6),
       ),
     );
   }
