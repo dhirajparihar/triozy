@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 
@@ -218,4 +220,58 @@ class DatabaseService {
     final byId = await _firestore.collection('users').doc(uid).get();
     return byId.data();
   }
+
+  /// Return listings within [radiusKm] of [lat]/[lon].
+  /// Falls back to text-matching on [locationName] for listings without coords.
+  Future<List<ListingModel>> getNearbyListings({
+    required double lat,
+    required double lon,
+    double radiusKm = 10.0,
+    String locationName = '',
+  }) async {
+    final listings = await getAllListings();
+    final locationTerms = locationName
+        .toLowerCase()
+        .split(RegExp(r'[\s,]+'))
+        .where((t) => t.length > 2)
+        .toSet();
+
+    final results = <ListingModel>[];
+    for (final listing in listings) {
+      if (listing.latitude != null && listing.longitude != null) {
+        // Haversine distance check
+        final distance = _haversineKm(
+          lat, lon, listing.latitude!, listing.longitude!,
+        );
+        if (distance <= radiusKm) {
+          results.add(listing);
+        }
+      } else if (locationTerms.isNotEmpty) {
+        // Fallback: text-based matching — any term matches the location string
+        final loc = listing.location.toLowerCase();
+        if (locationTerms.any((term) => loc.contains(term))) {
+          results.add(listing);
+        }
+      }
+    }
+    return results;
+  }
+
+  /// Haversine formula — returns distance in kilometres between two points.
+  static double _haversineKm(
+    double lat1, double lon1, double lat2, double lon2,
+  ) {
+    const earthRadiusKm = 6371.0;
+    final dLat = _degToRad(lat2 - lat1);
+    final dLon = _degToRad(lon2 - lon1);
+    final a = sin(dLat / 2) * sin(dLat / 2) +
+        cos(_degToRad(lat1)) *
+            cos(_degToRad(lat2)) *
+            sin(dLon / 2) *
+            sin(dLon / 2);
+    final c = 2 * atan2(sqrt(a), sqrt(1 - a));
+    return earthRadiusKm * c;
+  }
+
+  static double _degToRad(double deg) => deg * (pi / 180);
 }
