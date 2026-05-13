@@ -1,4 +1,4 @@
-import 'dart:async';
+
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,6 +12,7 @@ import '../theme/app_theme.dart';
 import 'housing_entry_screen.dart';
 import 'listing_detail_screen.dart';
 import 'requirement_form_screen.dart';
+import 'location_search_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onExploreTapped;
@@ -35,6 +36,7 @@ class HomeScreenState extends State<HomeScreen> {
   bool _loading = true;
   bool _hasPublishedRequirement = false;
   bool _hasPostedHousingListing = false;
+  String? _selectedLocationAddress;
 
   @override
   void initState() {
@@ -137,6 +139,13 @@ class HomeScreenState extends State<HomeScreen> {
     Navigator.push(context, route);
   }
 
+  Future<void> _openLocationSearch() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const LocationSearchScreen()),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.sizeOf(context).width;
@@ -153,7 +162,8 @@ class HomeScreenState extends State<HomeScreen> {
         padding: EdgeInsets.fromLTRB(horizontalPadding, 0, horizontalPadding, 24),
         children: [
           _HeroSection(
-            onSearchTap: widget.onSearchTapped ?? widget.onExploreTapped,
+            onSearchTap: _openLocationSearch,
+            selectedLocation: _selectedLocationAddress,
           ),
           SizedBox(height: isCompact ? 16 : 20),
           _SectionHeader(
@@ -193,7 +203,7 @@ class HomeScreenState extends State<HomeScreen> {
                   final listing = _featured[index];
                   return SizedBox(
                     width: cardWidth,
-                    child: _FeaturedHomeCard(
+                    child: FeaturedListingCard(
                       listing: listing,
                       isSaved: _savedIds.contains(listing.id),
                       onTap: () => _openListing(listing),
@@ -212,8 +222,9 @@ class HomeScreenState extends State<HomeScreen> {
 
 class _HeroSection extends StatelessWidget {
   final VoidCallback? onSearchTap;
+  final String? selectedLocation;
 
-  const _HeroSection({this.onSearchTap});
+  const _HeroSection({this.onSearchTap, this.selectedLocation});
 
   @override
   Widget build(BuildContext context) {
@@ -314,7 +325,35 @@ class _HeroSection extends StatelessWidget {
               ),
               child: Row(
                 children: [
-                  Expanded(child: _AnimatedSearchPrompt()),
+                  Expanded(
+                    child: selectedLocation != null
+                        ? Padding(
+                            padding: const EdgeInsets.only(left: 8.0),
+                            child: Text(
+                              selectedLocation!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTheme.body(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          )
+                        : Padding(
+                            padding: const EdgeInsets.only(left: 8.0),
+                            child: Text(
+                              'Search city or locality',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTheme.body(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textSecondary,
+                              ),
+                            ),
+                          ),
+                  ),
                   Container(
                     width: isCompact ? 42 : 46,
                     height: isCompact ? 42 : 46,
@@ -344,89 +383,6 @@ class _HeroSection extends StatelessWidget {
           ),
         ],
       ),
-    );
-  }
-}
-
-class _AnimatedSearchPrompt extends StatefulWidget {
-  const _AnimatedSearchPrompt();
-
-  @override
-  State<_AnimatedSearchPrompt> createState() => _AnimatedSearchPromptState();
-}
-
-class _AnimatedSearchPromptState extends State<_AnimatedSearchPrompt> {
-  static const List<String> _terms = [
-    'PGs',
-    'rooms',
-    'flatmates',
-    'essentials',
-  ];
-
-  Timer? _timer;
-  int _index = 0;
-
-  @override
-  void initState() {
-    super.initState();
-    _timer = Timer.periodic(const Duration(seconds: 2), (_) {
-      if (!mounted) {
-        return;
-      }
-      setState(() => _index = (_index + 1) % _terms.length);
-    });
-  }
-
-  @override
-  void dispose() {
-    _timer?.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final style = AppTheme.body(
-      fontSize: 14,
-      fontWeight: FontWeight.w500,
-      color: AppColors.textSecondary,
-      height: 1.45,
-    );
-
-    return Row(
-      children: [
-        Text('Search for ', style: style),
-        Flexible(
-          child: AnimatedSwitcher(
-            duration: const Duration(milliseconds: 320),
-            layoutBuilder: (currentChild, previousChildren) {
-              return Stack(
-                alignment: Alignment.centerLeft,
-                children: [
-                  ...previousChildren,
-                  ?currentChild,
-                ],
-              );
-            },
-            transitionBuilder: (child, animation) {
-              final offsetAnimation = Tween<Offset>(
-                begin: const Offset(0, 0.45),
-                end: Offset.zero,
-              ).animate(animation);
-              return FadeTransition(
-                opacity: animation,
-                child: SlideTransition(position: offsetAnimation, child: child),
-              );
-            },
-            child: Text(
-              _terms[_index],
-              key: ValueKey(_terms[_index]),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: style,
-            ),
-          ),
-        ),
-      ],
     );
   }
 }
@@ -660,13 +616,13 @@ class _SectionHeader extends StatelessWidget {
   }
 }
 
-class _FeaturedHomeCard extends StatelessWidget {
+class FeaturedListingCard extends StatelessWidget {
   final ListingModel listing;
   final bool isSaved;
   final VoidCallback onTap;
   final VoidCallback onSaveTap;
 
-  const _FeaturedHomeCard({
+  const FeaturedListingCard({
     required this.listing,
     required this.isSaved,
     required this.onTap,
