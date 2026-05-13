@@ -46,10 +46,7 @@ class HelpSupportScreen extends StatelessWidget {
                   const SizedBox(height: 16),
                   Text(
                     'Need help?',
-                    style: AppTheme.headline(
-                      fontSize: 24,
-                      color: Colors.white,
-                    ),
+                    style: AppTheme.headline(fontSize: 24, color: Colors.white),
                   ),
                   const SizedBox(height: 8),
                   Text(
@@ -63,7 +60,10 @@ class HelpSupportScreen extends StatelessWidget {
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
                     onPressed: () async {
-                      final uri = Uri(scheme: 'mailto', path: 'triozyapp@gmail.com');
+                      final uri = Uri(
+                        scheme: 'mailto',
+                        path: 'triozyapp@gmail.com',
+                      );
                       if (await canLaunchUrl(uri)) {
                         await launchUrl(uri);
                       }
@@ -107,29 +107,39 @@ class HelpSupportScreen extends StatelessWidget {
             const SizedBox(height: 16),
 
             _FaqTile(
-              question: 'How do I book a service?',
+              question: 'How do I find PGs or flatmates?',
               answer:
-                  'Browse through the categories or search for a specific service. Tap on a professional\'s profile and select "Book Now" to schedule an appointment.',
+                  'Browse available PGs and flatmate listings based on your location, budget, and preferences. You can directly contact the owner or roommate through the app.',
             ),
+
             _FaqTile(
-              question: 'How do I become a professional?',
+              question: 'How do I post my PG or flat for others?',
               answer:
-                  'Go to your Profile page and tap "Become a Professional". Fill in your details, upload your photo, and complete the verification process.',
+                  'Go to the relevant section and tap the add icon. Add photos, rent details, location, and a short description to publish your listing.',
             ),
+
             _FaqTile(
-              question: 'Is Triozy available in my area?',
+              question: 'How does the marketplace work?',
               answer:
-                  'Triozy is expanding rapidly. Enable location services to see available professionals near you. If none are available yet, check back soon!',
+                  'The marketplace allows users to buy and sell items locally. You can post products, browse listings, and connect directly with buyers or sellers.',
             ),
+
             _FaqTile(
-              question: 'How do I cancel a booking?',
+              question: 'Is Triozy available in my city?',
               answer:
-                  'Navigate to your Bookings tab and select the booking you want to cancel. Tap "Cancel Booking" and confirm. Cancellation policies may apply.',
+                  'Triozy is expanding continuously. Enable location access to explore nearby PGs, flatmates, and marketplace listings available in your area.',
             ),
+
             _FaqTile(
-              question: 'How do I contact a professional?',
+              question: 'How do I contact a seller or flatmate?',
               answer:
-                  'After viewing a professional\'s profile, you can tap the "Call" button to contact them directly. You can also message them through the app.',
+                  'Open the listing or profile and use the available contact or chat option to connect directly with the person.',
+            ),
+
+            _FaqTile(
+              question: 'Is posting on Triozy free?',
+              answer:
+                  'Yes, posting PGs, flatmate listings, and marketplace items is currently free for users.',
             ),
 
             const SizedBox(height: 32),
@@ -164,7 +174,9 @@ class HelpSupportScreen extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.15)),
+        border: Border.all(
+          color: AppColors.outlineVariant.withValues(alpha: 0.15),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.02),
