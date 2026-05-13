@@ -20,17 +20,47 @@ class ServicesScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final tiles = [
       _ServiceInfo(
-        icon: Icons.home_work_rounded,
+        imageAsset: 'assets/images/Housing.png',
         title: 'Housing',
         onTap: () => _openHousing(context),
       ),
       _ServiceInfo(
-        icon: Icons.shopping_bag_rounded,
+        imageAsset: 'assets/images/Marketplace.png',
         title: 'Marketplace',
         onTap: () => Navigator.push(
           context,
           MaterialPageRoute(builder: (_) => const MarketplaceScreen()),
         ),
+      ),
+      _ServiceInfo(
+        imageAsset: 'assets/images/tiffin.png',
+        title: 'Tiffin',
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Coming soon!'),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        },
+      ),
+      _ServiceInfo(
+        imageAsset: 'assets/images/cook.png',
+        title: 'Cook',
+        onTap: () {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: const Text('Coming soon!'),
+              behavior: SnackBarBehavior.floating,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+          );
+        },
       ),
     ];
 
@@ -48,7 +78,7 @@ class ServicesScreen extends StatelessWidget {
                   'All Services',
                   style: AppTheme.headline(
                     fontSize: 24,
-                    color: AppColors.primary,
+                    color: AppColors.textPrimary,
                   ),
                 ),
                 const SizedBox(height: 4),
@@ -66,33 +96,21 @@ class ServicesScreen extends StatelessWidget {
           ),
           Expanded(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 110),
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: GridView.builder(
                 itemCount: tiles.length,
                 gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  crossAxisSpacing: 16,
-                  mainAxisSpacing: 16,
-                  mainAxisExtent: 168,
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 0.95,
                 ),
                 itemBuilder: (context, index) {
                   final tile = tiles[index];
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      _ServiceTile(icon: tile.icon, onTap: tile.onTap),
-                      const SizedBox(height: 8),
-                      Text(
-                        tile.title,
-                        style: AppTheme.body(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                        ),
-                        textAlign: TextAlign.center,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
+                  return _ServiceTile(
+                    imageAsset: tile.imageAsset,
+                    title: tile.title,
+                    onTap: tile.onTap,
                   );
                 },
               ),
@@ -105,46 +123,69 @@ class ServicesScreen extends StatelessWidget {
 }
 
 class _ServiceInfo {
-  final IconData icon;
+  final String imageAsset;
   final String title;
   final VoidCallback onTap;
 
   const _ServiceInfo({
-    required this.icon,
+    required this.imageAsset,
     required this.title,
     required this.onTap,
   });
 }
 
 class _ServiceTile extends StatelessWidget {
-  final IconData icon;
+  final String imageAsset;
+  final String title;
   final VoidCallback onTap;
 
-  const _ServiceTile({required this.icon, required this.onTap});
+  const _ServiceTile({
+    required this.imageAsset,
+    required this.title,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 118,
-        decoration: AppTheme.cardDecoration(
-          color: AppColors.surfaceContainerLowest,
-          radiusValue: 20,
-          shadowAlpha: 0.06,
-          blur: 18,
-          offsetY: 8,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8F9FA),
+          borderRadius: BorderRadius.circular(16),
         ),
-        child: Center(
-          child: Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              color: AppColors.secondaryContainer.withValues(alpha: 0.72),
-              borderRadius: AppTheme.radius(14),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(12, 16, 12, 8),
+                child: Image.asset(
+                  imageAsset,
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, __, ___) => const Icon(
+                    Icons.image_not_supported_rounded,
+                    color: AppColors.outlineVariant,
+                    size: 32,
+                  ),
+                ),
+              ),
             ),
-            child: Icon(icon, color: AppColors.primary, size: 26),
-          ),
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12.0, left: 4, right: 4),
+              child: Text(
+                title,
+                style: AppTheme.body(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF111827),
+                ),
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+          ],
         ),
       ),
     );

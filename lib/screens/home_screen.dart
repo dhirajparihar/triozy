@@ -159,7 +159,7 @@ class HomeScreenState extends State<HomeScreen> {
           _SectionHeader(
             title: 'Find your need',
             actionLabel: 'View all',
-            onActionTap: widget.onExploreTapped,
+            onActionTap: widget.onSearchTapped ?? widget.onExploreTapped,
           ),
           SizedBox(height: isCompact ? 10 : 12),
           _QuickActions(
@@ -461,7 +461,6 @@ class _QuickActions extends StatelessWidget {
               child: _CategoryCard(
                 eyebrow: hasPublishedRequirement ? 'Looking for' : 'Looking for',
                 title: hasPublishedRequirement ? 'PG' : 'PG',
-                description: 'Safe, convenient and budget-friendly PGs.',
                 icon: Icons.apartment_rounded,
                 bgColor: AppColors.accentLavender,
                 iconBgColor: AppColors.primary,
@@ -474,7 +473,6 @@ class _QuickActions extends StatelessWidget {
               child: _CategoryCard(
                 eyebrow: 'Match',
                 title: 'Flatmates',
-                description: 'Find verified flatmates and live better.',
                 icon: Icons.groups_rounded,
                 bgColor: AppColors.pastelPurple,
                 iconBgColor: const Color(0xFF8B5CF6),
@@ -491,7 +489,6 @@ class _QuickActions extends StatelessWidget {
               child: _CategoryCard(
                 eyebrow: 'Buy & Sell',
                 title: 'Marketplace',
-                description: 'Buy and sell used books, furniture, and more.',
                 icon: Icons.storefront_rounded,
                 bgColor: AppColors.pastelPeach,
                 iconBgColor: const Color(0xFFF97316),
@@ -504,7 +501,6 @@ class _QuickActions extends StatelessWidget {
               child: _CategoryCard(
                 eyebrow: 'All',
                 title: 'Services',
-                description: 'From flatmates to essentials, find it all here.',
                 icon: Icons.grid_view_rounded,
                 bgColor: AppColors.pastelMint,
                 iconBgColor: const Color(0xFF10B981),
@@ -522,7 +518,6 @@ class _QuickActions extends StatelessWidget {
 class _CategoryCard extends StatelessWidget {
   final String? eyebrow;
   final String title;
-  final String description;
   final IconData icon;
   final Color bgColor;
   final Color iconBgColor;
@@ -532,7 +527,6 @@ class _CategoryCard extends StatelessWidget {
   const _CategoryCard({
     this.eyebrow,
     required this.title,
-    required this.description,
     required this.icon,
     required this.bgColor,
     required this.iconBgColor,
@@ -586,31 +580,21 @@ class _CategoryCard extends StatelessWidget {
                       letterSpacing: -0.2,
                     ),
                   ),
-                  SizedBox(height: compact ? 2 : 4),
-                  Text(
-                    description,
-                    style: AppTheme.body(
-                      fontSize: compact ? 9 : 10,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.textSecondary,
-                      height: 1.2,
-                    ),
-                  ),
                 ],
               ),
             ),
             SizedBox(width: compact ? 6 : 8),
             Container(
-              width: compact ? 28 : 34,
-              height: compact ? 28 : 34,
+              width: compact ? 44 : 52,
+              height: compact ? 44 : 52,
               decoration: BoxDecoration(
                 color: iconBgColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(compact ? 10 : 12),
+                borderRadius: BorderRadius.circular(compact ? 14 : 16),
               ),
               child: Icon(
                 icon,
                 color: iconBgColor,
-                size: compact ? 16 : 18,
+                size: compact ? 24 : 28,
               ),
             ),
           ],

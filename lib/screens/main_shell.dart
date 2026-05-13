@@ -240,7 +240,6 @@ class _MainShellState extends State<MainShell> {
                 top: _currentIndex == 0
                     ? MediaQuery.of(context).padding.top + 60
                     : MediaQuery.of(context).padding.top,
-                bottom: MediaQuery.of(context).padding.bottom + 80,
               ),
               child: IndexedStack(index: _currentIndex, children: _screens),
             ),
@@ -270,16 +269,11 @@ class _MainShellState extends State<MainShell> {
                   onChatTap: () => setState(() => _currentIndex = 2),
                 ),
               ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: 0,
-              child: AppBottomNavBar(
-                currentIndex: _currentIndex,
-                onTap: (index) => setState(() => _currentIndex = index),
-              ),
-            ),
           ],
+        ),
+        bottomNavigationBar: AppBottomNavBar(
+          currentIndex: _currentIndex,
+          onTap: (index) => setState(() => _currentIndex = index),
         ),
       ),
     );
