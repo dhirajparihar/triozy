@@ -46,3 +46,7 @@ app.*.map.json
 
 # Documentation files for personal reference
 PROJECT_STRUCTURE.md
+
+# Environment variables
+.env
+config.json
