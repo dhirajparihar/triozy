@@ -1,8 +1,4 @@
-import 'dart:async';
-import 'dart:convert';
-
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
 import 'package:provider/provider.dart';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -12,6 +8,7 @@ import '../services/database_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'listing_detail_screen.dart';
+import '../providers/location_search_provider.dart';
 
 class LocationSearchScreen extends StatefulWidget {
   const LocationSearchScreen({super.key});
@@ -24,14 +21,6 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
   final TextEditingController _controller = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   
-  List<Map<String, dynamic>> _results = [];
-  bool _isLoading = false;
-  Timer? _debounce;
-
-  bool _showFeed = false;
-  bool _isLoadingFeed = false;
-  List<ListingModel> _feedListings = [];
-
   @override
   void initState() {
     super.initState();
@@ -45,61 +34,10 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
   void dispose() {
     _controller.dispose();
     _focusNode.dispose();
-    _debounce?.cancel();
     super.dispose();
   }
 
-  void _onSearchChanged(String query) {
-    if (_showFeed) {
-      setState(() {
-        _showFeed = false;
-        _feedListings = [];
-      });
-    }
-
-    if (_debounce?.isActive ?? false) _debounce!.cancel();
-    _debounce = Timer(const Duration(milliseconds: 500), () {
-      _search(query);
-    });
-  }
-
-  Future<void> _search(String query) async {
-    if (query.trim().isEmpty) {
-      if (mounted) {
-        setState(() {
-          _results = [];
-          _isLoading = false;
-        });
-      }
-      return;
-    }
-
-    setState(() => _isLoading = true);
-
-    try {
-      // Using OpenStreetMap Nominatim for free, key-less geocoding
-      final url = Uri.parse(
-          'https://nominatim.openstreetmap.org/search?q=${Uri.encodeComponent(query)}&format=json&addressdetails=1&limit=8');
-      final response =
-          await http.get(url, headers: {'User-Agent': 'TriozyApp/1.0'});
-
-      if (response.statusCode == 200) {
-        final List data = json.decode(response.body);
-        if (mounted) {
-          setState(() {
-            _results = List<Map<String, dynamic>>.from(data);
-            _isLoading = false;
-          });
-        }
-      } else {
-        if (mounted) setState(() => _isLoading = false);
-      }
-    } catch (e) {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
-
-  void _selectLocation(Map<String, dynamic> place) {
+  void _selectLocation(LocationSearchProvider provider, Map<String, dynamic> place) {
     // Extract a shorter, readable name for display
     final addressDetails = place['address'] as Map<String, dynamic>? ?? {};
     final shortName = addressDetails['neighbourhood'] ??
@@ -120,34 +58,8 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
     _controller.text = shortName;
     _focusNode.unfocus();
 
-    setState(() {
-      _results = [];
-      _showFeed = true;
-      _isLoadingFeed = true;
-    });
-
-    _fetchFeedForLocation(lat, lon, city.isNotEmpty ? city : shortName);
-  }
-
-  Future<void> _fetchFeedForLocation(double lat, double lon, String locationName) async {
-    try {
-      final db = context.read<DatabaseService>();
-      // Get listings within 10km of the selected coordinates
-      final listings = await db.getNearbyListings(
-        lat: lat,
-        lon: lon,
-        radiusKm: 10.0,
-        locationName: locationName,
-      );
-      if (mounted) {
-        setState(() {
-          _feedListings = listings;
-          _isLoadingFeed = false;
-        });
-      }
-    } catch (e) {
-      if (mounted) setState(() => _isLoadingFeed = false);
-    }
+    final db = context.read<DatabaseService>();
+    provider.fetchFeedForLocation(db, lat, lon, city.isNotEmpty ? city : shortName);
   }
 
   void _openListing(ListingModel listing) {
@@ -161,69 +73,76 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppColors.background,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        titleSpacing: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Padding(
-          padding: const EdgeInsets.only(right: 16.0),
-          child: TextField(
-            controller: _controller,
-            focusNode: _focusNode,
-            onChanged: _onSearchChanged,
-            decoration: InputDecoration(
-              hintText: 'Search city or locality...',
-              hintStyle: AppTheme.body(
-                fontSize: 15,
-                color: AppColors.textHint,
+    return ChangeNotifierProvider(
+      create: (_) => LocationSearchProvider(),
+      child: Consumer<LocationSearchProvider>(
+        builder: (context, provider, _) {
+          return Scaffold(
+            backgroundColor: AppColors.background,
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              titleSpacing: 0,
+              leading: IconButton(
+                icon: const Icon(Icons.arrow_back_rounded, color: AppColors.textPrimary),
+                onPressed: () => Navigator.pop(context),
               ),
-              border: InputBorder.none,
-              suffixIcon: _controller.text.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary, size: 20),
-                      onPressed: () {
-                        _controller.clear();
-                        _onSearchChanged('');
-                      },
-                    )
-                  : null,
+              title: Padding(
+                padding: const EdgeInsets.only(right: 16.0),
+                child: TextField(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  onChanged: provider.onSearchChanged,
+                  decoration: InputDecoration(
+                    hintText: 'Search city or locality...',
+                    hintStyle: AppTheme.body(
+                      fontSize: 15,
+                      color: AppColors.textHint,
+                    ),
+                    border: InputBorder.none,
+                    suffixIcon: _controller.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary, size: 20),
+                            onPressed: () {
+                              _controller.clear();
+                              provider.clearSearch();
+                            },
+                          )
+                        : null,
+                  ),
+                  style: AppTheme.body(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w500,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
             ),
-            style: AppTheme.body(
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-              color: AppColors.textPrimary,
-            ),
-          ),
-        ),
+            body: _buildBody(provider),
+          );
+        },
       ),
-      body: _buildBody(),
     );
   }
 
-  Widget _buildBody() {
+  Widget _buildBody(LocationSearchProvider provider) {
     // 1. Loading geocoding results
-    if (_isLoading) {
+    if (provider.isLoading) {
       return const Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
 
     // 2. Showing the feed after selecting a location
-    if (_showFeed) {
-      return _buildFeedView();
+    if (provider.showFeed) {
+      return _buildFeedView(provider);
     }
 
     // 3. Showing geocoding search results
-    if (_results.isNotEmpty) {
+    if (provider.results.isNotEmpty) {
       return ListView.separated(
-        itemCount: _results.length,
+        itemCount: provider.results.length,
         separatorBuilder: (context, index) => const Divider(height: 1, color: AppColors.divider),
         itemBuilder: (context, index) {
-          final place = _results[index];
+          final place = provider.results[index];
           final fullName = place['display_name'] ?? '';
           final nameParts = fullName.split(', ');
           final title = nameParts.isNotEmpty ? nameParts.first : fullName;
@@ -236,7 +155,7 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
             subtitle: subtitle.isNotEmpty
                 ? Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTheme.body(fontSize: 13, color: AppColors.textSecondary))
                 : null,
-            onTap: () => _selectLocation(place),
+            onTap: () => _selectLocation(provider, place),
           );
         },
       );
@@ -260,12 +179,12 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
     );
   }
 
-  Widget _buildFeedView() {
-    if (_isLoadingFeed) {
+  Widget _buildFeedView(LocationSearchProvider provider) {
+    if (provider.isLoadingFeed) {
       return const Center(child: CircularProgressIndicator(color: AppColors.primary));
     }
 
-    if (_feedListings.isEmpty) {
+    if (provider.feedListings.isEmpty) {
       return Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -285,10 +204,7 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
             TextButton.icon(
               onPressed: () {
                 _controller.clear();
-                setState(() {
-                  _showFeed = false;
-                  _feedListings = [];
-                });
+                provider.resetFeed();
                 _focusNode.requestFocus();
               },
               icon: const Icon(Icons.search_rounded, size: 18),
@@ -311,7 +227,7 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
               const SizedBox(width: 6),
               Expanded(
                 child: Text(
-                  '${_feedListings.length} listing${_feedListings.length == 1 ? '' : 's'} near ${_controller.text}',
+                  '${provider.feedListings.length} listing${provider.feedListings.length == 1 ? '' : 's'} near ${_controller.text}',
                   style: AppTheme.body(
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
@@ -325,10 +241,10 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
         Expanded(
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
-            itemCount: _feedListings.length,
+            itemCount: provider.feedListings.length,
             separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
-              final listing = _feedListings[index];
+              final listing = provider.feedListings[index];
               return _LocationFeedCard(
                 listing: listing,
                 onTap: () => _openListing(listing),

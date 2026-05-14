@@ -9,6 +9,7 @@ import 'package:uuid/uuid.dart';
 
 import '../models/listing_model.dart';
 import '../providers/location_provider.dart';
+import '../providers/location_search_provider.dart';
 import '../services/cloudinary_service.dart';
 import '../services/database_service.dart';
 import '../theme/app_colors.dart';
@@ -487,6 +488,8 @@ class _SellItemScreenState extends State<SellItemScreen> {
   final _locationController = TextEditingController();
   final _picker = ImagePicker();
   final List<XFile> _images = [];
+  double? _latitude;
+  double? _longitude;
 
   String _category = 'Furniture';
   String _condition = 'Good';
@@ -508,6 +511,8 @@ class _SellItemScreenState extends State<SellItemScreen> {
           address != 'Location unavailable';
       if (hasResolvedAddress && _locationController.text.trim().isEmpty) {
         _locationController.text = address;
+        _latitude = context.read<LocationProvider>().latitude;
+        _longitude = context.read<LocationProvider>().longitude;
       }
     });
   }
@@ -606,7 +611,11 @@ class _SellItemScreenState extends State<SellItemScreen> {
         return;
       }
 
-      setState(() => _locationController.text = address);
+      setState(() {
+        _locationController.text = address;
+        _latitude = locationProvider.latitude;
+        _longitude = locationProvider.longitude;
+      });
     } catch (error) {
       if (!mounted) {
         return;
@@ -666,6 +675,8 @@ class _SellItemScreenState extends State<SellItemScreen> {
         title: _titleController.text.trim(),
         description: _descriptionController.text.trim(),
         location: _locationController.text.trim(),
+        latitude: _latitude,
+        longitude: _longitude,
         price: double.parse(_priceController.text.trim()),
         type: ListingType.marketplace,
         propertyType: PropertyType.item,
@@ -830,15 +841,14 @@ class _SellItemScreenState extends State<SellItemScreen> {
                     onChanged: (_) => setState(() {}),
                   ),
                   SizedBox(height: isCompact ? 8 : 10),
-                  _ModernTextField(
+                  _LocationSearchField(
                     controller: _locationController,
-                    label: 'Pickup Location',
-                    hint: 'Enter pickup area',
-                    prefixIcon: Icons.location_on_rounded,
-                    validator: (value) => (value ?? '').trim().isEmpty
-                        ? 'Enter pickup location'
-                        : null,
-                    onChanged: (_) => setState(() {}),
+                    isCompact: isCompact,
+                    onSelected: (name, lat, lon) {
+                      _locationController.text = name;
+                      _latitude = lat;
+                      _longitude = lon;
+                    },
                   ),
                   SizedBox(height: isCompact ? 8 : 10),
                   Align(
@@ -1010,6 +1020,241 @@ class _SellItemScreenState extends State<SellItemScreen> {
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: BorderSide.none,
+      ),
+    );
+  }
+}
+
+class _LocationSearchField extends StatefulWidget {
+  final TextEditingController controller;
+  final bool isCompact;
+  final void Function(String name, double lat, double lon)? onSelected;
+
+  const _LocationSearchField({
+    required this.controller,
+    required this.isCompact,
+    this.onSelected,
+  });
+
+  @override
+  State<_LocationSearchField> createState() => _LocationSearchFieldState();
+}
+
+class _LocationSearchFieldState extends State<_LocationSearchField> {
+  final FocusNode _focusNode = FocusNode();
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  late LocationSearchProvider _provider;
+
+  @override
+  void initState() {
+    super.initState();
+    _provider = LocationSearchProvider();
+    _provider.addListener(_onProviderChanged);
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  @override
+  void dispose() {
+    _hideOverlay();
+    _provider.removeListener(_onProviderChanged);
+    _provider.dispose();
+    _focusNode.removeListener(_onFocusChanged);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onProviderChanged() {
+    if (_provider.isLoading || _provider.results.isNotEmpty) {
+      if (_focusNode.hasFocus) {
+        _showOverlay();
+        _overlayEntry?.markNeedsBuild();
+      }
+    } else {
+      _hideOverlay();
+    }
+  }
+
+  void _onFocusChanged() {
+    if (_focusNode.hasFocus && (_provider.isLoading || _provider.results.isNotEmpty)) {
+      _showOverlay();
+    } else if (!_focusNode.hasFocus) {
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (mounted) _hideOverlay();
+      });
+    }
+  }
+
+  void _showOverlay() {
+    if (_overlayEntry != null) return;
+    
+    final renderBox = context.findRenderObject() as RenderBox?;
+    final width = renderBox?.size.width;
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          width: width,
+          child: CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            targetAnchor: Alignment.bottomLeft,
+            followerAnchor: Alignment.topLeft,
+            child: Material(
+              color: Colors.transparent,
+              child: _buildOverlayContent(),
+            ),
+          ),
+        );
+      },
+    );
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _hideOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  Widget _buildOverlayContent() {
+    if (_provider.isLoading) {
+      return Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.outlineVariant.withValues(alpha: 0.5),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ]
+        ),
+        child: const Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+          ),
+        ),
+      );
+    }
+
+    if (_provider.results.isNotEmpty) {
+      return Container(
+        margin: const EdgeInsets.only(top: 8),
+        constraints: const BoxConstraints(maxHeight: 240),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.outlineVariant.withValues(alpha: 0.5),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ]
+        ),
+        child: ListView(
+          padding: EdgeInsets.zero,
+          shrinkWrap: true,
+          children: _provider.results.map((place) {
+            final fullName = place['display_name'] ?? '';
+            final nameParts = fullName.split(', ');
+            final title = nameParts.isNotEmpty ? nameParts.first : fullName;
+            final subtitle = nameParts.length > 1 ? nameParts.skip(1).join(', ') : '';
+
+            return ListTile(
+              leading: const Icon(Icons.location_on_rounded, color: AppColors.primary),
+              title: Text(
+                title,
+                style: AppTheme.body(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+              ),
+              subtitle: subtitle.isNotEmpty
+                  ? Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.body(fontSize: 12, color: AppColors.textSecondary),
+                    )
+                  : null,
+              onTap: () {
+                final addressDetails = place['address'] as Map<String, dynamic>? ?? {};
+                final shortName = addressDetails['neighbourhood'] ??
+                    addressDetails['suburb'] ??
+                    addressDetails['city_district'] ??
+                    addressDetails['city'] ??
+                    addressDetails['town'] ??
+                    place['name'] ??
+                    'Unknown Location';
+                          
+                final lat = double.tryParse(place['lat']?.toString() ?? '') ?? 0.0;
+                final lon = double.tryParse(place['lon']?.toString() ?? '') ?? 0.0;
+
+                if (widget.onSelected != null) {
+                  widget.onSelected!(shortName, lat, lon);
+                } else {
+                  widget.controller.text = shortName;
+                }
+                
+                _provider.clearSearch();
+                _focusNode.unfocus();
+              },
+            );
+          }).toList(),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: TextFormField(
+        focusNode: _focusNode,
+        controller: widget.controller,
+        onChanged: _provider.onSearchChanged,
+        decoration: InputDecoration(
+          labelText: 'Pickup Location',
+          hintText: 'Enter pickup area',
+          prefixIcon: const Icon(Icons.location_on_rounded),
+          suffixIcon: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: widget.controller,
+            builder: (context, value, child) {
+              if (value.text.isEmpty) return const SizedBox.shrink();
+              return IconButton(
+                icon: const Icon(Icons.close_rounded, size: 20),
+                onPressed: () {
+                  widget.controller.clear();
+                  _provider.clearSearch();
+                },
+              );
+            },
+          ),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: widget.isCompact ? 12 : 16,
+            vertical: widget.isCompact ? 12 : 16,
+          ),
+          filled: true,
+          fillColor: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.35),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(16),
+            borderSide: BorderSide.none,
+          ),
+        ),
+        validator: (v) =>
+            (v == null || v.trim().isEmpty) ? 'Enter pickup location' : null,
       ),
     );
   }

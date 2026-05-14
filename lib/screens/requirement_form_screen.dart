@@ -14,6 +14,7 @@ import '../services/cloudinary_service.dart';
 import '../services/database_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import '../providers/location_search_provider.dart';
 
 class RequirementFormScreen extends StatefulWidget {
   const RequirementFormScreen({super.key});
@@ -28,6 +29,8 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
     NeedType.room,
   );
   final TextEditingController _locationController = TextEditingController();
+  double? _latitude;
+  double? _longitude;
   double _minBudget = 4000;
   double _maxBudget = 12000;
   String _moveIn = 'Immediately';
@@ -74,6 +77,8 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
     try {
       _descController.text = prefs.getString('req_desc') ?? '';
       _locationController.text = prefs.getString('req_location') ?? '';
+      _latitude = prefs.getDouble('req_lat');
+      _longitude = prefs.getDouble('req_lon');
       setState(() {});
     } catch (_) {}
   }
@@ -232,6 +237,8 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
     await prefs.setBool('requirement_draft', true);
     await prefs.setString('req_desc', _descController.text);
     await prefs.setString('req_location', _locationController.text);
+    if (_latitude != null) await prefs.setDouble('req_lat', _latitude!);
+    if (_longitude != null) await prefs.setDouble('req_lon', _longitude!);
   }
 
   void _selectPresetMoveIn(String value) {
@@ -396,6 +403,8 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
         title: _buildListingTitle(needType, location, requirement.maxBudget),
         description: requirement.description,
         location: location,
+        latitude: _latitude,
+        longitude: _longitude,
         price: requirement.maxBudget.toDouble(),
         type: ListingType.housing,
         propertyType: _propertyTypeForNeed(needType),
@@ -413,6 +422,8 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
       await prefs.remove('requirement_draft');
       await prefs.remove('req_desc');
       await prefs.remove('req_location');
+      await prefs.remove('req_lat');
+      await prefs.remove('req_lon');
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
@@ -495,25 +506,14 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
               style: AppTheme.headline(fontSize: headingSize),
             ),
             SizedBox(height: labelGap),
-            TextFormField(
+            _LocationSearchField(
               controller: _locationController,
-              decoration: InputDecoration(
-                isDense: true,
-                prefixIcon: const Icon(Icons.place_rounded),
-                hintText: 'Search locality, college, office area...',
-                filled: true,
-                fillColor: Colors.white,
-                contentPadding: EdgeInsets.symmetric(
-                  horizontal: isCompact ? 12 : 14,
-                  vertical: isCompact ? 12 : 14,
-                ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide.none,
-                ),
-              ),
-              validator: (v) =>
-                  (v == null || v.trim().isEmpty) ? 'Enter a location' : null,
+              isCompact: isCompact,
+              onSelected: (name, lat, lon) {
+                _locationController.text = name;
+                _latitude = lat;
+                _longitude = lon;
+              },
             ),
             SizedBox(height: sectionGap),
             Text(
@@ -887,6 +887,241 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _LocationSearchField extends StatefulWidget {
+  final TextEditingController controller;
+  final bool isCompact;
+  final void Function(String name, double lat, double lon)? onSelected;
+
+  const _LocationSearchField({
+    required this.controller,
+    required this.isCompact,
+    this.onSelected,
+  });
+
+  @override
+  State<_LocationSearchField> createState() => _LocationSearchFieldState();
+}
+
+class _LocationSearchFieldState extends State<_LocationSearchField> {
+  final FocusNode _focusNode = FocusNode();
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  late LocationSearchProvider _provider;
+
+  @override
+  void initState() {
+    super.initState();
+    _provider = LocationSearchProvider();
+    _provider.addListener(_onProviderChanged);
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  @override
+  void dispose() {
+    _hideOverlay();
+    _provider.removeListener(_onProviderChanged);
+    _provider.dispose();
+    _focusNode.removeListener(_onFocusChanged);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onProviderChanged() {
+    if (_provider.isLoading || _provider.results.isNotEmpty) {
+      if (_focusNode.hasFocus) {
+        _showOverlay();
+        _overlayEntry?.markNeedsBuild();
+      }
+    } else {
+      _hideOverlay();
+    }
+  }
+
+  void _onFocusChanged() {
+    if (_focusNode.hasFocus && (_provider.isLoading || _provider.results.isNotEmpty)) {
+      _showOverlay();
+    } else if (!_focusNode.hasFocus) {
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (mounted) _hideOverlay();
+      });
+    }
+  }
+
+  void _showOverlay() {
+    if (_overlayEntry != null) return;
+    
+    final renderBox = context.findRenderObject() as RenderBox?;
+    final width = renderBox?.size.width;
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          width: width,
+          child: CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            targetAnchor: Alignment.bottomLeft,
+            followerAnchor: Alignment.topLeft,
+            child: Material(
+              color: Colors.transparent,
+              child: _buildOverlayContent(),
+            ),
+          ),
+        );
+      },
+    );
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _hideOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  Widget _buildOverlayContent() {
+    if (_provider.isLoading) {
+      return Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.outlineVariant.withValues(alpha: 0.5),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ]
+        ),
+        child: const Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+          ),
+        ),
+      );
+    }
+
+    if (_provider.results.isNotEmpty) {
+      return Container(
+        margin: const EdgeInsets.only(top: 8),
+        constraints: const BoxConstraints(maxHeight: 240),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: AppColors.outlineVariant.withValues(alpha: 0.5),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ]
+        ),
+        child: ListView(
+          padding: EdgeInsets.zero,
+          shrinkWrap: true,
+          children: _provider.results.map((place) {
+            final fullName = place['display_name'] ?? '';
+            final nameParts = fullName.split(', ');
+            final title = nameParts.isNotEmpty ? nameParts.first : fullName;
+            final subtitle = nameParts.length > 1 ? nameParts.skip(1).join(', ') : '';
+
+            return ListTile(
+              leading: const Icon(Icons.location_on_rounded, color: AppColors.primary),
+              title: Text(
+                title,
+                style: AppTheme.body(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+              ),
+              subtitle: subtitle.isNotEmpty
+                  ? Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.body(fontSize: 12, color: AppColors.textSecondary),
+                    )
+                  : null,
+              onTap: () {
+                final addressDetails = place['address'] as Map<String, dynamic>? ?? {};
+                final shortName = addressDetails['neighbourhood'] ??
+                    addressDetails['suburb'] ??
+                    addressDetails['city_district'] ??
+                    addressDetails['city'] ??
+                    addressDetails['town'] ??
+                    place['name'] ??
+                    'Unknown Location';
+                          
+                          final lat = double.tryParse(place['lat']?.toString() ?? '') ?? 0.0;
+                          final lon = double.tryParse(place['lon']?.toString() ?? '') ?? 0.0;
+
+                          if (widget.onSelected != null) {
+                            widget.onSelected!(shortName, lat, lon);
+                          } else {
+                            widget.controller.text = shortName;
+                          }
+                          
+                _provider.clearSearch();
+                _focusNode.unfocus();
+              },
+            );
+          }).toList(),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: TextFormField(
+        focusNode: _focusNode,
+        controller: widget.controller,
+        onChanged: _provider.onSearchChanged,
+        decoration: InputDecoration(
+          isDense: true,
+          prefixIcon: const Icon(Icons.place_rounded),
+          suffixIcon: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: widget.controller,
+            builder: (context, value, child) {
+              if (value.text.isEmpty) return const SizedBox.shrink();
+              return IconButton(
+                icon: const Icon(Icons.close_rounded, size: 20),
+                onPressed: () {
+                  widget.controller.clear();
+                  _provider.clearSearch();
+                },
+              );
+            },
+          ),
+          hintText: 'Search locality, college, office area...',
+          filled: true,
+          fillColor: Colors.white,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: widget.isCompact ? 12 : 14,
+            vertical: widget.isCompact ? 12 : 14,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(12),
+            borderSide: BorderSide.none,
+          ),
+        ),
+        validator: (v) =>
+            (v == null || v.trim().isEmpty) ? 'Enter a location' : null,
       ),
     );
   }
