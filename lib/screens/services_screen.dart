@@ -18,6 +18,7 @@ class ServicesScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
     final tiles = [
       _ServiceInfo(
         imageAsset: 'assets/images/Housing.png',
@@ -77,8 +78,9 @@ class ServicesScreen extends StatelessWidget {
                 Text(
                   'All Services',
                   style: AppTheme.headline(
-                    fontSize: 24,
-                    color: AppColors.textPrimary,
+                    fontSize: isCompact ? 28 : 32,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.onSurface,
                   ),
                 ),
                 const SizedBox(height: 4),

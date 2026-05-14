@@ -283,6 +283,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                           final previous = actualIndex > 0
                               ? messages[actualIndex - 1]
                               : null;
+                          final next = actualIndex < messages.length - 1
+                              ? messages[actualIndex + 1]
+                              : null;
                           final isOwnMessage = _isOwnMessage(
                             message,
                             conversation,
@@ -301,6 +304,17 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                       .difference(previous.timestamp)
                                       .inMinutes <
                                   4;
+                          final nextIsOwnMessage = next == null
+                              ? null
+                              : _isOwnMessage(next, conversation);
+                          final groupedWithNext =
+                              next != null &&
+                              nextIsOwnMessage == isOwnMessage &&
+                              _isSameDay(message.timestamp, next.timestamp) &&
+                              next.timestamp
+                                      .difference(message.timestamp)
+                                      .inMinutes <
+                                  4;
 
                           return Column(
                             children: [
@@ -316,7 +330,10 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                                     !message.isSending &&
                                     !peerLastReadAt.isBefore(message.timestamp),
                                 groupedWithPrevious: groupedWithPrevious,
+                                groupedWithNext: groupedWithNext,
                                 formattedTime: _formatTime(message.timestamp),
+                                peerPhotoUrl: conversation?.peerMetaFor(_currentUserId)?.photoUrl,
+                                peerName: conversation?.peerMetaFor(_currentUserId)?.name,
                                 onRetry: message.isFailed
                                     ? () => chatProvider.retryMessage(
                                         message.clientId,
@@ -857,7 +874,10 @@ class _MessageBubble extends StatelessWidget {
   final bool isOwn;
   final bool isReadByPeer;
   final bool groupedWithPrevious;
+  final bool groupedWithNext;
   final String formattedTime;
+  final String? peerPhotoUrl;
+  final String? peerName;
   final VoidCallback? onRetry;
 
   const _MessageBubble({
@@ -865,7 +885,10 @@ class _MessageBubble extends StatelessWidget {
     required this.isOwn,
     required this.isReadByPeer,
     required this.groupedWithPrevious,
+    required this.groupedWithNext,
     required this.formattedTime,
+    this.peerPhotoUrl,
+    this.peerName,
     this.onRetry,
   });
 
@@ -879,8 +902,9 @@ class _MessageBubble extends StatelessWidget {
     final timeColor = message.isFailed
         ? AppColors.error
         : (isOwn ? AppColors.slate500 : AppColors.onSurfaceVariant);
-    final maxWidth =
-        MediaQuery.of(context).size.width * (isCompact ? 0.82 : 0.78);
+    final maxWidth = MediaQuery.of(context).size.width * (isCompact ? 0.75 : 0.72);
+
+    final showAvatar = !isOwn && !groupedWithNext;
 
     return Align(
       alignment: isOwn ? Alignment.centerRight : Alignment.centerLeft,
@@ -888,86 +912,153 @@ class _MessageBubble extends StatelessWidget {
         padding: EdgeInsets.only(
           top: groupedWithPrevious ? 4 : 8,
           bottom: 8,
-          left: isOwn ? (isCompact ? 26 : 42) : 0,
-          right: isOwn ? 0 : (isCompact ? 26 : 42),
+          left: isOwn ? (isCompact ? 42 : 56) : 0,
+          right: isOwn ? 0 : (isCompact ? 42 : 56),
         ),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: maxWidth),
-          child: Column(
-            crossAxisAlignment: isOwn
-                ? CrossAxisAlignment.end
-                : CrossAxisAlignment.start,
-            children: [
-              GestureDetector(
-                onTap: message.isFailed ? onRetry : null,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 13,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            if (!isOwn) ...[
+              if (showAvatar)
+                Padding(
+                  padding: const EdgeInsets.only(right: 8, bottom: 20),
+                  child: _SmallAvatar(
+                    photoUrl: peerPhotoUrl ?? '',
+                    name: peerName ?? '',
                   ),
-                  decoration: BoxDecoration(
-                    color: bubbleColor,
-                    borderRadius: BorderRadius.only(
-                      topLeft: Radius.circular(isOwn ? 26 : 10),
-                      topRight: Radius.circular(isOwn ? 10 : 26),
-                      bottomLeft: const Radius.circular(26),
-                      bottomRight: const Radius.circular(26),
-                    ),
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.primary.withValues(alpha: 0.08),
-                        blurRadius: 18,
-                        offset: const Offset(0, 8),
+                )
+              else
+                const SizedBox(width: 36),
+            ],
+            Flexible(
+              child: ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: maxWidth),
+                child: Column(
+                  crossAxisAlignment: isOwn
+                      ? CrossAxisAlignment.end
+                      : CrossAxisAlignment.start,
+                  children: [
+                    GestureDetector(
+                      onTap: message.isFailed ? onRetry : null,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 13,
+                        ),
+                        decoration: BoxDecoration(
+                          color: bubbleColor,
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(isOwn ? 26 : 10),
+                            topRight: Radius.circular(isOwn ? 10 : 26),
+                            bottomLeft: const Radius.circular(26),
+                            bottomRight: const Radius.circular(26),
+                          ),
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.primary.withValues(alpha: 0.08),
+                              blurRadius: 18,
+                              offset: const Offset(0, 8),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          message.text,
+                          style: AppTheme.body(
+                            fontSize: isCompact ? 14 : 15,
+                            fontWeight: FontWeight.w500,
+                            color: textColor,
+                            height: 1.55,
+                          ),
+                        ),
                       ),
-                    ],
+                    ),
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (message.isFailed)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: Text(
+                              'Tap to retry',
+                              style: AppTheme.body(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.error,
+                              ),
+                            ),
+                          ),
+                        Text(
+                          formattedTime,
+                          style: AppTheme.body(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                            color: timeColor,
+                          ),
+                        ),
+                        if (isOwn) ...[
+                          const SizedBox(width: 4),
+                          _StatusIcon(
+                            message: message,
+                            isReadByPeer: isReadByPeer,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SmallAvatar extends StatelessWidget {
+  final String photoUrl;
+  final String name;
+
+  const _SmallAvatar({required this.photoUrl, required this.name});
+
+  @override
+  Widget build(BuildContext context) {
+    final initial = name.isEmpty ? '?' : name[0].toUpperCase();
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: const BoxDecoration(
+        shape: BoxShape.circle,
+        color: AppColors.surfaceContainerHigh,
+      ),
+      child: ClipOval(
+        child: photoUrl.isEmpty
+            ? Center(
+                child: Text(
+                  initial,
+                  style: AppTheme.headline(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: AppColors.primary,
                   ),
+                ),
+              )
+            : CachedNetworkImage(
+                imageUrl: photoUrl,
+                fit: BoxFit.cover,
+                errorWidget: (_, _, _) => Center(
                   child: Text(
-                    message.text,
-                    style: AppTheme.body(
-                      fontSize: isCompact ? 14 : 15,
-                      fontWeight: FontWeight.w500,
-                      color: textColor,
-                      height: 1.55,
+                    initial,
+                    style: AppTheme.headline(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.primary,
                     ),
                   ),
                 ),
               ),
-              const SizedBox(height: 6),
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  if (message.isFailed)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: Text(
-                        'Tap to retry',
-                        style: AppTheme.body(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.error,
-                        ),
-                      ),
-                    ),
-                  Text(
-                    formattedTime,
-                    style: AppTheme.body(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: timeColor,
-                    ),
-                  ),
-                  if (isOwn) ...[
-                    const SizedBox(width: 4),
-                    _StatusIcon(
-                      message: message,
-                      isReadByPeer: isReadByPeer,
-                    ),
-                  ],
-                ],
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }

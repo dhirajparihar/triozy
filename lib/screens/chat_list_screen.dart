@@ -58,7 +58,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     final uid = _currentUserId;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isCompact = screenWidth < 380;
-    final horizontalPadding = isCompact ? 12.0 : 16.0;
+    final horizontalPadding = 16.0;
     final listGap = isCompact ? 10.0 : 14.0;
     if (uid == null || uid.isEmpty) {
       return widget.showScaffold
@@ -368,25 +368,16 @@ class _ChatListHeader extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.fromLTRB(
-          isCompact ? 12 : 16,
-          isCompact ? 8 : 12,
-          isCompact ? 12 : 16,
-          isCompact ? 12 : 16,
-        ),
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SizedBox(
-              height: isCompact ? 44 : 50,
-              child: Center(
-                child: Text(
-                  'Messages',
-                  style: AppTheme.headline(
-                    fontSize: isCompact ? 24 : 28,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
-                  ),
-                ),
+            Text(
+              'Messages',
+              style: AppTheme.headline(
+                fontSize: isCompact ? 28 : 32,
+                fontWeight: FontWeight.w800,
+                color: AppColors.onSurface,
               ),
             ),
             SizedBox(height: isCompact ? 10 : 14),
@@ -443,38 +434,27 @@ class _ChatListHeader extends StatelessWidget {
               ),
             ),
             SizedBox(height: isCompact ? 10 : 14),
-            Container(
-              height: isCompact ? 48 : 54,
-              padding: const EdgeInsets.all(5),
-              decoration: BoxDecoration(
-                color: AppColors.surfaceContainerHighest,
-                borderRadius: BorderRadius.circular(18),
-              ),
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
               child: Row(
                 children: [
-                  Expanded(
-                    child: _SegmentButton(
-                      label: 'All',
-                      selected: selectedSegment == _ChatInboxSegment.all,
-                      onTap: () =>
-                          onSegmentChanged(_ChatInboxSegment.all),
-                    ),
+                  _FilterChip(
+                    label: 'All',
+                    selected: selectedSegment == _ChatInboxSegment.all,
+                    onTap: () => onSegmentChanged(_ChatInboxSegment.all),
                   ),
-                  Expanded(
-                    child: _SegmentButton(
-                      label: 'Housing',
-                      selected: selectedSegment == _ChatInboxSegment.housing,
-                      onTap: () =>
-                          onSegmentChanged(_ChatInboxSegment.housing),
-                    ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: 'Housing',
+                    selected: selectedSegment == _ChatInboxSegment.housing,
+                    onTap: () => onSegmentChanged(_ChatInboxSegment.housing),
                   ),
-                  Expanded(
-                    child: _SegmentButton(
-                      label: 'Marketplace',
-                      selected: selectedSegment == _ChatInboxSegment.marketplace,
-                      onTap: () =>
-                          onSegmentChanged(_ChatInboxSegment.marketplace),
-                    ),
+                  const SizedBox(width: 8),
+                  _FilterChip(
+                    label: 'Marketplace',
+                    selected: selectedSegment == _ChatInboxSegment.marketplace,
+                    onTap: () => onSegmentChanged(_ChatInboxSegment.marketplace),
                   ),
                 ],
               ),
@@ -486,12 +466,12 @@ class _ChatListHeader extends StatelessWidget {
   }
 }
 
-class _SegmentButton extends StatelessWidget {
+class _FilterChip extends StatelessWidget {
   final String label;
   final bool selected;
   final VoidCallback onTap;
 
-  const _SegmentButton({
+  const _FilterChip({
     required this.label,
     required this.selected,
     required this.onTap,
@@ -507,29 +487,22 @@ class _SegmentButton extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOut,
         alignment: Alignment.center,
+        padding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 16 : 20,
+          vertical: isCompact ? 8 : 10,
+        ),
         decoration: BoxDecoration(
           color: selected
-              ? AppColors.surfaceContainerLowest
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: selected
-              ? [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.08),
-                    blurRadius: 10,
-                    offset: const Offset(0, 4),
-                  ),
-                ]
-              : null,
+              ? AppColors.textPrimary
+              : AppColors.chipBackground,
+          borderRadius: BorderRadius.circular(100),
         ),
         child: Text(
           label,
-          maxLines: 1,
-          overflow: TextOverflow.ellipsis,
           style: AppTheme.body(
             fontSize: isCompact ? 13 : 15,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w500,
-            color: selected ? AppColors.primary : AppColors.onSurfaceVariant,
+            fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+            color: selected ? Colors.white : AppColors.onSurfaceVariant,
           ),
         ),
       ),

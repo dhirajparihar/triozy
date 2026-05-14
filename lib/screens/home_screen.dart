@@ -13,6 +13,8 @@ import 'housing_entry_screen.dart';
 import 'listing_detail_screen.dart';
 import 'requirement_form_screen.dart';
 import 'location_search_screen.dart';
+import 'pg_listing_form_screen.dart';
+import 'housing_feed_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onExploreTapped;
@@ -122,21 +124,35 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _openPgListings() {
-    widget.onPropertyTypeSelected?.call(PropertyType.pg);
-  }
-
   Future<void> _openFlatmates() async {
     if (_hasPostedHousingListing) {
       widget.onPropertyTypeSelected?.call(PropertyType.flat);
       return;
     }
 
-    final route = await HousingEntryScreen.buildRoute();
-    if (!mounted) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const HousingEntryScreen()),
+    );
+  }
+
+  Future<void> _openRoom() async {
+    if (_hasPostedHousingListing) {
+      widget.onPropertyTypeSelected?.call(PropertyType.room);
       return;
     }
-    Navigator.push(context, route);
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const HousingEntryScreen()),
+    );
+  }
+
+  void _openPostListing() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const PgListingFormScreen()),
+    );
   }
 
   Future<void> _openLocationSearch() async {
@@ -166,17 +182,11 @@ class HomeScreenState extends State<HomeScreen> {
             selectedLocation: _selectedLocationAddress,
           ),
           SizedBox(height: isCompact ? 16 : 20),
-          _SectionHeader(
-            title: 'Find your need',
-            actionLabel: 'View all',
-            onActionTap: widget.onSearchTapped ?? widget.onExploreTapped,
-          ),
-          SizedBox(height: isCompact ? 10 : 12),
           _QuickActions(
             hasPublishedRequirement: _hasPublishedRequirement,
-            onFindRoomTap:
-                _hasPublishedRequirement ? _openPgListings : _openRoomRequirement,
+            onFindRoomTap: _openRoom,
             onFlatmatesTap: _openFlatmates,
+            onPostListingTap: _openPostListing,
             onMarketplaceTap: () =>
                 widget.onPropertyTypeSelected?.call(PropertyType.item),
             onAllServicesTap: widget.onSearchTapped ?? widget.onExploreTapped,
@@ -392,6 +402,7 @@ class _QuickActions extends StatelessWidget {
   final bool hasPublishedRequirement;
   final VoidCallback onFindRoomTap;
   final VoidCallback onFlatmatesTap;
+  final VoidCallback onPostListingTap;
   final VoidCallback onMarketplaceTap;
   final VoidCallback? onAllServicesTap;
 
@@ -399,158 +410,151 @@ class _QuickActions extends StatelessWidget {
     required this.hasPublishedRequirement,
     required this.onFindRoomTap,
     required this.onFlatmatesTap,
+    required this.onPostListingTap,
     required this.onMarketplaceTap,
     this.onAllServicesTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final width = MediaQuery.sizeOf(context).width;
-    final compact = width < 380;
-    final gap = compact ? 10.0 : 12.0;
-
-    return Column(
-      children: [
-        Row(
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 20,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
+        padding: const EdgeInsets.symmetric(horizontal: 8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(
-              child: _CategoryCard(
-                eyebrow: hasPublishedRequirement ? 'Looking for' : 'Looking for',
-                title: hasPublishedRequirement ? 'PG' : 'PG',
-                icon: Icons.apartment_rounded,
-                bgColor: AppColors.accentLavender,
-                iconBgColor: AppColors.primary,
-                onTap: onFindRoomTap,
-                compact: compact,
-              ),
+            _CategoryCard(
+              title: 'Find Room',
+              subtitle: 'Explore rooms',
+              icon: Icons.apartment_rounded,
+              bgColor: const Color(0xFFEFF6FF),
+              iconColor: const Color(0xFF3B82F6),
+              onTap: onFindRoomTap,
             ),
-            SizedBox(width: gap),
-            Expanded(
-              child: _CategoryCard(
-                eyebrow: 'Match',
-                title: 'Flatmates',
-                icon: Icons.groups_rounded,
-                bgColor: AppColors.pastelPurple,
-                iconBgColor: const Color(0xFF8B5CF6),
-                onTap: onFlatmatesTap,
-                compact: compact,
-              ),
+            _CategoryCard(
+              title: 'Find Flatmate',
+              subtitle: 'Get matched',
+              icon: Icons.groups_rounded,
+              bgColor: const Color(0xFFF5F3FF),
+              iconColor: const Color(0xFF8B5CF6),
+              onTap: onFlatmatesTap,
+            ),
+            _CategoryCard(
+              title: 'Post Listing',
+              subtitle: 'For Owners',
+              icon: Icons.add_box_rounded,
+              bgColor: const Color(0xFFEEF2FF),
+              iconColor: const Color(0xFF6366F1),
+              onTap: onPostListingTap,
+            ),
+            _CategoryCard(
+              title: 'Marketplace',
+              subtitle: 'Buy & sell',
+              icon: Icons.storefront_rounded,
+              bgColor: const Color(0xFFFFF7ED),
+              iconColor: const Color(0xFFF97316),
+              onTap: onMarketplaceTap,
+            ),
+            _CategoryCard(
+              title: 'Daily Help',
+              subtitle: 'Services',
+              icon: Icons.grid_view_rounded,
+              bgColor: const Color(0xFFECFDF5),
+              iconColor: const Color(0xFF10B981),
+              onTap: onAllServicesTap,
             ),
           ],
         ),
-        SizedBox(height: gap),
-        Row(
-          children: [
-            Expanded(
-              child: _CategoryCard(
-                eyebrow: 'Buy & Sell',
-                title: 'Marketplace',
-                icon: Icons.storefront_rounded,
-                bgColor: AppColors.pastelPeach,
-                iconBgColor: const Color(0xFFF97316),
-                onTap: onMarketplaceTap,
-                compact: compact,
-              ),
-            ),
-            SizedBox(width: gap),
-            Expanded(
-              child: _CategoryCard(
-                eyebrow: 'All',
-                title: 'Services',
-                icon: Icons.grid_view_rounded,
-                bgColor: AppColors.pastelMint,
-                iconBgColor: const Color(0xFF10B981),
-                onTap: onAllServicesTap,
-                compact: compact,
-              ),
-            ),
-          ],
-        ),
-      ],
+      ),
     );
   }
 }
 
 class _CategoryCard extends StatelessWidget {
-  final String? eyebrow;
   final String title;
+  final String subtitle;
   final IconData icon;
   final Color bgColor;
-  final Color iconBgColor;
+  final Color iconColor;
   final VoidCallback? onTap;
-  final bool compact;
 
   const _CategoryCard({
-    this.eyebrow,
     required this.title,
+    required this.subtitle,
     required this.icon,
     required this.bgColor,
-    required this.iconBgColor,
+    required this.iconColor,
     this.onTap,
-    this.compact = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth < 380;
+    // Fixed width ensures text doesn't wrap awkwardly and fits nicely in a scrollable row
+    final itemWidth = isCompact ? 80.0 : 90.0;
+
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: EdgeInsets.all(compact ? 10 : 12),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(compact ? 18 : 20),
-          boxShadow: [
-            BoxShadow(
-              color: iconBgColor.withValues(alpha: 0.05),
-              blurRadius: 12,
-              offset: const Offset(0, 4),
-            ),
-          ],
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+      child: SizedBox(
+        width: itemWidth,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (eyebrow != null)
-                    Text(
-                      eyebrow!,
-                      style: AppTheme.body(
-                        fontSize: compact ? 10 : 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary,
-                        height: 1.1,
-                      ),
-                    ),
-                  SizedBox(height: eyebrow != null ? 2 : 0),
-                  Text(
-                    title,
-                    style: AppTheme.headline(
-                      fontSize: compact ? 14 : 16,
-                      fontWeight: FontWeight.w800,
-                      color: AppColors.textPrimary,
-                      height: 1.15,
-                      letterSpacing: -0.2,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            SizedBox(width: compact ? 6 : 8),
             Container(
-              width: compact ? 44 : 52,
-              height: compact ? 44 : 52,
+              width: isCompact ? 52 : 58,
+              height: isCompact ? 52 : 58,
               decoration: BoxDecoration(
-                color: iconBgColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(compact ? 14 : 16),
+                color: bgColor,
+                shape: BoxShape.circle,
               ),
               child: Icon(
                 icon,
-                color: iconBgColor,
-                size: compact ? 24 : 28,
+                color: iconColor,
+                size: isCompact ? 24 : 28,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.body(
+                fontSize: isCompact ? 10 : 11,
+                fontWeight: FontWeight.w700,
+                color: AppColors.textPrimary,
+                height: 1.1,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              subtitle,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: AppTheme.body(
+                fontSize: isCompact ? 8 : 9,
+                fontWeight: FontWeight.w500,
+                color: AppColors.textSecondary,
+                height: 1.1,
               ),
             ),
           ],
