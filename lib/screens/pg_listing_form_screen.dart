@@ -10,6 +10,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import '../models/listing_model.dart';
+import '../providers/location_provider.dart';
+import '../providers/location_search_provider.dart';
 import '../services/cloudinary_service.dart';
 import '../services/database_service.dart';
 import '../theme/app_colors.dart';
@@ -34,7 +36,6 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   final _ownerName = TextEditingController();
   final _contactNumber = TextEditingController();
   final _whatsAppNumber = TextEditingController();
-  final _fullAddress = TextEditingController();
   final _city = TextEditingController();
   final _area = TextEditingController();
   final _nearby = TextEditingController();
@@ -51,6 +52,10 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   final List<XFile> _washroomImages = [];
   XFile? _videoTour;
   Timer? _draftTimer;
+
+  double? _latitude;
+  double? _longitude;
+  bool _detectingLocation = false;
 
   int _step = 0;
   bool _submitting = false;
@@ -138,7 +143,6 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
     _ownerName,
     _contactNumber,
     _whatsAppNumber,
-    _fullAddress,
     _city,
     _area,
     _nearby,
@@ -225,7 +229,6 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
     _ownerName.text = prefs.getString('${_draftPrefix}ownerName') ?? '';
     _contactNumber.text = prefs.getString('${_draftPrefix}contactNumber') ?? '';
     _whatsAppNumber.text = prefs.getString('${_draftPrefix}whatsApp') ?? '';
-    _fullAddress.text = prefs.getString('${_draftPrefix}address') ?? '';
     _city.text = prefs.getString('${_draftPrefix}city') ?? '';
     _area.text = prefs.getString('${_draftPrefix}area') ?? '';
     _nearby.text = prefs.getString('${_draftPrefix}nearby') ?? '';
@@ -237,6 +240,8 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
     _curfewTiming.text = prefs.getString('${_draftPrefix}curfew') ?? '';
     _description.text = prefs.getString('${_draftPrefix}description') ?? '';
     _bedsAvailable.text = prefs.getString('${_draftPrefix}bedsAvailable') ?? '';
+    _latitude = prefs.getDouble('${_draftPrefix}lat');
+    _longitude = prefs.getDouble('${_draftPrefix}lon');
 
     if (!mounted) return;
     final rawConfigs = prefs.getStringList('${_draftPrefix}roomConfigurations');
@@ -316,7 +321,6 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
     await prefs.setString('${_draftPrefix}ownerName', _ownerName.text);
     await prefs.setString('${_draftPrefix}contactNumber', _contactNumber.text);
     await prefs.setString('${_draftPrefix}whatsApp', _whatsAppNumber.text);
-    await prefs.setString('${_draftPrefix}address', _fullAddress.text);
     await prefs.setString('${_draftPrefix}city', _city.text);
     await prefs.setString('${_draftPrefix}area', _area.text);
     await prefs.setString('${_draftPrefix}nearby', _nearby.text);
@@ -327,6 +331,8 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
     await prefs.setString('${_draftPrefix}curfew', _curfewTiming.text);
     await prefs.setString('${_draftPrefix}description', _description.text);
     await prefs.setString('${_draftPrefix}bedsAvailable', _bedsAvailable.text);
+    if (_latitude != null) await prefs.setDouble('${_draftPrefix}lat', _latitude!);
+    if (_longitude != null) await prefs.setDouble('${_draftPrefix}lon', _longitude!);
     await prefs.setString('${_draftPrefix}propertyType', _propertyType);
     await prefs.setString('${_draftPrefix}preferredGender', _preferredGender);
     await prefs.setString('${_draftPrefix}occupantType', _occupantType);
@@ -435,7 +441,6 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
     need(_propertyName, 'Property Name');
     need(_ownerName, 'Owner/Manager Name');
     need(_contactNumber, 'Contact Number');
-    need(_fullAddress, 'Full Address');
     need(_city, 'City');
     need(_area, 'Area/Locality');
     need(_securityDeposit, 'Security Deposit');
@@ -536,7 +541,7 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
       final description = [
         _description.text.trim(),
         '',
-        'Address: ${_fullAddress.text.trim()}',
+        'Location: ${_area.text.trim()}, ${_city.text.trim()}',
         if (_nearby.text.trim().isNotEmpty) 'Nearby: ${_nearby.text.trim()}',
         'Room configurations:',
         ...roomSummaries.map((summary) => '- $summary'),
@@ -572,6 +577,8 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
         location: locationParts.isEmpty
             ? _city.text.trim()
             : locationParts.join(', '),
+        latitude: _latitude,
+        longitude: _longitude,
         price: minRent ?? 0,
         type: ListingType.housing,
         propertyType: PropertyType.pg,
@@ -621,6 +628,39 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
     _saveDraft();
   }
 
+  Future<void> _detectCurrentLocation() async {
+    final locationProvider = context.read<LocationProvider>();
+    final messenger = ScaffoldMessenger.of(context);
+
+    setState(() => _detectingLocation = true);
+    try {
+      await locationProvider.refreshLocation();
+      if (!mounted) return;
+
+      final address = locationProvider.address.trim();
+      final hasResolvedAddress = address.isNotEmpty &&
+          address != 'Locating...' &&
+          address != 'Location unavailable';
+      
+      if (!hasResolvedAddress) {
+        messenger.showSnackBar(const SnackBar(content: Text('Could not detect your location')));
+        return;
+      }
+
+      setState(() {
+        _area.text = address; 
+        _latitude = locationProvider.latitude;
+        _longitude = locationProvider.longitude;
+      });
+      _saveDraft();
+    } catch (error) {
+      if (!mounted) return;
+      messenger.showSnackBar(SnackBar(content: Text('Could not detect location: $error')));
+    } finally {
+      if (mounted) setState(() => _detectingLocation = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final isCompact = MediaQuery.sizeOf(context).width < 380;
@@ -631,7 +671,7 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
         backgroundColor: AppColors.background,
         foregroundColor: AppColors.onSurface,
         elevation: 0,
-        title: const Text('List PG / Hostel'),
+        title: const Text('List PG or Hostel'),
         actions: [
           TextButton(
             onPressed: _saveDraft,
@@ -698,13 +738,44 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
                       title: 'Location',
                       icon: Icons.location_on_rounded,
                       children: [
-                        _AppField(
-                          controller: _fullAddress,
-                          label: 'Full Address',
-                          maxLines: 3,
+                        _LocationSearchField(
+                          controller: _area,
+                          isCompact: isCompact,
+                          onSelected: (area, city, lat, lon) {
+                            _area.text = area;
+                            if (city.isNotEmpty) _city.text = city;
+                            _latitude = lat;
+                            _longitude = lon;
+                            _saveDraft();
+                          },
+                        ),
+                        Align(
+                          alignment: Alignment.centerLeft,
+                          child: OutlinedButton.icon(
+                            onPressed: _detectingLocation ? null : _detectCurrentLocation,
+                            icon: _detectingLocation
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(strokeWidth: 2),
+                                  )
+                                : const Icon(Icons.my_location_rounded, size: 18),
+                            label: Text(
+                              _detectingLocation
+                                  ? 'Detecting location'
+                                  : 'Detect current location',
+                            ),
+                            style: OutlinedButton.styleFrom(
+                              foregroundColor: AppColors.primary,
+                              side: BorderSide(
+                                color: AppColors.outlineVariant.withValues(alpha: 0.65),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                              textStyle: AppTheme.button(fontSize: 13, color: AppColors.primary),
+                            ),
+                          ),
                         ),
                         _AppField(controller: _city, label: 'City'),
-                        _AppField(controller: _area, label: 'Area/Locality'),
                         _AppField(
                           controller: _nearby,
                           label: 'Nearby College/Company',
@@ -1937,4 +2008,242 @@ class _AmenityItem {
   final IconData icon;
 
   const _AmenityItem(this.label, this.icon);
+}
+
+class _LocationSearchField extends StatefulWidget {
+  final TextEditingController controller;
+  final bool isCompact;
+  final void Function(String area, String city, double lat, double lon)? onSelected;
+
+  const _LocationSearchField({
+    required this.controller,
+    required this.isCompact,
+    this.onSelected,
+  });
+
+  @override
+  State<_LocationSearchField> createState() => _LocationSearchFieldState();
+}
+
+class _LocationSearchFieldState extends State<_LocationSearchField> {
+  final FocusNode _focusNode = FocusNode();
+  final LayerLink _layerLink = LayerLink();
+  OverlayEntry? _overlayEntry;
+  late LocationSearchProvider _provider;
+
+  @override
+  void initState() {
+    super.initState();
+    _provider = LocationSearchProvider();
+    _provider.addListener(_onProviderChanged);
+    _focusNode.addListener(_onFocusChanged);
+  }
+
+  @override
+  void dispose() {
+    _hideOverlay();
+    _provider.removeListener(_onProviderChanged);
+    _provider.dispose();
+    _focusNode.removeListener(_onFocusChanged);
+    _focusNode.dispose();
+    super.dispose();
+  }
+
+  void _onProviderChanged() {
+    if (_provider.isLoading || _provider.results.isNotEmpty) {
+      if (_focusNode.hasFocus) {
+        _showOverlay();
+        _overlayEntry?.markNeedsBuild();
+      }
+    } else {
+      _hideOverlay();
+    }
+  }
+
+  void _onFocusChanged() {
+    if (_focusNode.hasFocus && (_provider.isLoading || _provider.results.isNotEmpty)) {
+      _showOverlay();
+    } else if (!_focusNode.hasFocus) {
+      Future.delayed(const Duration(milliseconds: 150), () {
+        if (mounted) _hideOverlay();
+      });
+    }
+  }
+
+  void _showOverlay() {
+    if (_overlayEntry != null) return;
+    
+    final renderBox = context.findRenderObject() as RenderBox?;
+    final width = renderBox?.size.width;
+
+    _overlayEntry = OverlayEntry(
+      builder: (context) {
+        return Positioned(
+          width: width,
+          child: CompositedTransformFollower(
+            link: _layerLink,
+            showWhenUnlinked: false,
+            targetAnchor: Alignment.bottomLeft,
+            followerAnchor: Alignment.topLeft,
+            child: Material(
+              color: Colors.transparent,
+              child: _buildOverlayContent(),
+            ),
+          ),
+        );
+      },
+    );
+    Overlay.of(context).insert(_overlayEntry!);
+  }
+
+  void _hideOverlay() {
+    _overlayEntry?.remove();
+    _overlayEntry = null;
+  }
+
+  Widget _buildOverlayContent() {
+    if (_provider.isLoading) {
+      return Container(
+        margin: const EdgeInsets.only(top: 8),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.outlineVariant.withValues(alpha: 0.5),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ]
+        ),
+        child: const Center(
+          child: SizedBox(
+            width: 24,
+            height: 24,
+            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+          ),
+        ),
+      );
+    }
+
+    if (_provider.results.isNotEmpty) {
+      return Container(
+        margin: const EdgeInsets.only(top: 8),
+        constraints: const BoxConstraints(maxHeight: 240),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(
+            color: AppColors.outlineVariant.withValues(alpha: 0.5),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            )
+          ]
+        ),
+        child: ListView(
+          padding: EdgeInsets.zero,
+          shrinkWrap: true,
+          children: _provider.results.map((place) {
+            final fullName = place['display_name'] ?? '';
+            final nameParts = fullName.split(', ');
+            final title = nameParts.isNotEmpty ? nameParts.first : fullName;
+            final subtitle = nameParts.length > 1 ? nameParts.skip(1).join(', ') : '';
+
+            return ListTile(
+              leading: const Icon(Icons.location_on_rounded, color: AppColors.primary),
+              title: Text(
+                title,
+                style: AppTheme.body(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary),
+              ),
+              subtitle: subtitle.isNotEmpty
+                  ? Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.body(fontSize: 12, color: AppColors.textSecondary),
+                    )
+                  : null,
+              onTap: () {
+                final addressDetails = place['address'] as Map<String, dynamic>? ?? {};
+                final shortName = addressDetails['neighbourhood'] ??
+                    addressDetails['suburb'] ??
+                    addressDetails['city_district'] ??
+                    addressDetails['town'] ??
+                    place['name'] ??
+                    'Unknown Location';
+                
+                final city = (addressDetails['city'] ?? 
+                              addressDetails['state_district'] ?? 
+                              addressDetails['county'] ?? '').toString();
+                          
+                final lat = double.tryParse(place['lat']?.toString() ?? '') ?? 0.0;
+                final lon = double.tryParse(place['lon']?.toString() ?? '') ?? 0.0;
+
+                if (widget.onSelected != null) {
+                  widget.onSelected!(shortName, city, lat, lon);
+                } else {
+                  widget.controller.text = shortName;
+                }
+                
+                _provider.clearSearch();
+                _focusNode.unfocus();
+              },
+            );
+          }).toList(),
+        ),
+      );
+    }
+
+    return const SizedBox.shrink();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return CompositedTransformTarget(
+      link: _layerLink,
+      child: TextField(
+        focusNode: _focusNode,
+        controller: widget.controller,
+        onChanged: _provider.onSearchChanged,
+        style: AppTheme.body(fontSize: widget.isCompact ? 14 : 15),
+        decoration: InputDecoration(
+          isDense: true,
+          labelText: 'Area / Locality',
+          hintText: 'Search locality or area...',
+          prefixIcon: const Icon(Icons.location_on_rounded),
+          suffixIcon: ValueListenableBuilder<TextEditingValue>(
+            valueListenable: widget.controller,
+            builder: (context, value, child) {
+              if (value.text.isEmpty) return const SizedBox.shrink();
+              return IconButton(
+                icon: const Icon(Icons.close_rounded, size: 20),
+                onPressed: () {
+                  widget.controller.clear();
+                  _provider.clearSearch();
+                },
+              );
+            },
+          ),
+          filled: true,
+          fillColor: AppColors.surfaceContainerLow,
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: widget.isCompact ? 12 : 14,
+            vertical: widget.isCompact ? 12 : 14,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(widget.isCompact ? 12 : 16),
+            borderSide: BorderSide.none,
+          ),
+        ),
+      ),
+    );
+  }
 }
