@@ -31,7 +31,6 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
   bool _showFeed = false;
   bool _isLoadingFeed = false;
   List<ListingModel> _feedListings = [];
-  String _selectedLocationName = '';
 
   @override
   void initState() {
@@ -125,7 +124,6 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
       _results = [];
       _showFeed = true;
       _isLoadingFeed = true;
-      _selectedLocationName = shortName;
     });
 
     _fetchFeedForLocation(lat, lon, city.isNotEmpty ? city : shortName);
@@ -223,7 +221,7 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
     if (_results.isNotEmpty) {
       return ListView.separated(
         itemCount: _results.length,
-        separatorBuilder: (_, __) => const Divider(height: 1, color: AppColors.divider),
+        separatorBuilder: (context, index) => const Divider(height: 1, color: AppColors.divider),
         itemBuilder: (context, index) {
           final place = _results[index];
           final fullName = place['display_name'] ?? '';
@@ -328,7 +326,7 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
           child: ListView.separated(
             padding: const EdgeInsets.fromLTRB(16, 0, 16, 24),
             itemCount: _feedListings.length,
-            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            separatorBuilder: (context, index) => const SizedBox(height: 12),
             itemBuilder: (context, index) {
               final listing = _feedListings[index];
               return _LocationFeedCard(
