@@ -18,14 +18,64 @@ String generateChatClientId() {
   return 'm_${millis}_$random';
 }
 
-enum ChatType { listing }
+enum ChatType { listing, marketplace }
 
 extension ChatTypeX on ChatType {
-  String get value => 'listing';
+  String get value {
+    switch (this) {
+      case ChatType.listing:
+        return 'listing';
+      case ChatType.marketplace:
+        return 'marketplace';
+    }
+  }
 
-  String get label => 'Listing';
+  String get label {
+    switch (this) {
+      case ChatType.listing:
+        return 'Listing';
+      case ChatType.marketplace:
+        return 'Marketplace';
+    }
+  }
 
-  static ChatType fromString(String _) => ChatType.listing;
+  static ChatType fromString(String value, {String? id}) {
+    final normalized = value.trim().toLowerCase();
+    if (normalized.isEmpty) {
+      return _inferFromId(id);
+    }
+
+    if (normalized == 'marketplace' ||
+        normalized == 'marketplacesell' ||
+        normalized == 'marketplace_sell' ||
+        normalized == 'marketplace sell' ||
+        normalized == 'item') {
+      return ChatType.marketplace;
+    }
+
+    if (normalized == 'housing' || normalized == 'listing') {
+      return ChatType.listing;
+    }
+
+    return _inferFromId(id);
+  }
+
+  static ChatType _inferFromId(String? id) {
+    if (id == null || id.isEmpty) {
+      return ChatType.listing;
+    }
+
+    final normalizedId = id.toLowerCase();
+    if (normalizedId.contains('_marketplace_') ||
+        normalizedId.contains('_item_') ||
+        normalizedId.contains('_marketplace sell_') ||
+        normalizedId.contains('_marketplacesell_') ||
+        normalizedId.contains('_marketplace_sell_')) {
+      return ChatType.marketplace;
+    }
+
+    return ChatType.listing;
+  }
 }
 
 class ChatParticipantMeta {
@@ -230,7 +280,10 @@ class ConversationModel {
       participants: List<String>.from(
         map['participants'] ?? const <String>[],
       ).map(normalizeChatUid).toSet().toList(),
-      chatType: ChatTypeX.fromString((map['chatType'] ?? '').toString()),
+      chatType: ChatTypeX.fromString(
+        (map['chatType'] ?? '').toString(),
+        id: id,
+      ),
       referenceId: (map['referenceId'] ?? '').toString(),
       listingTitle: (map['listingTitle'] ?? '').toString().trim(),
       lastMessage: (map['lastMessage'] ?? '').toString(),
