@@ -4,12 +4,14 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/chat_model.dart';
+import '../models/listing_model.dart';
 import '../providers/chat_provider.dart';
+import '../services/database_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'chat_detail_screen.dart';
 
-enum _ChatInboxSegment { housing, marketplace }
+enum _ChatInboxSegment { all, housing, marketplace }
 
 class ChatListScreen extends StatefulWidget {
   final bool showScaffold;
@@ -24,7 +26,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
   final TextEditingController _searchController = TextEditingController();
   final FocusNode _searchFocusNode = FocusNode();
   String? _currentUserId;
-  _ChatInboxSegment _selectedSegment = _ChatInboxSegment.housing;
+  _ChatInboxSegment _selectedSegment = _ChatInboxSegment.all;
+  final Map<String, ListingType> _referenceTypeCache = {};
+  final Set<String> _referenceTypeLoading = {};
 
   @override
   void initState() {
@@ -68,7 +72,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     final content = Consumer<ChatProvider>(
       builder: (context, chatProvider, _) {
         final query = _searchController.text.trim().toLowerCase();
-        final filtered = chatProvider.conversations.where((conversation) {
+        var filtered = chatProvider.conversations.where((conversation) {
           final peer = conversation.peerMetaFor(uid);
           final searchable = [
             peer?.name ?? '',
@@ -79,82 +83,38 @@ class _ChatListScreenState extends State<ChatListScreen> {
               (query.isEmpty || searchable.contains(query));
         }).toList();
 
-        return Container(
-          color: AppColors.background,
-          child: Column(
-            children: [
-              _ChatListHeader(
-                controller: _searchController,
-                focusNode: _searchFocusNode,
-                selectedSegment: _selectedSegment,
-                onSegmentChanged: (segment) {
-                  setState(() => _selectedSegment = segment);
-                },
-              ),
-              Expanded(
-                child: Builder(
-                  builder: (context) {
-                    if ((chatProvider.errorMessage ?? '').isNotEmpty) {
-                      return _ErrorState(message: chatProvider.errorMessage!);
-                    }
-                    if (chatProvider.isLoading && filtered.isEmpty) {
-                      return const Center(
-                        child: CircularProgressIndicator(
-                          color: AppColors.primary,
-                        ),
-                      );
-                    }
-                    if (filtered.isEmpty) {
-                      return _EmptyState(
-                        hasSearch: query.isNotEmpty,
-                        query: query,
-                        selectedSegment: _selectedSegment,
-                      );
-                    }
+        // Deduplicate only when the same peer has both housing and marketplace chats.
+        if (_selectedSegment == _ChatInboxSegment.all) {
+          final conversationsByPeer = <String, List<ConversationModel>>{};
+          for (final conversation in filtered) {
+            final peerId = conversation.peerIdFor(uid).trim();
+            final key = peerId.isEmpty ? conversation.id : peerId;
+            conversationsByPeer.putIfAbsent(key, () => []).add(conversation);
+          }
 
-                    return RefreshIndicator(
-                      color: AppColors.primary,
-                      onRefresh: () async {
-                        chatProvider.initialize(uid);
-                        await Future<void>.delayed(
-                          const Duration(milliseconds: 300),
-                        );
-                      },
-                      child: ListView.separated(
-                        physics: const AlwaysScrollableScrollPhysics(),
-                        padding: EdgeInsets.fromLTRB(
-                          horizontalPadding,
-                          isCompact ? 8 : 10,
-                          horizontalPadding,
-                          24,
-                        ),
-                        itemCount: filtered.length,
-                        separatorBuilder: (_, _) => SizedBox(height: listGap),
-                        itemBuilder: (context, index) {
-                          final conversation = filtered[index];
-                          return _ConversationTile(
-                            conversation: conversation,
-                            currentUserId: uid,
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => ChatDetailScreen(
-                                    conversationId: conversation.id,
-                                  ),
-                                ),
-                              );
-                            },
-                          );
-                        },
-                      ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        );
+          final deduped = <ConversationModel>[];
+          for (final group in conversationsByPeer.values) {
+            if (group.length == 1) {
+              deduped.add(group.first);
+              continue;
+            }
+
+            // Check if this peer has conversations of different types
+            final types = group.map((c) => c.chatType).toSet();
+            if (types.length > 1) {
+              // Same peer has both housing and marketplace chats; keep the latest one
+              final combined = [...group];
+              combined.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+              deduped.add(combined.first);
+            } else {
+              deduped.addAll(group);
+            }
+          }
+
+          filtered = deduped..sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+        }
+
+        return _buildChatList(filtered, chatProvider, query, uid, horizontalPadding, isCompact, listGap);
       },
     );
 
@@ -168,12 +128,213 @@ class _ChatListScreenState extends State<ChatListScreen> {
     );
   }
 
+  ChatType _effectiveChatType(ConversationModel conversation) {
+    if (conversation.chatType == ChatType.marketplace) {
+      return ChatType.marketplace;
+    }
+
+    final referenceId = conversation.referenceId.trim();
+    if (referenceId.isEmpty) {
+      return ChatType.listing;
+    }
+
+    final cachedType = _referenceTypeCache[referenceId];
+    if (cachedType != null) {
+      return cachedType == ListingType.marketplace
+          ? ChatType.marketplace
+          : ChatType.listing;
+    }
+
+    // If not cached, trigger async resolution but return listing for now
+    // The UI will update when the cache is populated
+    _resolveReferenceType(referenceId);
+    return ChatType.listing;
+  }
+
+  Future<ChatType> _effectiveChatTypeAsync(ConversationModel conversation) async {
+    if (conversation.chatType == ChatType.marketplace) {
+      return ChatType.marketplace;
+    }
+
+    final referenceId = conversation.referenceId.trim();
+    if (referenceId.isEmpty) {
+      return ChatType.listing;
+    }
+
+    final cachedType = _referenceTypeCache[referenceId];
+    if (cachedType != null) {
+      return cachedType == ListingType.marketplace
+          ? ChatType.marketplace
+          : ChatType.listing;
+    }
+
+    // Wait for the type to be resolved
+    await _resolveReferenceType(referenceId);
+    final resolvedType = _referenceTypeCache[referenceId];
+    return resolvedType == ListingType.marketplace
+        ? ChatType.marketplace
+        : ChatType.listing;
+  }
+
+  Future<void> _resolveReferenceType(String referenceId) async {
+    if (referenceId.isEmpty || _referenceTypeCache.containsKey(referenceId)) {
+      return;
+    }
+    if (_referenceTypeLoading.contains(referenceId)) {
+      return;
+    }
+
+    _referenceTypeLoading.add(referenceId);
+    try {
+      final listing = await context.read<DatabaseService>().getListing(referenceId);
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _referenceTypeCache[referenceId] =
+            listing?.type ?? ListingType.housing;
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _referenceTypeCache[referenceId] = ListingType.housing;
+      });
+    } finally {
+      _referenceTypeLoading.remove(referenceId);
+    }
+  }
+
+  Future<List<ConversationModel>> _deduplicateConversations(List<ConversationModel> conversations, String uid) async {
+    final conversationsByPeer = <String, List<ConversationModel>>{};
+    for (final conversation in conversations) {
+      final peerId = conversation.peerIdFor(uid).trim();
+      final key = peerId.isEmpty ? conversation.id : peerId;
+      conversationsByPeer.putIfAbsent(key, () => []).add(conversation);
+    }
+
+    final deduped = <ConversationModel>[];
+    for (final group in conversationsByPeer.values) {
+      if (group.length == 1) {
+        deduped.add(group.first);
+        continue;
+      }
+
+      // Wait for all chat types to be resolved
+      final resolvedTypes = <ConversationModel, ChatType>{};
+      for (final conversation in group) {
+        resolvedTypes[conversation] = await _effectiveChatTypeAsync(conversation);
+      }
+
+      final housingChats = group.where(
+        (conversation) => resolvedTypes[conversation] == ChatType.listing,
+      );
+      final marketplaceChats = group.where(
+        (conversation) => resolvedTypes[conversation] == ChatType.marketplace,
+      );
+
+      if (housingChats.isNotEmpty && marketplaceChats.isNotEmpty) {
+        // Same peer has chats in both categories; keep the latest chat.
+        final combined = [...housingChats, ...marketplaceChats];
+        combined.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+        deduped.add(combined.first);
+      } else {
+        deduped.addAll(group);
+      }
+    }
+
+    return deduped..sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+  }
+
+  Widget _buildChatList(List<ConversationModel> filtered, ChatProvider chatProvider, String query, String uid, double horizontalPadding, bool isCompact, double listGap) {
+    return Container(
+      color: AppColors.background,
+      child: Column(
+        children: [
+          _ChatListHeader(
+            controller: _searchController,
+            focusNode: _searchFocusNode,
+            selectedSegment: _selectedSegment,
+            onSegmentChanged: (segment) {
+              setState(() => _selectedSegment = segment);
+            },
+          ),
+          Expanded(
+            child: Builder(
+              builder: (context) {
+                if ((chatProvider.errorMessage ?? '').isNotEmpty) {
+                  return _ErrorState(message: chatProvider.errorMessage!);
+                }
+                if (chatProvider.isLoading && filtered.isEmpty) {
+                  return const Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                    ),
+                  );
+                }
+                if (filtered.isEmpty) {
+                  return _EmptyState(
+                    hasSearch: query.isNotEmpty,
+                    query: query,
+                    selectedSegment: _selectedSegment,
+                  );
+                }
+
+                return RefreshIndicator(
+                  color: AppColors.primary,
+                  onRefresh: () async {
+                    chatProvider.initialize(uid);
+                    await Future<void>.delayed(
+                      const Duration(milliseconds: 300),
+                    );
+                  },
+                  child: ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.fromLTRB(
+                      horizontalPadding,
+                      isCompact ? 8 : 10,
+                      horizontalPadding,
+                      24,
+                    ),
+                    itemCount: filtered.length,
+                    separatorBuilder: (_, _) => SizedBox(height: listGap),
+                    itemBuilder: (context, index) {
+                      final conversation = filtered[index];
+                      return _ConversationTile(
+                        conversation: conversation,
+                        currentUserId: uid,
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => ChatDetailScreen(
+                                conversationId: conversation.id,
+                              ),
+                            ),
+                          );
+                        },
+                      );
+                    },
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   bool _matchesSegment(ConversationModel conversation) {
+    final effectiveType = _effectiveChatType(conversation);
     switch (_selectedSegment) {
+      case _ChatInboxSegment.all:
+        return true;
       case _ChatInboxSegment.housing:
-        return conversation.chatType == ChatType.listing;
+        return effectiveType == ChatType.listing;
       case _ChatInboxSegment.marketplace:
-        return conversation.chatType != ChatType.listing;
+        return effectiveType == ChatType.marketplace;
     }
   }
 }
@@ -291,6 +452,14 @@ class _ChatListHeader extends StatelessWidget {
               ),
               child: Row(
                 children: [
+                  Expanded(
+                    child: _SegmentButton(
+                      label: 'All',
+                      selected: selectedSegment == _ChatInboxSegment.all,
+                      onTap: () =>
+                          onSegmentChanged(_ChatInboxSegment.all),
+                    ),
+                  ),
                   Expanded(
                     child: _SegmentButton(
                       label: 'Housing',
@@ -695,11 +864,15 @@ class _EmptyState extends StatelessWidget {
         ? 'No matching chats'
         : selectedSegment == _ChatInboxSegment.marketplace
         ? 'No marketplace chats'
+        : selectedSegment == _ChatInboxSegment.all
+        ? 'No chats yet'
         : 'No chats yet';
     final subtitle = hasSearch
         ? 'Nothing matched "$query". Try a person, listing title, or message text.'
         : selectedSegment == _ChatInboxSegment.marketplace
         ? 'Marketplace conversations will appear here once buying or selling chats are enabled.'
+        : selectedSegment == _ChatInboxSegment.all
+        ? 'Start a conversation from any listing and it will appear here.'
         : 'Start a conversation from any listing and it will appear here.';
 
     return Center(

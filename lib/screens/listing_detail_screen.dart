@@ -69,7 +69,9 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     try {
       final conversationId = await context.read<ChatProvider>().createOrGetChat(
         otherUserId: listing.ownerId,
-        chatType: ChatType.listing.value,
+        chatType: listing.isMarketplacePost
+            ? ChatType.marketplace.value
+            : ChatType.listing.value,
         referenceId: listing.id,
         listingTitle: listing.title,
         otherUserName: listing.ownerName,
