@@ -106,14 +106,6 @@ class _HousingChoiceScreen extends StatelessWidget {
                     screen: const FlatmateRoomDetailsScreen(),
                   ),
                 ),
-                const SizedBox(height: 14),
-                _HousingChoiceCard(
-                  icon: Icons.apartment_rounded,
-                  title: 'List PG',
-                  subtitle: 'For PG owners to list their property',
-                  onTap: () =>
-                      _openFlow(context, screen: const PgListingFormScreen()),
-                ),
               ],
             ),
           ),
