@@ -163,7 +163,7 @@ class _ServiceTile extends StatelessWidget {
                 child: Image.asset(
                   imageAsset,
                   fit: BoxFit.contain,
-                  errorBuilder: (_, __, ___) => const Icon(
+                  errorBuilder: (context, error, stackTrace) => const Icon(
                     Icons.image_not_supported_rounded,
                     color: AppColors.outlineVariant,
                     size: 32,

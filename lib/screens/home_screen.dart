@@ -623,6 +623,7 @@ class FeaturedListingCard extends StatelessWidget {
   final VoidCallback onSaveTap;
 
   const FeaturedListingCard({
+    super.key,
     required this.listing,
     required this.isSaved,
     required this.onTap,

@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -61,7 +62,8 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             backgroundColor: AppColors.error,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12)),
+              borderRadius: BorderRadius.circular(12),
+            ),
           ),
         );
       }
@@ -78,8 +80,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
   bool _isBrowserIncompatible() {
     // Only relevant on web
-    if (!const bool.fromEnvironment('dart.library.html',
-        defaultValue: false)) {
+    if (!const bool.fromEnvironment('dart.library.html', defaultValue: false)) {
       try {
         return false;
       } catch (_) {
@@ -108,8 +109,11 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                   color: AppColors.primary.withValues(alpha: 0.08),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.open_in_browser_rounded,
-                    size: 28, color: AppColors.primary),
+                child: const Icon(
+                  Icons.open_in_browser_rounded,
+                  size: 28,
+                  color: AppColors.primary,
+                ),
               ),
               const SizedBox(height: 16),
               Text(
@@ -142,12 +146,15 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                     elevation: 0,
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14)),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
                   ),
                   child: Text(
                     'Got it',
                     style: GoogleFonts.inter(
-                        fontSize: 15, fontWeight: FontWeight.w700),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                    ),
                   ),
                 ),
               ),
@@ -158,184 +165,348 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     );
   }
 
+  Widget _dotPattern() {
+    return Container(
+      width: 40,
+      height: 40,
+      decoration: const BoxDecoration(
+        image: DecorationImage(
+          image: AssetImage('assets/images/dots.png'), 
+          fit: BoxFit.contain,
+        ),
+      ),
+    );
+  }
+
+  Widget _circleBlur() {
+    return Container(
+      width: 100,
+      height: 100,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: const Color(0xFF6C4DFF).withValues(alpha: 0.1),
+      ),
+      child: BackdropFilter(
+        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
+        child: Container(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverFillRemaining(
-              hasScrollBody: false,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 24.0, vertical: 24.0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // ── Top Banner / Logo ──────────────────────────────────────
-                          Center(
-                            child: Container(
-                              width: 140,
-                              height: 140,
-                              decoration: const BoxDecoration(
-                                color: AppColors.blue50,
-                                shape: BoxShape.circle,
-                              ),
-                              child: Center(
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(24),
-                                  child: Image.asset(
-                                    'assets/logo.png',
-                                    width: 90,
-                                    height: 90,
-                                    fit: BoxFit.cover,
-                                    errorBuilder: (_, _, _) => const Icon(
-                                      Icons.handyman_rounded,
-                                      size: 40,
-                                      color: AppColors.primary,
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFFF7F5FF), Color(0xFFFFFFFF)],
+          ),
+        ),
+        child: Stack(
+          children: [
+            Positioned(top: 60, left: 30, child: _dotPattern()),
+            Positioned(top: 120, right: 40, child: _circleBlur()),
+            SafeArea(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return SingleChildScrollView(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minHeight: constraints.maxHeight,
+                      ),
+                      child: IntrinsicHeight(
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 24.0,
+                            vertical: 16.0,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const SizedBox(height: 8),
+
+                              // ── Top Banner / Logo ──────────────────────────────────────
+                              Center(
+                                child: Container(
+                                  width: 74,
+                                  height: 74,
+                                  decoration: BoxDecoration(
+                                    borderRadius: BorderRadius.circular(24),
+                                    gradient: const LinearGradient(
+                                      colors: [
+                                        Color(0xFF6C4DFF),
+                                        Color(0xFF4B2EFF),
+                                      ],
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF6C4DFF).withValues(alpha: 0.35),
+                                        blurRadius: 24,
+                                        offset: const Offset(0, 12),
+                                      ),
+                                    ],
+                                  ),
+                                  child: Center(
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(28),
+                                      child: Image.asset(
+                                        'assets/logo.png',
+                                        width: 48,
+                                        height: 48,
+                                        fit: BoxFit.contain,
+                                        errorBuilder: (_, _, _) => const Icon(
+                                          Icons.home_work_rounded,
+                                          size: 36,
+                                          color: Colors.white,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
                               ),
-                            ),
-                          ),
 
-                          const SizedBox(height: 48),
+                              const SizedBox(height: 8),
 
-                          // ── Title and Subtitle ─────────────────────────────────────
-                          Text(
-                            'Welcome to Triozy',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
-                              fontSize: 28,
-                              fontWeight: FontWeight.w800,
-                              color: AppColors.onSurface,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                          const SizedBox(height: 14),
-                          Text(
-                            'Helping students and working professionals find rooms, flatmates, and everything needed to settle into a new city.',
-                            textAlign: TextAlign.center,
-                            style: GoogleFonts.inter(
-                              fontSize: 16,
-                              color: AppColors.onSurfaceVariant,
-                              height: 1.5,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 48),
-
-                    // ── Bottom Action Buttons ──────────────────────────────────
-                    SizedBox(
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _handleGoogleSignIn,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.primary,
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 24,
-                                height: 24,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Row(
+                              // ── Title and Subtitle ─────────────────────────────────────
+                              Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  Container(
-                                    width: 28,
-                                    height: 28,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: BorderRadius.circular(6),
-                                    ),
-                                    child: Padding(
-                                      padding: const EdgeInsets.all(5),
-                                      child: Image.network(
-                                        "https://img.icons8.com/color/48/000000/google-logo.png",
-                                        errorBuilder:
-                                            (context, error, stackTrace) {
-                                          return Center(
-                                            child: Text(
-                                              'G',
-                                              style: GoogleFonts.inter(
-                                                fontSize: 16,
-                                                fontWeight: FontWeight.w800,
-                                                color: AppColors.primary,
-                                                height: 1,
-                                              ),
-                                            ),
-                                          );
-                                        },
-                                      ),
+                                  Transform.translate(
+                                    offset: const Offset(-8, -12),
+                                    child: const Icon(
+                                      Icons.star_rounded,
+                                      color: Color(0xFFFFB74D),
+                                      size: 24,
                                     ),
                                   ),
-                                  const SizedBox(width: 12),
-                                  Flexible(
-                                    child: Text(
-                                      'Continue with Google',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.white,
+                                  Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Transform.translate(
+                                        offset: const Offset(0, 8),
+                                        child: Text(
+                                          'Welcome to ',
+                                          style: GoogleFonts.caveat(
+                                            fontSize: 28,
+                                            fontWeight: FontWeight.w700,
+                                            color: const Color(0xFF6C4DFF),
+                                          ),
+                                        ),
                                       ),
-                                      overflow: TextOverflow.ellipsis,
+                                      Text(
+                                        'Triozy',
+                                        textAlign: TextAlign.center,
+                                        style: GoogleFonts.poppins(
+                                          fontSize: 36,
+                                          fontWeight: FontWeight.w800,
+                                          height: 1.1,
+                                          letterSpacing: -1.5,
+                                          color: const Color(0xFF0F172A),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  Transform.translate(
+                                    offset: const Offset(8, 8),
+                                    child: const Icon(
+                                      Icons.favorite,
+                                      color: Color(0xFF6C4DFF),
+                                      size: 22,
                                     ),
                                   ),
                                 ],
                               ),
-                      ),
-                    ),
+                              const SizedBox(height: 8),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                                child: Text(
+                                  'Helping students and working professionals find rooms, flatmates, and everything needed to settle into a new city.',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 14,
+                                    height: 1.5,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ),
 
-                    const SizedBox(height: 16),
+                              const SizedBox(height: 14),
 
-                    SizedBox(
-                      height: 56,
-                      child: OutlinedButton(
-                        onPressed: _isLoading ? null : _handleContinueAsGuest,
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: AppColors.onSurface,
-                          side: const BorderSide(
-                            color: AppColors.outlineVariant,
-                            width: 1.5,
-                          ),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(16),
+                              // ── Hero Illustration ──────────────────────────────
+                              Expanded(
+                                child: Transform.translate(
+                                  offset: const Offset(0, 32),
+                                  child: Transform.scale(
+                                    scale: 1.25,
+                                    alignment: Alignment.bottomCenter,
+                                    child: Image.asset(
+                                      'assets/images/welcome_scene.png',
+                                      fit: BoxFit.contain,
+                                      alignment: Alignment.bottomCenter,
+                                      errorBuilder: (_, _, _) => const SizedBox(),
+                                    ),
+                                  ),
+                                ),
+                              ),
+
+                              // ── Bottom Action Buttons ──────────────────────────────────
+                              SizedBox(
+                                height: 54,
+                                child: ElevatedButton(
+                                  onPressed: _isLoading ? null : _handleGoogleSignIn,
+                                  style: ElevatedButton.styleFrom(
+                                    elevation: 12,
+                                    shadowColor: const Color(0xFF6C4DFF).withValues(alpha: 0.4),
+                                    backgroundColor: const Color(0xFF5B3FFF),
+                                    padding: const EdgeInsets.symmetric(vertical: 18),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(26),
+                                    ),
+                                  ),
+                                  child: _isLoading
+                                      ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            color: Colors.white,
+                                          ),
+                                        )
+                                      : Row(
+                                          children: [
+                                            const SizedBox(width: 8),
+                                            Container(
+                                              width: 32,
+                                              height: 32,
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(8),
+                                              ),
+                                              child: Padding(
+                                                padding: const EdgeInsets.all(6),
+                                                child: Image.network(
+                                                  "https://img.icons8.com/color/48/000000/google-logo.png",
+                                                  errorBuilder: (context, error, stackTrace) {
+                                                    return Center(
+                                                      child: Text(
+                                                        'G',
+                                                        style: GoogleFonts.inter(
+                                                          fontSize: 14,
+                                                          fontWeight: FontWeight.w800,
+                                                          color: AppColors.primary,
+                                                          height: 1,
+                                                        ),
+                                                      ),
+                                                    );
+                                                  },
+                                                ),
+                                              ),
+                                            ),
+                                            const Expanded(
+                                              child: Text(
+                                                'Continue with Google',
+                                                textAlign: TextAlign.center,
+                                                style: TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: Colors.white,
+                                                ),
+                                              ),
+                                            ),
+                                            const Icon(
+                                              Icons.chevron_right_rounded,
+                                              color: Colors.white,
+                                            ),
+                                            const SizedBox(width: 8),
+                                          ],
+                                        ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 16),
+
+                              SizedBox(
+                                height: 54,
+                                child: OutlinedButton(
+                                  onPressed: _isLoading ? null : _handleContinueAsGuest,
+                                  style: OutlinedButton.styleFrom(
+                                    foregroundColor: const Color(0xFF0F172A),
+                                    backgroundColor: Colors.white.withValues(alpha: 0.8),
+                                    elevation: 0,
+                                    side: BorderSide.none,
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(26),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        width: 32,
+                                        height: 32,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF6C4DFF).withValues(alpha: 0.1),
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                        child: const Icon(
+                                          Icons.person_outline_rounded,
+                                          color: Color(0xFF6C4DFF),
+                                          size: 20,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Text(
+                                          'Continue as Guest',
+                                          textAlign: TextAlign.center,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                      const Icon(
+                                        Icons.chevron_right_rounded,
+                                        color: Color(0xFF0F172A),
+                                      ),
+                                      const SizedBox(width: 8),
+                                    ],
+                                  ),
+                                ),
+                              ),
+
+                              const SizedBox(height: 24),
+
+                              // ── Policy Disclaimer ──────────────────────────────────────
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  const Icon(
+                                    Icons.verified_user_rounded,
+                                    color: Color(0xFF6C4DFF),
+                                    size: 16,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'Your data is safe with us. Always.',
+                                    style: GoogleFonts.inter(
+                                      fontSize: 13,
+                                      color: const Color(0xFF64748B),
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 12),
+                              const _PolicyDisclaimerText(),
+                            ],
                           ),
                         ),
-                        child: Text(
-                          'Continue as Guest',
-                          style: GoogleFonts.inter(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
                       ),
                     ),
-
-                    const SizedBox(height: 32),
-
-                    // ── Policy Disclaimer ──────────────────────────────────────
-                    const _PolicyDisclaimerText(),
-                  ],
-                ),
+                  );
+                },
               ),
             ),
           ],
