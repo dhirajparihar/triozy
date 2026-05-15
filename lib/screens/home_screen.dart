@@ -11,10 +11,8 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'housing_entry_screen.dart';
 import 'listing_detail_screen.dart';
-import 'requirement_form_screen.dart';
 import 'location_search_screen.dart';
 import 'pg_listing_form_screen.dart';
-import 'housing_feed_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onExploreTapped;
@@ -112,16 +110,6 @@ class HomeScreenState extends State<HomeScreen> {
             ListingDetailScreen(listingId: listing.id, seed: listing),
       ),
     );
-  }
-
-  Future<void> _openRoomRequirement() async {
-    final published = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(builder: (_) => const RequirementFormScreen()),
-    );
-    if (published == true && mounted) {
-      _loadData();
-    }
   }
 
   Future<void> _openFlatmates() async {

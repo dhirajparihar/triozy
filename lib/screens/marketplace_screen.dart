@@ -1821,7 +1821,6 @@ class _ModernTextField extends StatelessWidget {
   final String label;
   final String hint;
   final String? prefixText;
-  final IconData? prefixIcon;
   final int maxLines;
   final int? maxLength;
   final TextInputType? keyboardType;
@@ -1833,7 +1832,6 @@ class _ModernTextField extends StatelessWidget {
     required this.label,
     required this.hint,
     this.prefixText,
-    this.prefixIcon,
     this.maxLines = 1,
     this.maxLength,
     this.keyboardType,
@@ -1856,7 +1854,6 @@ class _ModernTextField extends StatelessWidget {
         labelText: label,
         hintText: hint,
         prefixText: prefixText,
-        prefixIcon: prefixIcon == null ? null : Icon(prefixIcon),
         contentPadding: EdgeInsets.symmetric(
           horizontal: isCompact ? 12 : 16,
           vertical: isCompact ? 12 : 16,

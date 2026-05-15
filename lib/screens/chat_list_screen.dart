@@ -151,31 +151,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
     return ChatType.listing;
   }
 
-  Future<ChatType> _effectiveChatTypeAsync(ConversationModel conversation) async {
-    if (conversation.chatType == ChatType.marketplace) {
-      return ChatType.marketplace;
-    }
-
-    final referenceId = conversation.referenceId.trim();
-    if (referenceId.isEmpty) {
-      return ChatType.listing;
-    }
-
-    final cachedType = _referenceTypeCache[referenceId];
-    if (cachedType != null) {
-      return cachedType == ListingType.marketplace
-          ? ChatType.marketplace
-          : ChatType.listing;
-    }
-
-    // Wait for the type to be resolved
-    await _resolveReferenceType(referenceId);
-    final resolvedType = _referenceTypeCache[referenceId];
-    return resolvedType == ListingType.marketplace
-        ? ChatType.marketplace
-        : ChatType.listing;
-  }
-
   Future<void> _resolveReferenceType(String referenceId) async {
     if (referenceId.isEmpty || _referenceTypeCache.containsKey(referenceId)) {
       return;
@@ -204,47 +179,6 @@ class _ChatListScreenState extends State<ChatListScreen> {
     } finally {
       _referenceTypeLoading.remove(referenceId);
     }
-  }
-
-  Future<List<ConversationModel>> _deduplicateConversations(List<ConversationModel> conversations, String uid) async {
-    final conversationsByPeer = <String, List<ConversationModel>>{};
-    for (final conversation in conversations) {
-      final peerId = conversation.peerIdFor(uid).trim();
-      final key = peerId.isEmpty ? conversation.id : peerId;
-      conversationsByPeer.putIfAbsent(key, () => []).add(conversation);
-    }
-
-    final deduped = <ConversationModel>[];
-    for (final group in conversationsByPeer.values) {
-      if (group.length == 1) {
-        deduped.add(group.first);
-        continue;
-      }
-
-      // Wait for all chat types to be resolved
-      final resolvedTypes = <ConversationModel, ChatType>{};
-      for (final conversation in group) {
-        resolvedTypes[conversation] = await _effectiveChatTypeAsync(conversation);
-      }
-
-      final housingChats = group.where(
-        (conversation) => resolvedTypes[conversation] == ChatType.listing,
-      );
-      final marketplaceChats = group.where(
-        (conversation) => resolvedTypes[conversation] == ChatType.marketplace,
-      );
-
-      if (housingChats.isNotEmpty && marketplaceChats.isNotEmpty) {
-        // Same peer has chats in both categories; keep the latest chat.
-        final combined = [...housingChats, ...marketplaceChats];
-        combined.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
-        deduped.add(combined.first);
-      } else {
-        deduped.addAll(group);
-      }
-    }
-
-    return deduped..sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
   }
 
   Widget _buildChatList(List<ConversationModel> filtered, ChatProvider chatProvider, String query, String uid, double horizontalPadding, bool isCompact, double listGap) {
