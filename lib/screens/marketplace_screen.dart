@@ -1188,12 +1188,12 @@ class _LocationSearchFieldState extends State<_LocationSearchField> {
                   : null,
               onTap: () {
                 final addressDetails = place['address'] as Map<String, dynamic>? ?? {};
-                final shortName = addressDetails['neighbourhood'] ??
+                final shortName = place['name'] ??
+                    addressDetails['neighbourhood'] ??
                     addressDetails['suburb'] ??
                     addressDetails['city_district'] ??
                     addressDetails['city'] ??
                     addressDetails['town'] ??
-                    place['name'] ??
                     'Unknown Location';
                           
                 final lat = double.tryParse(place['lat']?.toString() ?? '') ?? 0.0;
