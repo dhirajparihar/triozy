@@ -475,19 +475,13 @@ class _FieldLabel extends StatelessWidget {
 class _UnderlineTextField extends StatelessWidget {
   final TextEditingController controller;
   final Widget? prefix;
-  final Widget? suffix;
-  final String? hintText;
   final TextInputType? keyboardType;
-  final ValueChanged<String>? onChanged;
   final String? Function(String?)? validator;
 
   const _UnderlineTextField({
     required this.controller,
     this.prefix,
-    this.suffix,
-    this.hintText,
     this.keyboardType,
-    this.onChanged,
     this.validator,
   });
 
@@ -498,7 +492,6 @@ class _UnderlineTextField extends StatelessWidget {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
-      onChanged: onChanged,
       validator: validator,
       style: AppTheme.body(
         fontSize: isCompact ? 17 : 18,
@@ -507,7 +500,6 @@ class _UnderlineTextField extends StatelessWidget {
       ),
       decoration: InputDecoration(
         isDense: true,
-        hintText: hintText,
         hintStyle: AppTheme.body(
           fontSize: isCompact ? 15 : 16,
           height: 1.1,
@@ -518,7 +510,6 @@ class _UnderlineTextField extends StatelessWidget {
             ? null
             : Padding(padding: const EdgeInsets.only(right: 12), child: prefix),
         prefixIconConstraints: const BoxConstraints(minWidth: 0, minHeight: 32),
-        suffixIcon: suffix,
         contentPadding: const EdgeInsets.only(bottom: 2),
         border: const UnderlineInputBorder(
           borderSide: BorderSide(color: AppColors.outlineVariant),
