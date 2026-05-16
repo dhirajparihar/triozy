@@ -2,8 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 
 import 'requirement_model.dart';
 
+
+// === Listing enums ===========================================================
+
+/// High-level listing category.
 enum ListingType { housing, marketplace }
 
+/// Convenience helpers for serializing and labeling [ListingType].
 extension ListingTypeX on ListingType {
   String get value {
     switch (this) {
@@ -34,8 +39,10 @@ extension ListingTypeX on ListingType {
   }
 }
 
+/// Property subtype for a listing.
 enum PropertyType { room, flat, pg, item }
 
+/// Convenience helpers for serializing and labeling [PropertyType].
 extension PropertyTypeX on PropertyType {
   String get value {
     switch (this) {
@@ -94,6 +101,7 @@ extension PropertyTypeX on PropertyType {
   }
 }
 
+/// Intent of the listing (looking vs offering vs selling).
 enum ListingPurpose {
   needPlace,
   needRoommate,
@@ -101,6 +109,7 @@ enum ListingPurpose {
   marketplaceSell,
 }
 
+/// Convenience helpers for serializing and labeling [ListingPurpose].
 extension ListingPurposeX on ListingPurpose {
   String get value {
     switch (this) {
@@ -151,6 +160,10 @@ extension ListingPurposeX on ListingPurpose {
   }
 }
 
+
+// === Listing model ===========================================================
+
+/// Primary listing model used across housing and marketplace flows.
 class ListingModel {
   final String id;
   final String ownerId;
@@ -210,6 +223,7 @@ class ListingModel {
           'Invalid listing type, property type, and purpose combination',
         );
 
+  /// Builds a [ListingModel] from Firestore data.
   factory ListingModel.fromMap(Map<String, dynamic> map, String docId) {
     final normalized = _normalizeListingFields(map);
 
@@ -245,6 +259,7 @@ class ListingModel {
     );
   }
 
+  /// Serializes this listing to a Firestore-friendly map.
   Map<String, dynamic> toMap({bool includeCreatedAt = true}) {
     return {
       'ownerId': ownerId,
@@ -273,6 +288,7 @@ class ListingModel {
     };
   }
 
+  /// Validates whether a listing type/purpose combination makes sense.
   static bool isValidCombination({
     required ListingType type,
     required PropertyType propertyType,
@@ -298,6 +314,7 @@ class ListingModel {
         propertyType == PropertyType.pg;
   }
 
+  /// Normalizes legacy/variant fields into a consistent listing triple.
   static (ListingType, PropertyType, ListingPurpose) _normalizeListingFields(
     Map<String, dynamic> map,
   ) {
@@ -336,6 +353,7 @@ class ListingModel {
     return (type, propertyType, purpose);
   }
 
+  /// Builds requirement details from nested data or legacy fields.
   static RequirementModel? _requirementDetailsFromMap(
     Map<String, dynamic> map,
     String docId,
@@ -376,6 +394,7 @@ class ListingModel {
     );
   }
 
+  /// Human-friendly price label based on listing type/purpose.
   String get priceLabel {
     final rounded =
         price % 1 == 0 ? price.toInt().toString() : price.toStringAsFixed(0);
@@ -388,17 +407,24 @@ class ListingModel {
     return 'Rs $rounded/mo';
   }
 
+  /// True when this listing represents a user looking for a place.
   bool get isRequirementPost => purpose == ListingPurpose.needPlace;
 
+  /// True when this listing represents an owner/offer post.
   bool get isOwnerPost => purpose == ListingPurpose.offerProperty;
 
+  /// True when this is a marketplace item.
   bool get isMarketplacePost => type == ListingType.marketplace;
 
+  /// True when the listing is looking for a roommate.
   bool get needsRoommate => purpose == ListingPurpose.needRoommate;
 
+  /// Label for UI display of the property type.
   String get propertyTypeLabel => propertyType.label;
 
+  /// Label for UI display of the listing purpose.
   String get purposeLabel => purpose.label;
 
+  /// Label for UI display of the listing type.
   String get typeLabel => type.label;
 }

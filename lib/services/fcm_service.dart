@@ -5,6 +5,10 @@ import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
+
+// === Push notifications ======================================================
+
+/// Top-level handler required for background message processing.
 @pragma('vm:entry-point')
 Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   if (Firebase.apps.isEmpty) {
@@ -12,6 +16,7 @@ Future<void> firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   }
 }
 
+/// Wraps Firebase Cloud Messaging setup and local notifications.
 class FCMService {
   static final FCMService _instance = FCMService._internal();
   factory FCMService() => _instance;
@@ -24,6 +29,7 @@ class FCMService {
   bool _initialized = false;
   int _badgeCount = 0;
 
+  /// Initializes FCM handlers, permissions, and token persistence.
   Future<void> initialize() async {
     if (_initialized) {
       return;
@@ -47,6 +53,7 @@ class FCMService {
     }
   }
 
+  /// Sets up local notification channels and click handlers.
   Future<void> _setupLocalNotifications() async {
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
@@ -78,6 +85,7 @@ class FCMService {
         ?.createNotificationChannel(channel);
   }
 
+  /// Requests notification permissions and foreground display options.
   Future<void> _requestPermissions() async {
     await _messaging.requestPermission(
       alert: true,
@@ -95,6 +103,7 @@ class FCMService {
     }
   }
 
+  /// Handles foreground messages by showing a local notification.
   Future<void> _handleForegroundMessage(RemoteMessage message) async {
     final title = message.notification?.title ?? 'New message';
     final body = message.notification?.body ?? 'You received a new message';
@@ -105,6 +114,7 @@ class FCMService {
     );
   }
 
+  /// Persists the current FCM token to the signed-in user doc.
   Future<void> _persistTokenForCurrentUser() async {
     final token = await _messaging.getToken();
     if (token == null) {
@@ -113,6 +123,7 @@ class FCMService {
     await _persistTokenForCurrentUserByToken(token);
   }
 
+  /// Persists a specific token for the signed-in user.
   Future<void> _persistTokenForCurrentUserByToken(String token) async {
     final uid = FirebaseAuth.instance.currentUser?.uid;
     if (uid == null || uid.isEmpty) {
@@ -130,6 +141,7 @@ class FCMService {
     }
   }
 
+  /// Placeholder for server-side notification dispatch.
   Future<void> sendNotificationToUser({
     required String userId,
     required String title,
@@ -141,6 +153,7 @@ class FCMService {
     );
   }
 
+  /// Displays a local notification and increments the badge count.
   Future<void> showLocalNotification({
     required String title,
     required String body,

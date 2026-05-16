@@ -3,10 +3,15 @@ import 'package:firebase_auth/firebase_auth.dart';
 
 import '../models/chat_model.dart';
 
+
+// === Chat data access ========================================================
+
+/// Firestore-backed chat access for conversations and messages.
 class ChatService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  /// Returns the current user id or throws if not authenticated.
   String _currentUserIdOrThrow() {
     final currentUserId = normalizeChatUid(_auth.currentUser?.uid ?? '');
     if (currentUserId.isEmpty) {
@@ -15,6 +20,7 @@ class ChatService {
     return currentUserId;
   }
 
+  /// Creates a deterministic chat id based on participants and reference.
   String _generateChatId(
     String uid1,
     String uid2,
@@ -25,6 +31,7 @@ class ChatService {
     return '${sorted[0]}_${sorted[1]}_${chatType.value}_$referenceId';
   }
 
+  /// Full payload for first-time conversation creation.
   Map<String, dynamic> _conversationPayload({
     required String currentUserId,
     required String otherUserId,
@@ -63,6 +70,7 @@ class ChatService {
     };
   }
 
+  /// Minimal payload used when full creation is not permitted.
   Map<String, dynamic> _conversationMergePayload({
     required String currentUserId,
     required String otherUserId,
@@ -94,6 +102,9 @@ class ChatService {
     };
   }
 
+  /// Creates or fetches a conversation and returns its id.
+  ///
+  /// Falls back to a merged write when full creation is blocked by rules.
   Future<String> getOrCreateConversation({
     required String otherUserId,
     required ChatType chatType,
@@ -157,6 +168,9 @@ class ChatService {
     return chatId;
   }
 
+  /// Sends a text message within a conversation.
+  ///
+  /// Uses a transaction to keep the conversation summary in sync.
   Future<void> sendMessage(
     String conversationId,
     String text, {
@@ -211,6 +225,7 @@ class ChatService {
     });
   }
 
+  /// Streams the user's conversations ordered by latest activity.
   Stream<List<ConversationModel>> streamConversations(String userId) {
     final normalizedUserId = normalizeChatUid(userId);
     return _firestore
@@ -230,6 +245,7 @@ class ChatService {
         });
   }
 
+  /// Streams messages within a conversation in ascending time order.
   Stream<List<MessageModel>> streamMessages(String conversationId) {
     return _firestore
         .collection('chats')
@@ -245,6 +261,7 @@ class ChatService {
         });
   }
 
+        /// Marks the current conversation as read for the current user.
   Future<void> markConversationAsRead(String conversationId) async {
     final currentUserId = _currentUserIdOrThrow();
     final now = FieldValue.serverTimestamp();
@@ -256,6 +273,7 @@ class ChatService {
     });
   }
 
+  /// Updates typing state for the current user.
   Future<void> setTypingStatus(
     String conversationId, {
     required bool isTyping,

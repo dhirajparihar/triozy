@@ -16,6 +16,10 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'chat_detail_screen.dart';
 
+
+// === Listing detail ==========================================================
+
+/// Detail screen for a housing or marketplace listing.
 class ListingDetailScreen extends StatefulWidget {
   final String listingId;
   final ListingModel? seed;
@@ -33,11 +37,13 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   @override
   void initState() {
     super.initState();
+    // Seed data provides instant UI while Firestore fetch runs.
     _listing = widget.seed;
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadListing());
   }
 
   Future<void> _loadListing() async {
+    // Load fresh listing data; keep seed as fallback.
     final listing = await context.read<DatabaseService>().getListing(
       widget.listingId,
     );
@@ -67,6 +73,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
     }
 
     try {
+      // Create or reuse a chat tied to this listing.
       final conversationId = await context.read<ChatProvider>().createOrGetChat(
         otherUserId: listing.ownerId,
         chatType: listing.isMarketplacePost
@@ -117,6 +124,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       );
     }
 
+    // Use specialized layouts for requirement, roommate, or PG listings.
     if (listing.isRequirementPost && listing.requirementDetails != null) {
       return _RequirementDetailScaffold(
         listing: listing,
@@ -136,6 +144,7 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       backgroundColor: AppColors.background,
       body: Stack(
         children: [
+          // Base listing detail layout (standard listing).
           ListView(
             padding: EdgeInsets.zero,
             children: [
@@ -263,6 +272,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   }
 }
 
+
+// === Roommate/room post detail ===============================================
+
+/// Detail layout for roommate-seeking room posts.
 class _RoomPostDetailScaffold extends StatelessWidget {
   final ListingModel listing;
   final VoidCallback onStartChat;
@@ -274,6 +287,7 @@ class _RoomPostDetailScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Derive display strings from listing data.
     final name = listing.ownerName.trim().isEmpty
         ? 'Triozy user'
         : listing.ownerName.trim();
@@ -305,6 +319,7 @@ class _RoomPostDetailScaffold extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.fromLTRB(20, 34, 20, 28),
         children: [
+          // Image hero with tap-to-view behavior.
           _RoomImageHero(imageUrls: listing.imageUrls),
           const SizedBox(height: 34),
           Row(
@@ -449,6 +464,7 @@ class _RoomPostDetailScaffold extends StatelessWidget {
   }
 
   String get _occupancyFromHighlights {
+    // Pull occupancy from highlights, if present.
     const occupancyValues = {'Single', 'Double', 'Triple'};
     for (final highlight in listing.highlights) {
       final cleaned = highlight.trim();
@@ -460,6 +476,7 @@ class _RoomPostDetailScaffold extends StatelessWidget {
   }
 
   List<String> get _amenities {
+    // Filter out non-amenity highlights.
     const hidden = {'Single', 'Double', 'Triple', 'Mobile public', 'Chat only'};
     return listing.highlights
         .map((item) => item.trim())
@@ -473,6 +490,10 @@ class _RoomPostDetailScaffold extends StatelessWidget {
   }
 }
 
+
+// === PG detail ===============================================================
+
+/// Detail layout for PG/hostel listings with enriched sections.
 class _PgDetailScaffold extends StatefulWidget {
   final ListingModel listing;
   final VoidCallback onStartChat;
@@ -497,6 +518,7 @@ class _PgDetailScaffoldState extends State<_PgDetailScaffold> {
   @override
   Widget build(BuildContext context) {
     final listing = widget.listing;
+    // Parse structured fields from listing description/highlights.
     final details = _PgParsedDetails.fromListing(listing);
 
     return Scaffold(
@@ -565,6 +587,7 @@ class _PgDetailScaffoldState extends State<_PgDetailScaffold> {
       ),
       bottomNavigationBar: _PgStickyCta(
         onBookVisit: () {
+          // Demo CTA: start chat after acknowledging visit intent.
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Visit request started')),
           );
@@ -576,6 +599,7 @@ class _PgDetailScaffoldState extends State<_PgDetailScaffold> {
   }
 }
 
+/// Swipeable image carousel with actions for PG listings.
 class _PgImageCarousel extends StatelessWidget {
   final List<String> imageUrls;
   final PageController controller;
@@ -604,6 +628,7 @@ class _PgImageCarousel extends StatelessWidget {
       height: 330,
       child: Stack(
         children: [
+          // Swipeable image gallery.
           PageView.builder(
             controller: controller,
             itemCount: images.length,
@@ -640,6 +665,7 @@ class _PgImageCarousel extends StatelessWidget {
           ),
           Positioned.fill(
             child: DecoratedBox(
+              // Top/bottom gradients help UI controls stand out.
               decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topCenter,
@@ -663,6 +689,7 @@ class _PgImageCarousel extends StatelessWidget {
             right: 12,
             child: Row(
               children: [
+                // Share + save shortcuts.
                 _CircleAction(icon: Icons.ios_share_rounded, onTap: onShare),
                 const SizedBox(width: 10),
                 _CircleAction(
@@ -683,6 +710,7 @@ class _PgImageCarousel extends StatelessWidget {
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: List.generate(images.length, (dot) {
                   final active = dot == index;
+                  // Animated dots show gallery position.
                   return AnimatedContainer(
                     duration: const Duration(milliseconds: 180),
                     width: active ? 18 : 7,
@@ -702,6 +730,7 @@ class _PgImageCarousel extends StatelessWidget {
   }
 }
 
+/// Circular icon button used on top of hero images.
 class _CircleAction extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
@@ -726,6 +755,7 @@ class _CircleAction extends StatelessWidget {
   }
 }
 
+/// Summary card with title, tags, and address for PG listings.
 class _PgOverviewCard extends StatelessWidget {
   final ListingModel listing;
   final _PgParsedDetails details;
@@ -735,6 +765,7 @@ class _PgOverviewCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _DetailCard(
+      // Title, badges, and address summary.
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -797,6 +828,7 @@ class _PgOverviewCard extends StatelessWidget {
   }
 }
 
+/// Pricing card with headline price and fee tiles.
 class _PgPricingCard extends StatelessWidget {
   final ListingModel listing;
   final _PgParsedDetails details;
@@ -806,6 +838,7 @@ class _PgPricingCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _DetailCard(
+      // Price line and quick fee tiles.
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -849,6 +882,7 @@ class _PgPricingCard extends StatelessWidget {
   }
 }
 
+/// Expandable card describing a room configuration.
 class _PgRoomCard extends StatefulWidget {
   final _PgRoomConfig room;
 
@@ -865,6 +899,7 @@ class _PgRoomCardState extends State<_PgRoomCard> {
   Widget build(BuildContext context) {
     final room = widget.room;
     return _DetailCard(
+      // Expandable room configuration detail.
       padding: const EdgeInsets.all(14),
       child: Column(
         children: [
@@ -873,6 +908,7 @@ class _PgRoomCardState extends State<_PgRoomCard> {
             borderRadius: BorderRadius.circular(18),
             child: Row(
               children: [
+                // Header row with expand/collapse indicator.
                 Container(
                   width: 46,
                   height: 46,
@@ -916,6 +952,7 @@ class _PgRoomCardState extends State<_PgRoomCard> {
               ],
             ),
           ),
+          // Expanded content with room specs.
           AnimatedCrossFade(
             duration: const Duration(milliseconds: 180),
             crossFadeState: _expanded
@@ -948,6 +985,7 @@ class _PgRoomCardState extends State<_PgRoomCard> {
   }
 }
 
+/// Grid of amenity chips for PG listings.
 class _PgAmenitiesGrid extends StatelessWidget {
   final List<String> amenities;
 
@@ -955,6 +993,7 @@ class _PgAmenitiesGrid extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Default set keeps UI populated when no amenities are provided.
     final items = amenities.isEmpty ? ['WiFi', 'Food', 'CCTV'] : amenities;
     return _DetailCard(
       child: Wrap(
@@ -982,6 +1021,7 @@ class _PgAmenitiesGrid extends StatelessWidget {
   }
 }
 
+/// Rule summary card (gender, smoking, visitors, curfew).
 class _PgRulesCard extends StatelessWidget {
   final _PgParsedDetails details;
   final ListingModel listing;
@@ -991,6 +1031,7 @@ class _PgRulesCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _DetailCard(
+      // Owner rules and preferences.
       child: Column(
         children: [
           _RuleRow('Preferred Gender', listing.genderPreference ?? 'Any'),
@@ -1007,6 +1048,7 @@ class _PgRulesCard extends StatelessWidget {
   }
 }
 
+/// Location preview card for PG listings.
 class _PgLocationCard extends StatelessWidget {
   final ListingModel listing;
   final String nearby;
@@ -1016,6 +1058,7 @@ class _PgLocationCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _DetailCard(
+      // Simple map placeholder and nearby tag.
       child: Column(
         children: [
           Container(
@@ -1056,6 +1099,7 @@ class _PgLocationCard extends StatelessWidget {
   }
 }
 
+/// Owner contact card with chat/phone/WhatsApp actions.
 class _PgOwnerCard extends StatelessWidget {
   final ListingModel listing;
   final String phone;
@@ -1073,6 +1117,7 @@ class _PgOwnerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final displayPhone = phone.isEmpty ? 'Contact through chat' : phone;
     return _DetailCard(
+      // Owner info + quick contact actions.
       child: Row(
         children: [
           _RequirementAvatar(
@@ -1121,6 +1166,7 @@ class _PgOwnerCard extends StatelessWidget {
   }
 }
 
+/// Bottom sticky CTA bar for PG detail actions.
 class _PgStickyCta extends StatelessWidget {
   final VoidCallback onBookVisit;
   final VoidCallback onContactOwner;
@@ -1129,6 +1175,7 @@ class _PgStickyCta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Sticky CTA row for quick actions.
     return SafeArea(
       top: false,
       child: Container(
@@ -1179,6 +1226,7 @@ class _PgStickyCta extends StatelessWidget {
   }
 }
 
+/// Shared elevated card surface used across detail sections.
 class _DetailCard extends StatelessWidget {
   final Widget child;
   final EdgeInsetsGeometry padding;
@@ -1190,6 +1238,7 @@ class _DetailCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Reusable card shell used throughout PG and requirement views.
     return Container(
       width: double.infinity,
       padding: padding,
@@ -1209,6 +1258,7 @@ class _DetailCard extends StatelessWidget {
   }
 }
 
+/// Consistent section heading text styling.
 class _SectionHeading extends StatelessWidget {
   final String text;
 
@@ -1216,10 +1266,12 @@ class _SectionHeading extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Unified heading style for detail sections.
     return Text(text, style: AppTheme.headline(fontSize: 20));
   }
 }
 
+/// Small pill badge used for verification labels.
 class _VerifiedBadge extends StatelessWidget {
   final String label;
 
@@ -1227,6 +1279,7 @@ class _VerifiedBadge extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Small pill badge for verified markers.
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
@@ -1255,6 +1308,7 @@ class _VerifiedBadge extends StatelessWidget {
   }
 }
 
+/// Mini info tile for deposit/food/electricity summaries.
 class _MiniInfoTile extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -1268,6 +1322,7 @@ class _MiniInfoTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Compact info tiles (deposit, food, electricity).
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
@@ -1293,6 +1348,7 @@ class _MiniInfoTile extends StatelessWidget {
   }
 }
 
+/// Chip for PG room specs and amenities.
 class _PgSpecChip extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -1301,6 +1357,7 @@ class _PgSpecChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Inline chip for PG specs/amenities.
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
@@ -1319,6 +1376,7 @@ class _PgSpecChip extends StatelessWidget {
   }
 }
 
+/// Two-column rule row used in rules/preferences cards.
 class _RuleRow extends StatelessWidget {
   final String label;
   final String value;
@@ -1327,6 +1385,7 @@ class _RuleRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Label/value row for rules.
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 9),
       child: Row(
@@ -1351,6 +1410,7 @@ class _RuleRow extends StatelessWidget {
   }
 }
 
+/// Expandable description block with read-more toggle.
 class _ReadMoreText extends StatefulWidget {
   final String text;
 
@@ -1365,6 +1425,7 @@ class _ReadMoreTextState extends State<_ReadMoreText> {
 
   @override
   Widget build(BuildContext context) {
+    // Truncate long text with a read-more toggle.
     return _DetailCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1391,6 +1452,7 @@ class _ReadMoreTextState extends State<_ReadMoreText> {
   }
 }
 
+/// Rounded icon button for contact actions.
 class _ContactIconButton extends StatelessWidget {
   final IconData icon;
   final VoidCallback? onTap;
@@ -1399,6 +1461,7 @@ class _ContactIconButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Tinted icon button for contact actions.
     return IconButton.filledTonal(
       onPressed: onTap,
       icon: Icon(icon, size: 18),
@@ -1411,6 +1474,7 @@ class _ContactIconButton extends StatelessWidget {
   }
 }
 
+/// Location preview widget with distance + map shortcut.
 class _ListingLocationPreview extends StatefulWidget {
   final String location;
 
@@ -1431,6 +1495,7 @@ class _ListingLocationPreviewState extends State<_ListingLocationPreview> {
   @override
   void initState() {
     super.initState();
+    // Resolve location to coordinates and distance.
     WidgetsBinding.instance.addPostFrameCallback((_) => _resolveLocation());
   }
 
@@ -1438,6 +1503,7 @@ class _ListingLocationPreviewState extends State<_ListingLocationPreview> {
   void didUpdateWidget(covariant _ListingLocationPreview oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.location != widget.location) {
+      // Refresh map preview when listing location changes.
       _resolveLocation();
     }
   }
@@ -1451,6 +1517,7 @@ class _ListingLocationPreviewState extends State<_ListingLocationPreview> {
 
     setState(() => _loading = true);
     try {
+      // Geocode listing location, then compute distance from user.
       final coordinates = await _locationService.getCoordinatesFromAddress(query);
       if (!mounted || query != widget.location.trim()) {
         return;
@@ -1484,6 +1551,7 @@ class _ListingLocationPreviewState extends State<_ListingLocationPreview> {
   }
 
   String _formatDistance(double meters) {
+    // Choose meters vs km based on distance.
     if (meters < 1000) {
       return '${meters.round()} m away';
     }
@@ -1495,6 +1563,7 @@ class _ListingLocationPreviewState extends State<_ListingLocationPreview> {
   }
 
   Future<void> _openMaps() async {
+    // Launch Google Maps directions with origin when available.
     final destination = _latitude != null && _longitude != null
         ? '$_latitude,$_longitude'
         : widget.location.trim();
@@ -1541,6 +1610,7 @@ class _ListingLocationPreviewState extends State<_ListingLocationPreview> {
         ),
         child: Stack(
           children: [
+            // Painted map backdrop.
             Positioned.fill(
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(22),
@@ -1589,6 +1659,7 @@ class _ListingLocationPreviewState extends State<_ListingLocationPreview> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  // Map pin + overlayed location text.
                   const Icon(
                     Icons.location_pin,
                     color: AppColors.error,
@@ -1646,9 +1717,11 @@ class _ListingLocationPreviewState extends State<_ListingLocationPreview> {
   }
 }
 
+/// Painted, abstract map background for the location preview.
 class _MapPreviewPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
+    // Simple abstract map rendering for preview.
     final background = Paint()..color = AppColors.blue50;
     canvas.drawRect(Offset.zero & size, background);
 
@@ -1699,6 +1772,10 @@ class _MapPreviewPainter extends CustomPainter {
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
+
+// === PG parsing helpers ======================================================
+
+/// Parsed details extracted from PG description/highlights.
 class _PgParsedDetails {
   final String propertyType;
   final String deposit;
@@ -1733,6 +1810,7 @@ class _PgParsedDetails {
   });
 
   factory _PgParsedDetails.fromListing(ListingModel listing) {
+    // Parse structured details from a description template.
     final lines = listing.description
         .split('\n')
         .map((line) => line.trim())
@@ -1854,6 +1932,7 @@ class _PgParsedDetails {
   }
 }
 
+/// Parsed room configuration line for a PG listing.
 class _PgRoomConfig {
   final String roomType;
   final String rent;
@@ -1874,6 +1953,7 @@ class _PgRoomConfig {
   });
 
   factory _PgRoomConfig.parse(String raw) {
+    // Parse compact room config lines into structured fields.
     final parts = raw.split('->').map((part) => part.trim()).toList();
     final tail = parts.length > 4
         ? parts[4].split(',').map((part) => part.trim()).toList()
@@ -1898,7 +1978,11 @@ class _PgRoomConfig {
   }
 }
 
+
+// === External actions ========================================================
+
 Future<void> _launchUri(String rawUrl) async {
+  // Open tel/whatsapp/links using the platform handler.
   final uri = Uri.parse(rawUrl);
   if (await canLaunchUrl(uri)) {
     await launchUrl(uri, mode: LaunchMode.externalApplication);
@@ -1906,9 +1990,14 @@ Future<void> _launchUri(String rawUrl) async {
 }
 
 String _digitsOnly(String value) {
+  // Normalize phone numbers for whatsapp URLs.
   return value.replaceAll(RegExp(r'[^0-9]'), '');
 }
 
+
+// === Image helpers ===========================================================
+
+/// Hero image section for roommate posts.
 class _RoomImageHero extends StatelessWidget {
   final List<String> imageUrls;
 
@@ -1971,6 +2060,7 @@ class _RoomImageHero extends StatelessWidget {
   }
 }
 
+/// Simple image pager used in generic listing detail view.
 class _GenericImagePager extends StatelessWidget {
   final List<String> imageUrls;
 
@@ -1978,6 +2068,7 @@ class _GenericImagePager extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Generic image pager used in standard listing layout.
     return SizedBox(
       height: 320,
       child: PageView(
@@ -2017,6 +2108,7 @@ void _openImageViewer(
   required List<String> imageUrls,
   int initialIndex = 0,
 }) {
+  // Guard against empty image sets.
   if (imageUrls.isEmpty) {
     return;
   }
@@ -2031,6 +2123,7 @@ void _openImageViewer(
   );
 }
 
+/// Fullscreen image viewer with swipe + zoom.
 class _FullscreenImageViewer extends StatefulWidget {
   final List<String> imageUrls;
   final int initialIndex;
@@ -2063,6 +2156,7 @@ class _FullscreenImageViewerState extends State<_FullscreenImageViewer> {
 
   @override
   Widget build(BuildContext context) {
+    // Fullscreen swipe + zoom viewer.
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
@@ -2133,6 +2227,10 @@ class _FullscreenImageViewerState extends State<_FullscreenImageViewer> {
   }
 }
 
+
+// === Requirement detail ======================================================
+
+/// Detail layout for requirement-type listings.
 class _RequirementDetailScaffold extends StatelessWidget {
   final ListingModel listing;
   final VoidCallback onStartChat;
@@ -2144,6 +2242,7 @@ class _RequirementDetailScaffold extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Build a requirement detail view from listing data.
     final details = listing.requirementDetails!;
     final gender = (listing.genderPreference ?? details.genderPreference)
         .trim();
@@ -2322,11 +2421,13 @@ class _RequirementDetailScaffold extends StatelessWidget {
   }
 
   String get _ownerName {
+    // Owner name fallback.
     final name = listing.ownerName.trim();
     return name.isEmpty ? 'Triozy user' : name;
   }
 }
 
+/// Compact info card for requirement basics (gender/occupancy).
 class _BasicInfoCard extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -2340,6 +2441,7 @@ class _BasicInfoCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Tight layouts adjust font sizes for small cards.
     return LayoutBuilder(
       builder: (context, constraints) {
         final isTight = constraints.maxWidth < 105;
@@ -2404,6 +2506,7 @@ class _BasicInfoCard extends StatelessWidget {
   }
 }
 
+/// Highlight chip for requirement amenities and lifestyle.
 class _RequirementHighlightChip extends StatelessWidget {
   final String label;
 
@@ -2411,6 +2514,7 @@ class _RequirementHighlightChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Highlight chip for requirement amenities/lifestyle.
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
       decoration: BoxDecoration(
@@ -2432,6 +2536,7 @@ class _RequirementHighlightChip extends StatelessWidget {
   }
 }
 
+/// Circular preference icon with tooltip label.
 class _PreferenceCircle extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -2440,6 +2545,7 @@ class _PreferenceCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Icon-only preference marker with tooltip.
     return Tooltip(
       message: label,
       child: Container(
@@ -2458,6 +2564,7 @@ class _PreferenceCircle extends StatelessWidget {
   }
 }
 
+/// Bottom contact bar with owner info + chat button.
 class _RequirementContactBar extends StatelessWidget {
   final ListingModel listing;
   final String gender;
@@ -2471,6 +2578,7 @@ class _RequirementContactBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Bottom bar with owner avatar + chat action.
     final name = listing.ownerName.trim().isEmpty
         ? 'Triozy user'
         : listing.ownerName.trim();
@@ -2544,6 +2652,7 @@ class _RequirementContactBar extends StatelessWidget {
   }
 }
 
+/// Avatar with initial fallback for requirement cards.
 class _RequirementAvatar extends StatelessWidget {
   final String photoUrl;
   final String name;
@@ -2557,6 +2666,7 @@ class _RequirementAvatar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Avatar fallback to initial when photo is missing.
     final initial = name.trim().isEmpty ? 'T' : name.trim()[0].toUpperCase();
 
     return ClipOval(
@@ -2595,6 +2705,7 @@ class _RequirementAvatar extends StatelessWidget {
   }
 }
 
+/// Summary panel for owner name and availability info.
 class _InfoPanel extends StatelessWidget {
   final ListingModel listing;
 
@@ -2602,6 +2713,7 @@ class _InfoPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Compact info rows for owner/availability/furnishing.
     final rows = <(IconData, String)>[
       (Icons.person_outline_rounded, listing.ownerName),
       if ((listing.availableFrom ?? '').isNotEmpty)
@@ -2642,6 +2754,7 @@ class _InfoPanel extends StatelessWidget {
   }
 }
 
+/// Pill label used to display short listing attributes.
 class _Pill extends StatelessWidget {
   final String label;
 
@@ -2649,6 +2762,7 @@ class _Pill extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Small pill label used in the generic detail layout.
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(

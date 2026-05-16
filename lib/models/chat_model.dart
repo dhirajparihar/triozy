@@ -2,6 +2,10 @@ import 'dart:math';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+
+// === Chat helpers ============================================================
+
+/// Normalizes stored ids that may include a composite prefix.
 String normalizeChatUid(String raw) {
   final value = raw.trim();
   if (value.isEmpty || !value.contains('_')) {
@@ -12,14 +16,17 @@ String normalizeChatUid(String raw) {
   return looksLikeUid ? tail : value;
 }
 
+/// Generates a client-side message id for optimistic UI rendering.
 String generateChatClientId() {
   final millis = DateTime.now().millisecondsSinceEpoch;
   final random = Random().nextInt(1 << 20).toRadixString(16);
   return 'm_${millis}_$random';
 }
 
+/// Chat categories used for conversation routing and labels.
 enum ChatType { listing, marketplace }
 
+/// Convenience helpers for serializing and labeling [ChatType].
 extension ChatTypeX on ChatType {
   String get value {
     switch (this) {
@@ -78,6 +85,10 @@ extension ChatTypeX on ChatType {
   }
 }
 
+
+// === Participant metadata ====================================================
+
+/// Display metadata for a chat participant.
 class ChatParticipantMeta {
   final String userId;
   final String name;
@@ -102,6 +113,10 @@ class ChatParticipantMeta {
   }
 }
 
+
+// === Message model ===========================================================
+
+/// Message payload persisted in Firestore.
 class MessageModel {
   final String id;
   final String clientId;
@@ -131,6 +146,7 @@ class MessageModel {
   bool get isFailed => status == 'failed';
   bool get isRead => status == 'read';
 
+  /// Builds a message from Firestore data.
   factory MessageModel.fromMap(Map<String, dynamic> map, String id) {
     final timestamp = map['timestamp'] is Timestamp
         ? (map['timestamp'] as Timestamp).toDate()
@@ -148,6 +164,7 @@ class MessageModel {
     );
   }
 
+  /// Builds an optimistic message for immediate UI display.
   factory MessageModel.optimistic({
     required String clientId,
     required String senderId,
@@ -168,6 +185,7 @@ class MessageModel {
     );
   }
 
+  /// Returns a copy with updated fields.
   MessageModel copyWith({
     String? id,
     String? clientId,
@@ -195,6 +213,10 @@ class MessageModel {
   }
 }
 
+
+// === Conversation model ======================================================
+
+/// Summary model for a conversation list tile.
 class ConversationModel {
   final String id;
   final List<String> participants;
@@ -228,6 +250,7 @@ class ConversationModel {
     required this.createdAt,
   });
 
+  /// Builds a conversation from Firestore data.
   factory ConversationModel.fromMap(Map<String, dynamic> map, String id) {
     final lastReadAt = <String, DateTime>{};
     if (map['lastReadAt'] is Map) {
@@ -302,11 +325,13 @@ class ConversationModel {
     );
   }
 
+  /// Returns the other participant id for the current user.
   String peerIdFor(String currentUserId) {
     final normalized = normalizeChatUid(currentUserId);
     return participants.firstWhere((id) => id != normalized, orElse: () => '');
   }
 
+  /// Returns display metadata for the peer participant.
   ChatParticipantMeta? peerMetaFor(String currentUserId) {
     final peerId = peerIdFor(currentUserId);
     if (peerId.isEmpty) {
@@ -315,6 +340,7 @@ class ConversationModel {
     return participantMeta[peerId];
   }
 
+  /// Computes unread count for the current user.
   int unreadCountFor(String currentUserId) {
     final normalized = normalizeChatUid(currentUserId);
     final direct = unreadCountByUser[normalized];
@@ -333,6 +359,7 @@ class ConversationModel {
     return 0;
   }
 
+  /// True when the peer is typing for this conversation.
   bool isPeerTypingFor(String currentUserId) {
     final peerId = peerIdFor(currentUserId);
     if (peerId.isEmpty) {
@@ -341,6 +368,7 @@ class ConversationModel {
     return typingByUser[peerId] ?? false;
   }
 
+  /// Human-friendly timestamp for conversation list tiles.
   String get formattedTime {
     final now = DateTime.now();
     final difference = now.difference(lastMessageTime);

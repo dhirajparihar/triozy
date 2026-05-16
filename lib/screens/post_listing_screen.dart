@@ -12,6 +12,10 @@ import '../services/database_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
+
+// === Post listing form =======================================================
+
+/// Form for creating a housing or marketplace listing.
 class PostListingScreen extends StatefulWidget {
   final PropertyType? initialPropertyType;
   final ListingPurpose? initialPurpose;
@@ -59,6 +63,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Apply deep-link defaults when navigating from a specific flow.
       if (widget.initialPropertyType != null || widget.initialPurpose != null) {
         setState(() {
           _selectedPropertyType =
@@ -74,6 +79,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
   }
 
   ListingPurpose get _resolvedPurpose {
+    // Marketplace items always resolve to marketplace sell.
     if (_selectedPropertyType == PropertyType.item) {
       return ListingPurpose.marketplaceSell;
     }
@@ -83,6 +89,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
   }
 
   List<PropertyType> get _availablePropertyTypes {
+    // Flatmate flow excludes PG and item types.
     if (_selectedPurpose == ListingPurpose.needRoommate) {
       return const [PropertyType.room, PropertyType.flat];
     }
@@ -112,6 +119,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
   }
 
   Future<List<String>> _uploadImages(String listingId) async {
+    // Upload sequentially to keep ordering stable.
     if (_pickedImages.isEmpty) {
       return [];
     }
@@ -131,6 +139,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
   }
 
   Future<void> _submit() async {
+    // Validate and persist the new listing.
     final user = FirebaseAuth.instance.currentUser;
     final navigator = Navigator.of(context);
     final messenger = ScaffoldMessenger.of(context);
@@ -423,6 +432,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
   }
 }
 
+/// Simple text field wrapper used in the post-listing form.
 class _AppField extends StatelessWidget {
   final TextEditingController controller;
   final String label;

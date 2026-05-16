@@ -16,6 +16,10 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../providers/location_search_provider.dart';
 
+
+// === Requirement form ========================================================
+
+/// Form for users looking for a room/flat/PG.
 class RequirementFormScreen extends StatefulWidget {
   const RequirementFormScreen({super.key});
 
@@ -23,6 +27,8 @@ class RequirementFormScreen extends StatefulWidget {
   State<RequirementFormScreen> createState() => _RequirementFormScreenState();
 }
 
+
+/// State container for requirement form draft, validation, and submission.
 class _RequirementFormScreenState extends State<RequirementFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final ValueNotifier<NeedType> _needTypeNotifier = ValueNotifier(
@@ -50,8 +56,10 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
   @override
   void initState() {
     super.initState();
+    // Restore any saved draft and warm up profile photo.
     _loadDraft();
     _loadProfilePhoto();
+    // Autosave only after edits to avoid noisy storage writes.
     _descController.addListener(_scheduleAutosave);
     _locationController.addListener(_scheduleAutosave);
   }
@@ -66,11 +74,13 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
   }
 
   void _scheduleAutosave() {
+    // Debounce draft saving to avoid excessive writes.
     _autosaveTimer?.cancel();
     _autosaveTimer = Timer(const Duration(seconds: 1), _saveDraft);
   }
 
   Future<void> _loadDraft() async {
+    // Lightweight draft restore for description and location fields.
     final prefs = await SharedPreferences.getInstance();
     final hasDraft = prefs.getBool('requirement_draft') ?? false;
     if (!hasDraft) return;
@@ -89,8 +99,10 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
       return;
     }
 
+    // Fall back order: auth photo -> Firestore profile fields -> default avatar.
     var photoUrl = (user.photoURL ?? '').trim();
     try {
+      // Prefer Firestore photo fields when available.
       final userData = await context.read<DatabaseService>().getUserData(
         user.uid,
       );
@@ -132,6 +144,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
 
     setState(() => _uploadingProfilePhoto = true);
     try {
+      // Upload and persist profile photo to Cloudinary + Firestore.
       final photoUrl = await cloudinaryService.uploadImage(
         bytes: await image.readAsBytes(),
         fileName: image.name,
@@ -161,6 +174,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
       return;
     }
 
+    // Optimistically update to keep the UI snappy.
     final photoUrl = _avatarUrl(avatarKey, user.uid);
     final previousPhotoUrl = _profilePhotoUrl;
     setState(() => _profilePhotoUrl = photoUrl);
@@ -233,6 +247,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
   }
 
   Future<void> _saveDraft() async {
+    // Persist draft fields for quick recovery on next open.
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('requirement_draft', true);
     await prefs.setString('req_desc', _descController.text);
@@ -316,10 +331,12 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
   }
 
   String _buildListingTitle(NeedType needType, String location, int maxBudget) {
+    // Short, friendly title used in listing cards.
     return 'Looking for a ${_listingTargetLabel(needType)} in $location under Rs $maxBudget';
   }
 
   List<String> _buildHighlights(NeedType needType) {
+    // Compact highlights used in feed cards and quick filters.
     final highlights = <String>['Needs ${needType.label}', _moveIn, _occupancy];
 
     if (_gender != 'Any') {
@@ -358,6 +375,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
   }
 
   Future<void> _publish() async {
+    // Validate, build a requirement listing, and persist to Firestore.
     if (!_formKey.currentState!.validate()) return;
     if (_maxBudget <= 0 || _minBudget > _maxBudget) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -395,6 +413,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
         location: location,
       );
 
+      // Build a lightweight listing so the requirement shows in feeds.
       final listing = ListingModel(
         id: id,
         ownerId: user.uid,
@@ -418,6 +437,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
       );
 
       await db.createListing(listing);
+      // Clear draft after a successful publish.
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('requirement_draft');
       await prefs.remove('req_desc');
@@ -892,6 +912,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
   }
 }
 
+/// Location input with inline search suggestions overlay.
 class _LocationSearchField extends StatefulWidget {
   final TextEditingController controller;
   final bool isCompact;
@@ -1127,6 +1148,7 @@ class _LocationSearchFieldState extends State<_LocationSearchField> {
   }
 }
 
+/// Budget chip used in the requirement budget selector.
 class _BudgetChoiceChip extends StatelessWidget {
   final String label;
   final bool selected;
@@ -1152,6 +1174,7 @@ class _BudgetChoiceChip extends StatelessWidget {
   }
 }
 
+/// Builds the Dicebear avatar URL based on seed and gender.
 String _normalAvatarUrl({required String seed, required String gender}) {
   final isFemale = gender == 'female';
   final isMale = gender == 'male';
@@ -1176,6 +1199,7 @@ String _normalAvatarUrl({required String seed, required String gender}) {
   }).toString();
 }
 
+/// Profile photo upload/selection block for the requirement form.
 class _ProfilePhotoSection extends StatelessWidget {
   final String photoUrl;
   final bool uploading;
@@ -1298,6 +1322,7 @@ class _ProfilePhotoSection extends StatelessWidget {
   }
 }
 
+/// Action chip for profile photo actions (upload, etc.).
 class _ProfilePhotoActionChip extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -1329,6 +1354,7 @@ class _ProfilePhotoActionChip extends StatelessWidget {
   }
 }
 
+/// Selectable preset avatar option.
 class _PresetAvatarButton extends StatelessWidget {
   final String label;
   final String imageUrl;

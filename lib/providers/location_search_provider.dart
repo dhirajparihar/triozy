@@ -7,24 +7,34 @@ import 'package:http/http.dart' as http;
 import '../models/listing_model.dart';
 import '../services/database_service.dart';
 
+
+// === Location search state ===================================================
+
+/// Manages location search suggestions and nearby feed results.
 class LocationSearchProvider extends ChangeNotifier {
   List<Map<String, dynamic>> _results = [];
+  /// Search suggestions from geocoding API.
   List<Map<String, dynamic>> get results => _results;
 
   bool _isLoading = false;
+  /// True while loading search suggestions.
   bool get isLoading => _isLoading;
 
   bool _showFeed = false;
+  /// True when showing the nearby feed instead of suggestions.
   bool get showFeed => _showFeed;
 
   bool _isLoadingFeed = false;
+  /// True while loading the nearby feed.
   bool get isLoadingFeed => _isLoadingFeed;
 
   List<ListingModel> _feedListings = [];
+  /// Listings shown when a location is selected.
   List<ListingModel> get feedListings => _feedListings;
 
   Timer? _debounce;
 
+  /// Handles keystroke changes with a debounce.
   void onSearchChanged(String query) {
     if (_showFeed) {
       _showFeed = false;
@@ -40,6 +50,7 @@ class LocationSearchProvider extends ChangeNotifier {
     });
   }
 
+  /// Runs a search against the geocoding API.
   Future<void> _search(String query) async {
     if (query.trim().isEmpty) {
       _results = [];
@@ -72,6 +83,7 @@ class LocationSearchProvider extends ChangeNotifier {
     }
   }
 
+  /// Loads a nearby listing feed after a location selection.
   Future<void> fetchFeedForLocation(DatabaseService db, double lat, double lon, String locationName) async {
     _results = [];
     _showFeed = true;
@@ -95,6 +107,7 @@ class LocationSearchProvider extends ChangeNotifier {
     }
   }
 
+  /// Clears search results and cancels any pending search.
   void clearSearch() {
     _results = [];
     _isLoading = false;
@@ -104,6 +117,7 @@ class LocationSearchProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Resets the feed state without touching search text.
   void resetFeed() {
     _showFeed = false;
     _feedListings = [];

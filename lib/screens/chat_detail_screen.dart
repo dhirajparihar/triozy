@@ -10,6 +10,10 @@ import '../providers/chat_provider.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
+
+// === Chat detail =============================================================
+
+/// Conversation view with message list and composer.
 class ChatDetailScreen extends StatefulWidget {
   final String conversationId;
 
@@ -34,17 +38,20 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   @override
   void initState() {
     super.initState();
+    // Controllers keep scroll and input state across rebuilds.
     _messageController = TextEditingController();
     _scrollController = ScrollController()..addListener(_onScroll);
     _currentUserRawId = FirebaseAuth.instance.currentUser?.uid ?? '';
     _currentUserId = normalizeChatUid(_currentUserRawId);
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Defer opening until first frame to avoid build-time setState calls.
       _openConversation();
     });
   }
 
   Future<void> _openConversation() async {
+    // Open stream and mark as read once messages are visible.
     final provider = context.read<ChatProvider>();
     await provider.openConversation(widget.conversationId, _currentUserId);
     if (!mounted) {
@@ -57,6 +64,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   void dispose() {
     _typingTimer?.cancel();
     _typingStartTimer?.cancel();
+    // Clear typing state when exiting the conversation.
     if (_currentUserId.isNotEmpty) {
       unawaited(
         context.read<ChatProvider>().setTypingForCurrentConversation(false),
@@ -66,6 +74,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     _scrollController
       ..removeListener(_onScroll)
       ..dispose();
+    // Tear down streams for this conversation.
     context.read<ChatProvider>().closeConversation();
     super.dispose();
   }
@@ -76,6 +85,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     }
     final distanceToBottom =
         _scrollController.position.maxScrollExtent - _scrollController.offset;
+    // Track whether the user is near the bottom to decide auto-scroll.
     _isUserNearBottom = distanceToBottom <= 140;
   }
 
@@ -88,6 +98,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       _scrollController.jumpTo(target);
       return;
     }
+    // Gentle scroll helps the UI feel smoother than a jump.
     _scrollController.animateTo(
       target,
       duration: const Duration(milliseconds: 260),
@@ -109,6 +120,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     final isLatestOwn = messages.last.senderId == _currentUserId;
     if (_isUserNearBottom || isLatestOwn) {
+      // Only auto-scroll when user is near bottom or just sent a message.
       WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
     }
   }
@@ -123,6 +135,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
 
     _typingTimer?.cancel();
     _typingStartTimer?.cancel();
+    // Clear UI input immediately to feel responsive.
     _messageController.clear();
     await chatProvider.setTypingForCurrentConversation(false);
     if (!mounted) {
@@ -135,6 +148,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       if (!mounted) {
         return;
       }
+      // Jump to latest message after a successful send.
       _scrollToBottom();
     } catch (error) {
       if (!mounted) {
@@ -151,6 +165,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   void _handleComposerChanged(String value) {
+    // Trigger rebuilds to update the send button state.
     setState(() {});
 
     _typingTimer?.cancel();
@@ -162,6 +177,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       return;
     }
 
+    // Debounce typing start to avoid spamming typing status.
     _typingStartTimer = Timer(const Duration(milliseconds: 700), () {
       if (!mounted) {
         return;
@@ -198,6 +214,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
             conversation.unreadCountFor(_currentUserId) > 0) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
+              // Clear unread as soon as messages are visible.
               _markConversationRead(chatProvider);
             }
           });
@@ -217,6 +234,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 Expanded(
                   child: Builder(
                     builder: (context) {
+                      // Loading, error, and empty states come first.
                       if (chatProvider.isLoading && messages.isEmpty) {
                         return const Center(
                           child: CircularProgressIndicator(
@@ -272,6 +290,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                         itemCount: messages.length + 1,
                         itemBuilder: (context, index) {
                           if (index == 0) {
+                            // Safety banner sits on top of message list.
                             return const Padding(
                               padding: EdgeInsets.only(bottom: 16),
                               child: _SafetyTip(),
@@ -320,6 +339,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                             children: [
                               if (showDateHeader)
                                 _DateChip(label: _dayLabel(message.timestamp)),
+                              // Bubble layout adjusts by ownership + grouping.
                               _MessageBubble(
                                 message: message,
                                 isOwn: isOwnMessage,
@@ -362,6 +382,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   String _formatTime(DateTime dateTime) {
+    // Time is shown within the chat bubbles.
     final hour = dateTime.hour % 12 == 0 ? 12 : dateTime.hour % 12;
     final minute = dateTime.minute.toString().padLeft(2, '0');
     final suffix = dateTime.hour >= 12 ? 'PM' : 'AM';
@@ -369,6 +390,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   String _dayLabel(DateTime dateTime) {
+    // Human-friendly date chips for message groups.
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final target = DateTime(dateTime.year, dateTime.month, dateTime.day);
@@ -399,6 +421,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 
   bool _isOwnMessage(MessageModel message, ConversationModel? conversation) {
+    // Prefer raw ids (from Firestore) to handle mixed uid formats.
     if (message.rawSenderId.isNotEmpty &&
         message.rawSenderId == _currentUserRawId) {
       return true;
@@ -439,6 +462,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
   }
 }
 
+
+// === Header and listing preview =============================================
+
 class _DetailHeader extends StatelessWidget {
   final ConversationModel? conversation;
   final String currentUserId;
@@ -477,6 +503,7 @@ class _DetailHeader extends StatelessWidget {
           Expanded(
             child: Row(
               children: [
+                // Peer avatar and name.
                 _PeerAvatar(name: name, photoUrl: photoUrl),
                 SizedBox(width: isCompact ? 8 : 12),
                 Expanded(
@@ -507,6 +534,7 @@ class _DetailHeader extends StatelessWidget {
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
+                            // Placeholder verified badge.
                             const Icon(
                               Icons.verified_outlined,
                               size: 16,
@@ -551,6 +579,7 @@ class _ListingPreview extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Fallback title is shown when listing metadata is missing.
     final title = conversation?.listingTitle.trim().isNotEmpty == true
         ? conversation!.listingTitle.trim()
         : 'Sunny 1BR in Downtown';
@@ -580,6 +609,7 @@ class _ListingPreview extends StatelessWidget {
           return Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Preview image (placeholder asset for now).
               ClipRRect(
                 borderRadius: BorderRadius.circular(18),
                 child: SizedBox(
@@ -677,6 +707,9 @@ class _ListingPreview extends StatelessWidget {
   }
 }
 
+
+// === Composer and avatars ====================================================
+
 class _Composer extends StatelessWidget {
   final TextEditingController controller;
   final bool canSend;
@@ -713,6 +746,7 @@ class _Composer extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
+            // Attachment button (placeholder).
             IconButton(
               onPressed: () {},
               icon: const Icon(
@@ -764,6 +798,7 @@ class _Composer extends StatelessWidget {
               ),
             ),
             SizedBox(width: isCompact ? 8 : 12),
+            // Send button with disabled state.
             GestureDetector(
               onTap: canSend ? onSend : null,
               child: AnimatedContainer(
@@ -810,6 +845,7 @@ class _PeerAvatar extends StatelessWidget {
       ),
       child: ClipOval(
         child: photoUrl.isEmpty
+            // Initials fallback.
             ? Center(
                 child: Text(
                   initial,
@@ -824,6 +860,7 @@ class _PeerAvatar extends StatelessWidget {
                 imageUrl: photoUrl,
                 fit: BoxFit.cover,
                 errorWidget: (_, _, _) => Center(
+                  // Initials fallback on load error.
                   child: Text(
                     initial,
                     style: AppTheme.headline(
@@ -839,6 +876,9 @@ class _PeerAvatar extends StatelessWidget {
   }
 }
 
+
+// === Message bubbles and status =============================================
+
 class _DateChip extends StatelessWidget {
   final String label;
 
@@ -846,6 +886,7 @@ class _DateChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Date separator between message groups.
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 18),
       child: Center(
@@ -904,6 +945,7 @@ class _MessageBubble extends StatelessWidget {
         : (isOwn ? AppColors.slate500 : AppColors.onSurfaceVariant);
     final maxWidth = MediaQuery.of(context).size.width * (isCompact ? 0.75 : 0.72);
 
+    // Avatars appear for the last bubble in a peer group.
     final showAvatar = !isOwn && !groupedWithNext;
 
     return Align(
@@ -989,6 +1031,7 @@ class _MessageBubble extends StatelessWidget {
                               ),
                             ),
                           ),
+                        // Timestamp + status indicators.
                         Text(
                           formattedTime,
                           style: AppTheme.body(
@@ -1035,6 +1078,7 @@ class _SmallAvatar extends StatelessWidget {
       ),
       child: ClipOval(
         child: photoUrl.isEmpty
+            // Initials fallback.
             ? Center(
                 child: Text(
                   initial,
@@ -1049,6 +1093,7 @@ class _SmallAvatar extends StatelessWidget {
                 imageUrl: photoUrl,
                 fit: BoxFit.cover,
                 errorWidget: (_, _, _) => Center(
+                  // Initials fallback on load error.
                   child: Text(
                     initial,
                     style: AppTheme.headline(
@@ -1072,6 +1117,7 @@ class _StatusIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Reflect delivery/seen state for outgoing messages.
     if (message.isSending) {
       return const SizedBox(
         width: 12,
@@ -1109,6 +1155,7 @@ class _SafetyTip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Static safety reminder shown at top of chat.
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(

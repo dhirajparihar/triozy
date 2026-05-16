@@ -2,11 +2,17 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
+
+// === Authentication and user bootstrap ======================================
+
 class AuthService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final GoogleSignIn _googleSignIn = GoogleSignIn();
 
+  /// Signs the user in with Google and ensures a starter user doc exists.
+  ///
+  /// Returns the signed-in Firebase user, or null if the flow is cancelled.
   Future<User?> signInWithGoogle() async {
     try {
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
@@ -36,11 +42,15 @@ class AuthService {
     }
   }
 
+  /// Signs out of both Google and Firebase sessions.
   Future<void> signOut() async {
     await _googleSignIn.signOut();
     await _auth.signOut();
   }
 
+  /// Creates or updates a starter Firestore user document.
+  ///
+  /// Preserves existing fields when they already exist and timestamps updates.
   Future<void> ensureStarterUser({
     required User? user,
     String? email,
@@ -65,6 +75,7 @@ class AuthService {
     }, SetOptions(merge: true));
   }
 
+  /// Fetches user data only when the requested uid matches the current user.
   Future<Map<String, dynamic>?> getUserData(String uid) async {
     final currentUserId = _auth.currentUser?.uid;
     if (currentUserId == null || currentUserId != uid) {
@@ -75,6 +86,9 @@ class AuthService {
     return byId.data();
   }
 
+  /// Streams user data for the current user only.
+  ///
+  /// If the caller requests data for another uid, an empty stream is returned.
   Stream<Map<String, dynamic>?> userDataStream(String uid) {
     final currentUserId = _auth.currentUser?.uid;
     if (currentUserId == null || currentUserId != uid) {
@@ -89,6 +103,7 @@ class AuthService {
     });
   }
 
+  /// Completes a user's profile and clears any temporary onboarding fields.
   Future<void> completeUserProfile({
     required String uid,
     required String name,

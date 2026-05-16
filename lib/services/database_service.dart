@@ -6,10 +6,18 @@ import 'package:firebase_auth/firebase_auth.dart';
 import '../models/listing_model.dart';
 import '../models/requirement_model.dart';
 
+
+// === Firestore data access ===================================================
+
+/// Centralized Firestore access for listings and user data.
+///
+/// Keeps reads/writes in one place and applies lightweight client-side
+/// filtering to keep UI widgets simple.
 class DatabaseService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final FirebaseAuth _auth = FirebaseAuth.instance;
 
+  /// Creates a new listing document using the model's id.
   Future<void> createListing(ListingModel listing) async {
     await _firestore
         .collection('listings')
@@ -17,6 +25,7 @@ class DatabaseService {
         .set(listing.toMap(includeCreatedAt: true));
   }
 
+  /// Fetches up to 300 listings and sorts them by newest first.
   Future<List<ListingModel>> getAllListings() async {
     final snapshot = await _firestore.collection('listings').limit(300).get();
     final listings = snapshot.docs
@@ -29,6 +38,7 @@ class DatabaseService {
     return listings;
   }
 
+  /// Returns featured listings, falling back to recent ones if none match.
   Future<List<ListingModel>> getFeaturedListings({
     ListingType? type,
     int limit = 6,
@@ -45,6 +55,7 @@ class DatabaseService {
         .toList();
   }
 
+  /// Returns recent listings (optionally filtered by type).
   Future<List<ListingModel>> getRecentListings({
     ListingType? type,
     int limit = 8,
@@ -56,6 +67,10 @@ class DatabaseService {
         .toList();
   }
 
+  /// Searches listings by text and optional filters.
+  ///
+  /// This is client-side filtering over the cached list, which keeps the
+  /// query simple and supports composite search fields.
   Future<List<ListingModel>> searchListings({
     String query = '',
     ListingType? type,
@@ -93,6 +108,7 @@ class DatabaseService {
     }).toList();
   }
 
+  /// Fetches a single listing by id.
   Future<ListingModel?> getListing(String listingId) async {
     final byId = await _firestore.collection('listings').doc(listingId).get();
     if (byId.exists) {
@@ -101,6 +117,9 @@ class DatabaseService {
     return null;
   }
 
+  /// Deletes a listing only if the requester is the owner.
+  ///
+  /// Uses a transaction to prevent stale ownership reads.
   Future<void> deleteListing({
     required String listingId,
     required String userId,
@@ -122,6 +141,7 @@ class DatabaseService {
     });
   }
 
+  /// Checks whether a user has posted any listing.
   Future<bool> hasUserPostedListing(String userId) async {
     final snapshot = await _firestore
         .collection('listings')
@@ -131,6 +151,7 @@ class DatabaseService {
     return snapshot.docs.isNotEmpty;
   }
 
+  /// Checks whether a user has posted a housing listing.
   Future<bool> hasUserPostedHousingListing(String userId) async {
     final snapshot = await _firestore
         .collection('listings')
@@ -141,6 +162,7 @@ class DatabaseService {
     return snapshot.docs.isNotEmpty;
   }
 
+  /// Checks whether a user has published a housing requirement listing.
   Future<bool> hasUserPublishedRequirement(String userId) async {
     final snapshot = await _firestore
         .collection('listings')
@@ -152,6 +174,7 @@ class DatabaseService {
     return snapshot.docs.isNotEmpty;
   }
 
+  /// Streams the current user's listings ordered by newest first.
   Stream<List<ListingModel>> streamUserListings(String userId) {
     return _firestore
         .collection('listings')
@@ -170,6 +193,7 @@ class DatabaseService {
         });
   }
 
+  /// Streams the current user's saved listing ids.
   Stream<Set<String>> streamSavedListingIds(String userId) {
     return _firestore.collection('users').doc(userId).snapshots().map((doc) {
       final data = doc.data();
@@ -178,6 +202,7 @@ class DatabaseService {
     });
   }
 
+  /// Adds or removes a listing from the user's saved list.
   Future<void> toggleSavedListing({
     required String userId,
     required String listingId,
@@ -200,6 +225,7 @@ class DatabaseService {
     }, SetOptions(merge: true));
   }
 
+  /// Returns saved listings by id for the given user.
   Future<List<ListingModel>> getSavedListings(String userId) async {
     final userSnap = await _firestore.collection('users').doc(userId).get();
     final savedIds = List<String>.from(
@@ -211,6 +237,7 @@ class DatabaseService {
     return listings.where((listing) => savedIds.contains(listing.id)).toList();
   }
 
+  /// Fetches user data only when the requested uid matches the current user.
   Future<Map<String, dynamic>?> getUserData(String uid) async {
     final currentUserId = _auth.currentUser?.uid;
     if (currentUserId == null || currentUserId != uid) {
@@ -221,7 +248,7 @@ class DatabaseService {
     return byId.data();
   }
 
-  /// Return listings within [radiusKm] of [lat]/[lon].
+  /// Returns listings within [radiusKm] of [lat]/[lon].
   /// Falls back to text-matching on [locationName] for listings without coords.
   Future<List<ListingModel>> getNearbyListings({
     required double lat,

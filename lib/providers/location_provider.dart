@@ -1,6 +1,10 @@
 import 'package:flutter/foundation.dart';
 import '../services/location_service.dart';
 
+
+// === Location state ==========================================================
+
+/// Manages device location state and user-entered overrides.
 class LocationProvider extends ChangeNotifier {
   final LocationService _locationService;
 
@@ -13,12 +17,19 @@ class LocationProvider extends ChangeNotifier {
   bool _hasError = false;
   String? _errorMessage;
 
+  /// Current latitude (if available).
   double? get latitude => _latitude;
+  /// Current longitude (if available).
   double? get longitude => _longitude;
+  /// Resolved address text.
   String get address => _address;
+  /// True while fetching or resolving location.
   bool get isLoading => _isLoading;
+  /// True when a lat/lon has been resolved.
   bool get isAvailable => _latitude != null && _longitude != null;
+  /// True when the last attempt failed.
   bool get hasError => _hasError;
+  /// Error message for the last failure.
   String? get errorMessage => _errorMessage;
 
   /// Fetch current GPS position and reverse-geocode the address.

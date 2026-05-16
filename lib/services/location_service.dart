@@ -4,7 +4,12 @@ import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:http/http.dart' as http;
 
+
+// === Geocoding and location ==================================================
+
+/// Wraps device location and geocoding lookups with fallbacks.
 class LocationService {
+  /// Returns the current GPS position after permission checks.
   Future<Position> getCurrentPosition() async {
     LocationPermission permission = await Geolocator.checkPermission();
     if (permission == LocationPermission.denied) {
@@ -30,6 +35,9 @@ class LocationService {
     );
   }
 
+  /// Returns a human-friendly address string for the given coordinates.
+  ///
+  /// Uses platform geocoding first, then falls back to Nominatim.
   Future<String> getAddressFromCoordinates(double lat, double lng) async {
     try {
       final placemarks = await placemarkFromCoordinates(lat, lng);
@@ -45,6 +53,7 @@ class LocationService {
     } catch (_) {}
 
     try {
+      // Fallback to OpenStreetMap when native geocoding fails.
       final url = Uri.parse(
         'https://nominatim.openstreetmap.org/reverse?format=json&lat=$lat&lon=$lng&zoom=14&addressdetails=1',
       );
@@ -73,6 +82,9 @@ class LocationService {
     return 'Unknown location';
   }
 
+  /// Converts a user-entered address to coordinates.
+  ///
+  /// Tries multiple string variants and falls back to Nominatim search.
   Future<({double latitude, double longitude})> getCoordinatesFromAddress(
     String address,
   ) async {
@@ -89,6 +101,7 @@ class LocationService {
 
     for (final attempt in attempts) {
       try {
+        // Try local geocoding first for faster results.
         final results = await locationFromAddress(attempt.trim());
         if (results.isNotEmpty) {
           final first = results.first;
@@ -98,6 +111,7 @@ class LocationService {
     }
 
     try {
+      // Fallback to OpenStreetMap for broader matches.
       final url = Uri.parse(
         'https://nominatim.openstreetmap.org/search?format=json&q=${Uri.encodeQueryComponent(query)}&limit=1&addressdetails=1',
       );
