@@ -23,6 +23,14 @@ import 'screens/complete_profile_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/account_deletion_screen.dart';
 
+
+// === App bootstrap ===========================================================
+
+
+/// App entry point.
+///
+/// Initializes Firebase (with platform-aware options), enables Firestore
+/// persistence on mobile, then mounts the root widget tree.
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   if (Firebase.apps.isEmpty) {
@@ -41,6 +49,7 @@ void main() async {
     }
   }
   if (!kIsWeb) {
+    // Enable offline caching for native platforms.
     FirebaseFirestore.instance.settings = const Settings(
       persistenceEnabled: true,
     );
@@ -48,6 +57,14 @@ void main() async {
   runApp(const TriozyApp());
 }
 
+
+
+// === Root widget =============================================================
+
+/// Root widget that wires services/providers and routes.
+///
+/// Keeps service singletons at the top of the tree and delegates initial
+/// routing to the deep-link gate.
 class TriozyApp extends StatelessWidget {
   const TriozyApp({super.key});
 
@@ -55,6 +72,7 @@ class TriozyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
+        // Core services (singletons)
         // Singleton services — available everywhere via context.read<T>()
         Provider<AuthService>(create: (_) => AuthService()),
         Provider<CloudinaryService>(create: (_) => CloudinaryService()),
@@ -66,6 +84,7 @@ class TriozyApp extends StatelessWidget {
           create: (ctx) => ChatProvider(ctx.read<ChatService>()),
         ),
 
+        // Derived/shared state
         // Shared location state — depends on LocationService
         ChangeNotifierProxyProvider<LocationService, LocationProvider>(
           create: (ctx) => LocationProvider(ctx.read<LocationService>()),
@@ -77,6 +96,7 @@ class TriozyApp extends StatelessWidget {
         title: 'Triozy',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.lightTheme,
+        // Route only the special-case deep link here; everything else uses home.
         onGenerateRoute: (settings) {
           final uri = Uri.tryParse(settings.name ?? '');
           if (uri != null &&
@@ -95,8 +115,15 @@ class TriozyApp extends StatelessWidget {
   }
 }
 
+
+
+// === Startup gates ===========================================================
+
 /// Checks the web URL on startup for supported deep links and otherwise
 /// falls through to the normal auth flow.
+///
+/// Also enforces a minimum splash duration and decides whether to show
+/// onboarding for first-time users.
 class _DeepLinkGate extends StatefulWidget {
   const _DeepLinkGate();
 
@@ -113,6 +140,7 @@ class _DeepLinkGateState extends State<_DeepLinkGate> {
   void initState() {
     super.initState();
     if (kIsWeb) {
+      // Web deep links are resolved once at startup.
       _entryScreen = _resolveWebEntryScreen();
     }
     _checkFirstTime();
@@ -129,6 +157,7 @@ class _DeepLinkGateState extends State<_DeepLinkGate> {
   }
 
   Future<void> _checkFirstTime() async {
+    // Uses shared prefs so onboarding only shows once per install.
     final prefs = await SharedPreferences.getInstance();
     if (mounted) {
       setState(() {
@@ -138,6 +167,7 @@ class _DeepLinkGateState extends State<_DeepLinkGate> {
   }
 
   Future<void> _checkForAppUpdate() async {
+    // Play Store in-app updates are Android-only.
     if (kIsWeb || defaultTargetPlatform != TargetPlatform.android) {
       return;
     }
@@ -155,6 +185,7 @@ class _DeepLinkGateState extends State<_DeepLinkGate> {
   }
 
   Widget? _resolveWebEntryScreen() {
+    // Support /account-delete via path or hash fragment routing.
     final path = Uri.base.path;
     final fragment = Uri.base.fragment;
     if (path == '/account-delete' || fragment == '/account-delete') {
@@ -184,7 +215,14 @@ class _DeepLinkGateState extends State<_DeepLinkGate> {
   }
 }
 
-/// AuthGate listens to Firebase auth state and routes accordingly
+
+
+// === Auth and profile routing ===============================================
+
+/// AuthGate listens to Firebase auth state and routes accordingly.
+///
+/// Guests are routed to a limited MainShell, signed-out users see the
+/// welcome screen, and signed-in users continue to role routing.
 class AuthGate extends StatelessWidget {
   const AuthGate({super.key});
 
@@ -218,6 +256,9 @@ class AuthGate extends StatelessWidget {
 }
 
 /// Streams the user doc from Firestore and routes based on profile state.
+///
+/// This gate auto-creates a starter user document on first login and keeps
+/// the current tab stable by only rebuilding when the route decision changes.
 /// Only rebuilds the child widget when the routing decision actually changes
 /// (isProfileComplete), preventing unnecessary MainShell rebuilds that would
 /// reset the current tab index.
@@ -236,6 +277,7 @@ class _RoleRouterState extends State<_RoleRouter> {
 
   /// Derive a simple key from the routing-relevant fields
   String _routeKey(Map<String, dynamic> userData) {
+    // Today, routing only depends on profile completeness.
     final isComplete = userData['isProfileComplete'] as bool? ?? false;
     return '$isComplete';
   }
@@ -251,6 +293,7 @@ class _RoleRouterState extends State<_RoleRouter> {
   }
 
   Future<void> _autoCreateUser() async {
+    // Creates the starter Firestore doc for new users.
     if (_isCreatingUser) return;
     _isCreatingUser = true;
     try {
