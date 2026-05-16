@@ -132,6 +132,10 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
       return _PgDetailScaffold(listing: listing, onStartChat: _startChat);
     }
 
+    if (listing.propertyType == PropertyType.flat && listing.isOwnerPost) {
+      return _FlatDetailScaffold(listing: listing, onStartChat: _startChat);
+    }
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
@@ -263,7 +267,343 @@ class _ListingDetailScreenState extends State<ListingDetailScreen> {
   }
 }
 
-class _RoomPostDetailScaffold extends StatelessWidget {
+// -----------------------------------------------------------------------------
+// Flat Detail Scaffold & Parsed Details
+// -----------------------------------------------------------------------------
+
+class _FlatDetailScaffold extends StatefulWidget {
+  final ListingModel listing;
+  final VoidCallback onStartChat;
+
+  const _FlatDetailScaffold({required this.listing, required this.onStartChat});
+
+  @override
+  State<_FlatDetailScaffold> createState() => _FlatDetailScaffoldState();
+}
+
+class _FlatDetailScaffoldState extends State<_FlatDetailScaffold> {
+  final PageController _imageController = PageController();
+  int _imageIndex = 0;
+  bool _saved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initSavedState();
+  }
+
+  Future<void> _initSavedState() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+    final db = context.read<DatabaseService>();
+    final data = await db.getUserData(userId);
+    if (!mounted || data == null) return;
+    final savedIds = List<String>.from(data['savedListingIds'] ?? const <String>[]);
+    setState(() => _saved = savedIds.contains(widget.listing.id));
+  }
+
+  Future<void> _toggleSave() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign in to save listings')),
+      );
+      return;
+    }
+    setState(() => _saved = !_saved);
+    try {
+      await context.read<DatabaseService>().toggleSavedListing(userId: userId, listingId: widget.listing.id);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saved = !_saved);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not update saved status')));
+    }
+  }
+
+  @override
+  void dispose() {
+    _imageController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final listing = widget.listing;
+    final details = _FlatParsedDetails.fromListing(listing);
+
+    return Scaffold(
+      backgroundColor: AppColors.background,
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: _PgImageCarousel(
+              imageUrls: listing.imageUrls,
+              controller: _imageController,
+              index: _imageIndex,
+              onPageChanged: (index) => setState(() => _imageIndex = index),
+              saved: _saved,
+              onBack: () => Navigator.pop(context),
+              onSave: _toggleSave,
+              onShare: () => Share.share(
+                '${listing.title}\nRent: ₹${listing.price.toStringAsFixed(0)}/month\n${listing.location}',
+              ),
+            ),
+          ),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _FlatOverviewCard(listing: listing, details: details),
+                const SizedBox(height: 14),
+                _FlatPricingCard(listing: listing, details: details),
+                if (details.amenities.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  _SectionHeading('Highlights & Amenities'),
+                  const SizedBox(height: 10),
+                  _FlatAmenitiesGrid(amenities: details.amenities),
+                ],
+                const SizedBox(height: 18),
+                _SectionHeading('Rules & Preferences'),
+                const SizedBox(height: 10),
+                _FlatRulesCard(details: details),
+                const SizedBox(height: 18),
+                _SectionHeading('Description'),
+                const SizedBox(height: 10),
+                _ReadMoreText(text: details.cleanDescription),
+                const SizedBox(height: 18),
+                _SectionHeading('Location'),
+                const SizedBox(height: 10),
+                _PgLocationCard(listing: listing, nearby: ''),
+                const SizedBox(height: 18),
+                _SectionHeading('Owner / Contact'),
+                const SizedBox(height: 10),
+                _PgOwnerCard(
+                  listing: listing,
+                  phone: details.contact,
+                  onStartChat: widget.onStartChat,
+                ),
+              ]),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FlatOverviewCard extends StatelessWidget {
+  final ListingModel listing;
+  final _FlatParsedDetails details;
+
+  const _FlatOverviewCard({required this.listing, required this.details});
+
+  @override
+  Widget build(BuildContext context) {
+    return _DetailCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Text(
+                  listing.title,
+                  style: AppTheme.headline(fontSize: 24),
+                ),
+              ),
+              const SizedBox(width: 10),
+              const _VerifiedBadge(label: 'Verified'),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              _Pill(label: details.bhkType),
+              _Pill(label: details.furnishing),
+              if ((listing.genderPreference ?? '').isNotEmpty && listing.genderPreference != 'Anyone')
+                _Pill(label: 'Prefers ${listing.genderPreference}'),
+            ],
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              const Icon(Icons.location_on_rounded, color: AppColors.slate500),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  listing.location,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.body(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: AppColors.slate500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FlatPricingCard extends StatelessWidget {
+  final ListingModel listing;
+  final _FlatParsedDetails details;
+
+  const _FlatPricingCard({required this.listing, required this.details});
+
+  @override
+  Widget build(BuildContext context) {
+    return _DetailCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            '₹${listing.price.toStringAsFixed(0)}/month',
+            style: AppTheme.headline(fontSize: 24, color: AppColors.primary),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              Expanded(
+                child: _MiniInfoTile(
+                  icon: Icons.security_rounded,
+                  label: 'Deposit',
+                  value: details.deposit.isEmpty ? 'Ask owner' : details.deposit,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _MiniInfoTile(
+                  icon: Icons.build_circle_rounded,
+                  label: 'Maintenance',
+                  value: details.maintenance.isEmpty ? 'Ask owner' : details.maintenance,
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: _MiniInfoTile(
+                  icon: Icons.electric_bolt_rounded,
+                  label: 'Electricity',
+                  value: details.electricityIncluded ? 'Included' : 'Extra',
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FlatRulesCard extends StatelessWidget {
+  final _FlatParsedDetails details;
+
+  const _FlatRulesCard({required this.details});
+
+  @override
+  Widget build(BuildContext context) {
+    return _DetailCard(
+      child: Column(
+        children: [
+          _RuleRow('Tenant Preference', details.preferredTenant),
+          _RuleRow('Smoking', details.smoking.isEmpty ? 'Ask owner' : details.smoking),
+          _RuleRow('Drinking', details.drinking.isEmpty ? 'Ask owner' : details.drinking),
+          _RuleRow('Pets', details.pets.isEmpty ? 'Ask owner' : details.pets),
+          _RuleRow('Visitors', details.visitors.isEmpty ? 'Ask owner' : details.visitors),
+        ],
+      ),
+    );
+  }
+}
+
+class _FlatAmenitiesGrid extends StatelessWidget {
+  final List<String> amenities;
+
+  const _FlatAmenitiesGrid({required this.amenities});
+
+  @override
+  Widget build(BuildContext context) {
+    return _DetailCard(
+      child: Wrap(
+        spacing: 10,
+        runSpacing: 10,
+        children: amenities.map((amenity) {
+          return _PgSpecChip(icon: Icons.check_circle_rounded, label: amenity);
+        }).toList(),
+      ),
+    );
+  }
+}
+
+class _FlatParsedDetails {
+  final String bhkType;
+  final String furnishing;
+  final String deposit;
+  final String maintenance;
+  final String contact;
+  final String whatsApp;
+  final String preferredTenant;
+  final String smoking;
+  final String drinking;
+  final String pets;
+  final String visitors;
+  final bool electricityIncluded;
+  final List<String> amenities;
+  final String cleanDescription;
+
+  const _FlatParsedDetails({
+    required this.bhkType,
+    required this.furnishing,
+    required this.deposit,
+    required this.maintenance,
+    required this.contact,
+    required this.whatsApp,
+    required this.preferredTenant,
+    required this.smoking,
+    required this.drinking,
+    required this.pets,
+    required this.visitors,
+    required this.electricityIncluded,
+    required this.amenities,
+    required this.cleanDescription,
+  });
+
+  factory _FlatParsedDetails.fromListing(ListingModel listing) {
+    final lines = listing.description.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
+    final rawDescription = lines.isEmpty ? listing.description : lines.first;
+    
+    final hiddenPrefixes = ['Location:', 'Rent:', 'Security deposit:', 'Maintenance:', 'Electricity:', 'Contact:', 'WhatsApp:', 'Smoking:', 'Drinking:', 'Pets:', 'Video tour selected:'];
+    final clean = lines.where((line) => !hiddenPrefixes.any(line.startsWith)).join('\n').trim();
+
+    String lineValue(String prefix) => lines.firstWhere((l) => l.startsWith(prefix), orElse: () => '').replaceFirst(prefix, '').trim();
+
+    return _FlatParsedDetails(
+      bhkType: listing.highlights.isNotEmpty ? listing.highlights[0] : 'Flat',
+      furnishing: listing.highlights.length > 1 ? listing.highlights[1] : 'Unfurnished',
+      deposit: lineValue('Security deposit:').replaceFirst('Rs ', '₹'),
+      maintenance: lineValue('Maintenance:'),
+      contact: lineValue('Contact:'),
+      whatsApp: lineValue('WhatsApp:'),
+      preferredTenant: listing.highlights.firstWhere((h) => h.contains('Prefers') || h == 'Any Tenant', orElse: () => 'Any Tenant'),
+      smoking: lineValue('Smoking:'),
+      drinking: lineValue('Drinking:'),
+      pets: lineValue('Pets:'),
+      visitors: listing.highlights.firstWhere((h) => h.contains('Visitors'), orElse: () => 'Ask owner'),
+      electricityIncluded: listing.highlights.contains('Electricity Included'),
+      amenities: listing.highlights.where((h) => !h.contains('BHK') && !h.contains('RK') && !h.contains('Furnished') && !h.contains('Prefers') && !h.contains('Tenant') && !h.contains('Included') && !h.contains('Visitors')).toList(),
+      cleanDescription: clean.isEmpty ? rawDescription : clean,
+    );
+  }
+}
+
+class _RoomPostDetailScaffold extends StatefulWidget {
   final ListingModel listing;
   final VoidCallback onStartChat;
 
@@ -273,7 +613,57 @@ class _RoomPostDetailScaffold extends StatelessWidget {
   });
 
   @override
+  State<_RoomPostDetailScaffold> createState() => _RoomPostDetailScaffoldState();
+}
+
+class _RoomPostDetailScaffoldState extends State<_RoomPostDetailScaffold> {
+  final PageController _imageController = PageController();
+  int _imageIndex = 0;
+  bool _saved = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initSavedState();
+  }
+
+  Future<void> _initSavedState() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+    final db = context.read<DatabaseService>();
+    final data = await db.getUserData(userId);
+    if (!mounted || data == null) return;
+    final savedIds = List<String>.from(data['savedListingIds'] ?? const <String>[]);
+    setState(() => _saved = savedIds.contains(widget.listing.id));
+  }
+
+  Future<void> _toggleSave() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign in to save listings')),
+      );
+      return;
+    }
+    setState(() => _saved = !_saved);
+    try {
+      await context.read<DatabaseService>().toggleSavedListing(userId: userId, listingId: widget.listing.id);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saved = !_saved);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not update saved status')));
+    }
+  }
+
+  @override
+  void dispose() {
+    _imageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final listing = widget.listing;
     final name = listing.ownerName.trim().isEmpty
         ? 'Triozy user'
         : listing.ownerName.trim();
@@ -284,173 +674,138 @@ class _RoomPostDetailScaffold extends StatelessWidget {
     final amenities = _amenities;
 
     return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        foregroundColor: AppColors.onSurface,
-        elevation: 0,
-        centerTitle: true,
-        leading: IconButton(
-          onPressed: () => Navigator.pop(context),
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 30),
-        ),
-        title: Text('Detail', style: AppTheme.headline(fontSize: 24)),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.more_vert_rounded, size: 30),
+      backgroundColor: AppColors.background,
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: _PgImageCarousel(
+              imageUrls: listing.imageUrls,
+              controller: _imageController,
+              index: _imageIndex,
+              onPageChanged: (index) => setState(() => _imageIndex = index),
+              saved: _saved,
+              onBack: () => Navigator.pop(context),
+              onSave: _toggleSave,
+              onShare: () => Share.share(
+                '${listing.title}\nRent: ₹${listing.price.toStringAsFixed(0)}/month\n${listing.location}',
+              ),
+            ),
           ),
-        ],
-      ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 34, 20, 28),
-        children: [
-          _RoomImageHero(imageUrls: listing.imageUrls),
-          const SizedBox(height: 34),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  name,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.headline(
-                    fontSize: 22,
-                    color: const Color(0xFF3F4145),
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _DetailCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              name,
+                              style: AppTheme.headline(fontSize: 24),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          const _VerifiedBadge(label: 'Verified'),
+                        ],
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_rounded, color: AppColors.slate500),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              listing.location,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTheme.body(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.slate500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: '₹${listing.price.toStringAsFixed(0)}',
-                      style: AppTheme.headline(
-                        fontSize: 24,
-                        color: const Color(0xFF3F4145),
+                const SizedBox(height: 14),
+                _DetailCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '₹${listing.price.toStringAsFixed(0)}/month',
+                        style: AppTheme.headline(fontSize: 24, color: AppColors.primary),
                       ),
-                    ),
-                    TextSpan(
-                      text: ' pm',
-                      style: AppTheme.body(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFF8E8E8E),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _MiniInfoTile(
+                              icon: Icons.transgender_rounded,
+                              label: 'Gender',
+                              value: lookingFor,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _MiniInfoTile(
+                              icon: Icons.bed_rounded,
+                              label: 'Occupancy',
+                              value: occupancy,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _MiniInfoTile(
+                              icon: Icons.manage_search_rounded,
+                              label: 'Looking For',
+                              value: lookingFor,
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              const Icon(Icons.location_on, color: Color(0xFF8E8E8E), size: 28),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  listing.location,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.body(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF8E8E8E),
+                    ],
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 66),
-          Text(
-            'Basic Info',
-            style: AppTheme.headline(
-              fontSize: 20,
-              color: const Color(0xFF3F4145),
+                if (amenities.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  const _SectionHeading('Amenities'),
+                  const SizedBox(height: 10),
+                  _PgAmenitiesGrid(amenities: amenities),
+                ],
+                if (listing.description.trim().isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  const _SectionHeading('Description'),
+                  const SizedBox(height: 10),
+                  _ReadMoreText(text: listing.description.trim()),
+                ],
+                const SizedBox(height: 18),
+                const _SectionHeading('Location'),
+                const SizedBox(height: 10),
+                _PgLocationCard(listing: listing, nearby: ''),
+              ]),
             ),
           ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _BasicInfoCard(
-                  icon: Icons.transgender_rounded,
-                  label: 'Gender',
-                  value: lookingFor,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _BasicInfoCard(
-                  icon: Icons.bed_rounded,
-                  label: 'Occupancy',
-                  value: occupancy,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _BasicInfoCard(
-                  icon: Icons.manage_search_rounded,
-                  label: 'Looking For',
-                  value: lookingFor,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 66),
-          Text(
-            'Amenities',
-            style: AppTheme.headline(
-              fontSize: 20,
-              color: const Color(0xFF3F4145),
-            ),
-          ),
-          if (amenities.isNotEmpty) ...[
-            const SizedBox(height: 20),
-            Wrap(
-              spacing: 12,
-              runSpacing: 14,
-              children: amenities
-                  .map((amenity) => _RequirementHighlightChip(label: amenity))
-                  .toList(),
-            ),
-          ],
-          if (listing.description.trim().isNotEmpty) ...[
-            const SizedBox(height: 44),
-            Text(
-              'Description',
-              style: AppTheme.headline(
-                fontSize: 20,
-                color: const Color(0xFF3F4145),
-              ),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              listing.description.trim(),
-              style: AppTheme.body(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: AppColors.onSurfaceVariant,
-                height: 1.55,
-              ),
-            ),
-          ],
         ],
       ),
       bottomNavigationBar: _RequirementContactBar(
         listing: listing,
         gender: lookingFor,
-        onStartChat: onStartChat,
+        onStartChat: widget.onStartChat,
       ),
     );
   }
 
   String get _occupancyFromHighlights {
     const occupancyValues = {'Single', 'Double', 'Triple'};
-    for (final highlight in listing.highlights) {
+    for (final highlight in widget.listing.highlights) {
       final cleaned = highlight.trim();
       if (occupancyValues.contains(cleaned)) {
         return cleaned;
@@ -461,7 +816,7 @@ class _RoomPostDetailScaffold extends StatelessWidget {
 
   List<String> get _amenities {
     const hidden = {'Single', 'Double', 'Triple', 'Mobile public', 'Chat only'};
-    return listing.highlights
+    return widget.listing.highlights
         .map((item) => item.trim())
         .where(
           (item) =>
@@ -489,6 +844,40 @@ class _PgDetailScaffoldState extends State<_PgDetailScaffold> {
   bool _saved = false;
 
   @override
+  void initState() {
+    super.initState();
+    _initSavedState();
+  }
+
+  Future<void> _initSavedState() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) return;
+    final db = context.read<DatabaseService>();
+    final data = await db.getUserData(userId);
+    if (!mounted || data == null) return;
+    final savedIds = List<String>.from(data['savedListingIds'] ?? const <String>[]);
+    setState(() => _saved = savedIds.contains(widget.listing.id));
+  }
+
+  Future<void> _toggleSave() async {
+    final userId = FirebaseAuth.instance.currentUser?.uid;
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign in to save listings')),
+      );
+      return;
+    }
+    setState(() => _saved = !_saved);
+    try {
+      await context.read<DatabaseService>().toggleSavedListing(userId: userId, listingId: widget.listing.id);
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _saved = !_saved);
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not update saved status')));
+    }
+  }
+
+  @override
   void dispose() {
     _imageController.dispose();
     super.dispose();
@@ -511,14 +900,14 @@ class _PgDetailScaffoldState extends State<_PgDetailScaffold> {
               onPageChanged: (index) => setState(() => _imageIndex = index),
               saved: _saved,
               onBack: () => Navigator.pop(context),
-              onSave: () => setState(() => _saved = !_saved),
+              onSave: _toggleSave,
               onShare: () => Share.share(
                 '${listing.title}\nStarting from ₹${listing.price.toStringAsFixed(0)}/month\n${listing.location}',
               ),
             ),
           ),
           SliverPadding(
-            padding: const EdgeInsets.fromLTRB(16, 16, 16, 120),
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 24),
             sliver: SliverList(
               delegate: SliverChildListDelegate([
                 _PgOverviewCard(listing: listing, details: details),
@@ -555,22 +944,12 @@ class _PgDetailScaffoldState extends State<_PgDetailScaffold> {
                 _PgOwnerCard(
                   listing: listing,
                   phone: details.contact,
-                  whatsApp: details.whatsApp,
                   onStartChat: widget.onStartChat,
                 ),
               ]),
             ),
           ),
         ],
-      ),
-      bottomNavigationBar: _PgStickyCta(
-        onBookVisit: () {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Visit request started')),
-          );
-          widget.onStartChat();
-        },
-        onContactOwner: widget.onStartChat,
       ),
     );
   }
@@ -639,16 +1018,18 @@ class _PgImageCarousel extends StatelessWidget {
             },
           ),
           Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withValues(alpha: 0.35),
-                    Colors.transparent,
-                    Colors.black.withValues(alpha: 0.28),
-                  ],
+            child: IgnorePointer(
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Colors.black.withValues(alpha: 0.35),
+                      Colors.transparent,
+                      Colors.black.withValues(alpha: 0.28),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -1059,13 +1440,11 @@ class _PgLocationCard extends StatelessWidget {
 class _PgOwnerCard extends StatelessWidget {
   final ListingModel listing;
   final String phone;
-  final String whatsApp;
   final VoidCallback onStartChat;
 
   const _PgOwnerCard({
     required this.listing,
     required this.phone,
-    required this.whatsApp,
     required this.onStartChat,
   });
 
@@ -1109,71 +1488,7 @@ class _PgOwnerCard extends StatelessWidget {
             onTap: phone.isEmpty ? null : () => _launchUri('tel:$phone'),
           ),
           _ContactIconButton(icon: Icons.chat_rounded, onTap: onStartChat),
-          _ContactIconButton(
-            icon: Icons.message_rounded,
-            onTap: whatsApp.isEmpty
-                ? null
-                : () => _launchUri('https://wa.me/${_digitsOnly(whatsApp)}'),
-          ),
         ],
-      ),
-    );
-  }
-}
-
-class _PgStickyCta extends StatelessWidget {
-  final VoidCallback onBookVisit;
-  final VoidCallback onContactOwner;
-
-  const _PgStickyCta({required this.onBookVisit, required this.onContactOwner});
-
-  @override
-  Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 20,
-              offset: const Offset(0, -8),
-            ),
-          ],
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: OutlinedButton(
-                onPressed: onBookVisit,
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: const Text('Book Visit'),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: ElevatedButton(
-                onPressed: onContactOwner,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 15),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                ),
-                child: const Text('Contact Owner'),
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

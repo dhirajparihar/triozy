@@ -40,7 +40,7 @@ class ListingCard extends StatelessWidget {
         final maxHighlights = compact ? (isNarrow ? 1 : 2) : 3;
         final highlights = listing.highlights.take(maxHighlights).toList();
 
-        if (listing.isRequirementPost || listing.needsRoommate) {
+        if (listing.isRequirementPost || (listing.needsRoommate && listing.propertyType != PropertyType.room)) {
           return _FlatmateCard(
             listing: listing,
             onTap: onTap,
