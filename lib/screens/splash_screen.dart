@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
+/// Animated splash screen with optional status text + loader.
 class SplashScreen extends StatefulWidget {
   final String? statusText;
   final bool showLoader;
@@ -13,6 +14,7 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
+/// Drives the splash animations (logo, text, glow, loader).
 class _SplashScreenState extends State<SplashScreen>
     with TickerProviderStateMixin {
   late AnimationController _controller;
@@ -29,11 +31,13 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
+    // Main timeline for logo + text + loader.
     _controller = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1800),
     );
 
+    // Slow pulse used to animate the background glow.
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 3),
@@ -95,6 +99,7 @@ class _SplashScreenState extends State<SplashScreen>
       backgroundColor: AppColors.background,
       body: DecoratedBox(
         decoration: BoxDecoration(
+          // Soft vertical gradient sets the splash mood.
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
@@ -108,6 +113,7 @@ class _SplashScreenState extends State<SplashScreen>
               child: AnimatedBuilder(
                 animation: _pulseController,
                 builder: (context, child) {
+                  // Animated radial glow anchored near the logo.
                   return DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: RadialGradient(
@@ -125,6 +131,7 @@ class _SplashScreenState extends State<SplashScreen>
             ),
             Align(
               alignment: const Alignment(0.75, -0.68),
+              // Decorative soft circle in the top-right.
               child: Container(
                 width: 180,
                 height: 180,
@@ -136,6 +143,7 @@ class _SplashScreenState extends State<SplashScreen>
             ),
             Align(
               alignment: const Alignment(-0.85, 0.72),
+              // Decorative soft circle in the bottom-left.
               child: Container(
                 width: 220,
                 height: 220,
@@ -175,6 +183,7 @@ class _SplashScreenState extends State<SplashScreen>
                                     ),
                                   ],
                                 ),
+                                // App logo tile.
                                 child: Image.asset(
                                   'assets/logo.png',
                                   fit: BoxFit.contain,
@@ -229,6 +238,7 @@ class _SplashScreenState extends State<SplashScreen>
                                 ),
                                 child: Column(
                                   children: [
+                                    // Thin progress line for startup work.
                                     LinearProgressIndicator(
                                       backgroundColor: AppColors.outlineVariant
                                           .withValues(alpha: 0.3),

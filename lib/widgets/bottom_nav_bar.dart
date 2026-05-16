@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
+/// Bottom navigation bar with four core app destinations.
 class AppBottomNavBar extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
@@ -15,6 +16,7 @@ class AppBottomNavBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Tuple format: active icon, inactive icon, label.
     final items = const [
       (Icons.home_rounded, Icons.home_outlined, 'Home'),
       (Icons.grid_view_rounded, Icons.grid_view_outlined, 'Services'),
@@ -43,6 +45,7 @@ class AppBottomNavBar extends StatelessWidget {
               final selected = currentIndex == index;
               return Expanded(
                 child: GestureDetector(
+                  // Entire column is tappable for easier hit targets.
                   onTap: () => onTap(index),
                   behavior: HitTestBehavior.opaque,
                   child: AnimatedContainer(
@@ -51,6 +54,7 @@ class AppBottomNavBar extends StatelessWidget {
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Icon + label swap colors based on selection.
                         Icon(
                           selected ? item.$1 : item.$2,
                           color: selected

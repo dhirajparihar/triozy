@@ -5,10 +5,12 @@ import '../theme/app_theme.dart';
 import 'housing_entry_screen.dart';
 import 'marketplace_screen.dart';
 
+/// Services hub with tiles for housing, marketplace, and future services.
 class ServicesScreen extends StatelessWidget {
   const ServicesScreen({super.key});
 
   Future<void> _openHousing(BuildContext context) async {
+    // Resolve dynamic housing route (feed vs entry choice).
     final route = await HousingEntryScreen.buildRoute();
     if (!context.mounted) {
       return;
@@ -19,6 +21,7 @@ class ServicesScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isCompact = MediaQuery.sizeOf(context).width < 380;
+    // Tile metadata collected here to simplify the grid builder.
     final tiles = [
       _ServiceInfo(
         imageAsset: 'assets/images/Housing.png',
@@ -125,6 +128,7 @@ class ServicesScreen extends StatelessWidget {
 }
 
 class _ServiceInfo {
+  /// Simple data holder for service tiles.
   final String imageAsset;
   final String title;
   final VoidCallback onTap;
@@ -137,6 +141,7 @@ class _ServiceInfo {
 }
 
 class _ServiceTile extends StatelessWidget {
+  /// Grid tile displaying a service icon and label.
   final String imageAsset;
   final String title;
   final VoidCallback onTap;

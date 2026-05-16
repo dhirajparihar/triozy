@@ -17,6 +17,7 @@ import '../services/database_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
+/// Multi-step form for creating PG/hostel listings.
 class PgListingFormScreen extends StatefulWidget {
   const PgListingFormScreen({super.key});
 
@@ -24,6 +25,7 @@ class PgListingFormScreen extends StatefulWidget {
   State<PgListingFormScreen> createState() => _PgListingFormScreenState();
 }
 
+/// Manages draft state, validation, and publishing for PG listings.
 class _PgListingFormScreenState extends State<PgListingFormScreen> {
   static const String _draftPrefix = 'pg_listing_draft_';
   static const int _maxImagesPerGroup = 4;
@@ -117,10 +119,12 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   @override
   void initState() {
     super.initState();
+    // Start with one expanded room config for faster entry.
     _roomConfigurations.add(_newRoomConfiguration(expanded: true));
     for (final controller in _textControllers) {
       controller.addListener(_scheduleDraftSave);
     }
+    // Restore any saved draft before prefill runs.
     _loadDraft();
     _prefillFromProfile();
   }
@@ -156,6 +160,7 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   ];
 
   void _scheduleDraftSave() {
+    // Debounce draft writes while the user is typing.
     _draftTimer?.cancel();
     _draftTimer = Timer(const Duration(milliseconds: 700), _saveDraft);
   }
@@ -169,6 +174,7 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   }
 
   void _addRoomConfiguration() {
+    // Collapse previous cards and insert a fresh, expanded one.
     setState(() {
       for (final config in _roomConfigurations) {
         config.expanded = false;
@@ -179,6 +185,7 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   }
 
   void _deleteRoomConfiguration(int index) {
+    // Require at least one configuration to publish a listing.
     if (_roomConfigurations.length == 1) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Add at least one room configuration')),
@@ -221,6 +228,7 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   }
 
   Future<void> _loadDraft() async {
+    // Restore form data from shared preferences when available.
     final prefs = await SharedPreferences.getInstance();
     if (!(prefs.getBool('${_draftPrefix}exists') ?? false)) {
       return;
@@ -286,6 +294,7 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   }
 
   Future<void> _prefillFromProfile() async {
+    // Pull name and phone from user profile when missing.
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       return;
@@ -315,6 +324,7 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   }
 
   Future<void> _saveDraft() async {
+    // Persist current form values for recovery.
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('${_draftPrefix}exists', true);
     await prefs.setString('${_draftPrefix}propertyName', _propertyName.text);
@@ -354,6 +364,7 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   }
 
   Future<void> _clearDraft() async {
+    // Remove all draft keys after a successful publish.
     final prefs = await SharedPreferences.getInstance();
     for (final key in prefs.getKeys().where(
       (key) => key.startsWith(_draftPrefix),
@@ -363,6 +374,7 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   }
 
   void _goToStep(int step) {
+    // Clamp to available steps and animate the page view.
     final next = step.clamp(0, 3);
     setState(() => _step = next);
     _pageController.animateToPage(
@@ -373,6 +385,7 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   }
 
   Future<void> _pickImages(List<XFile> target) async {
+    // Enforce per-group limit and file size before adding.
     final messenger = ScaffoldMessenger.of(context);
     final remaining = _maxImagesPerGroup - target.length;
     if (remaining <= 0) {
@@ -414,6 +427,7 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   }
 
   Future<List<String>> _uploadImages(String id) async {
+    // Upload all selected images to the PG folder.
     final allImages = [..._propertyImages, ..._roomImages, ..._washroomImages];
     if (allImages.isEmpty) return [];
 
@@ -433,6 +447,7 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   }
 
   bool _validateAll() {
+    // Gather missing required fields to surface in a banner.
     final errors = <String>[];
     void need(TextEditingController controller, String label) {
       if (controller.text.trim().isEmpty) errors.add(label);
@@ -482,6 +497,7 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   }
 
   Future<void> _publish() async {
+    // Validate, build the listing payload, and publish.
     if (!_validateAll()) return;
 
     final user = FirebaseAuth.instance.currentUser;
@@ -629,6 +645,7 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
   }
 
   Future<void> _detectCurrentLocation() async {
+    // Use LocationProvider to resolve current address and coords.
     final locationProvider = context.read<LocationProvider>();
     final messenger = ScaffoldMessenger.of(context);
 
@@ -1177,6 +1194,7 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
 }
 
 class _RoomConfigurationCard extends StatelessWidget {
+  /// Card for entering and expanding a single room configuration.
   final _RoomConfiguration config;
   final int index;
   final VoidCallback onToggle;
@@ -1337,6 +1355,7 @@ class _RoomConfigurationCard extends StatelessWidget {
 }
 
 class _RoomConfiguration {
+  /// Mutable room configuration used while drafting the listing.
   String roomType = 'Single';
   String furnished = 'Fully Furnished';
   bool attachedBathroom = true;
@@ -1387,6 +1406,7 @@ class _RoomConfiguration {
 }
 
 class _ProgressHeader extends StatelessWidget {
+  /// Top progress bar showing the current step.
   final int step;
 
   const _ProgressHeader({required this.step});
@@ -1434,6 +1454,7 @@ class _ProgressHeader extends StatelessWidget {
 }
 
 class _ValidationBanner extends StatelessWidget {
+  /// Inline banner showing missing required fields.
   final List<String> errors;
 
   const _ValidationBanner({required this.errors});
@@ -1470,6 +1491,7 @@ class _ValidationBanner extends StatelessWidget {
 }
 
 class _StepPage extends StatelessWidget {
+  /// Wrapper that applies consistent padding for each step.
   final List<Widget> children;
 
   const _StepPage({required this.children});
@@ -1496,6 +1518,7 @@ class _StepPage extends StatelessWidget {
 }
 
 class _SectionCard extends StatelessWidget {
+  /// Card container for grouping fields within a step.
   final String title;
   final IconData icon;
   final List<Widget> children;
@@ -1564,6 +1587,7 @@ class _SectionCard extends StatelessWidget {
 }
 
 class _AppField extends StatelessWidget {
+  /// Text field wrapper with label, hint, and optional prefix.
   final TextEditingController controller;
   final String label;
   final String? hint;
@@ -1610,6 +1634,7 @@ class _AppField extends StatelessWidget {
 }
 
 class _SelectTile extends StatelessWidget {
+  /// Row that opens a bottom-sheet picker.
   final String label;
   final String value;
   final IconData icon;
@@ -1666,6 +1691,7 @@ class _SelectTile extends StatelessWidget {
 }
 
 class _SwitchTile extends StatelessWidget {
+  /// Toggle row used for boolean settings.
   final String label;
   final bool value;
   final ValueChanged<bool> onChanged;
@@ -1699,6 +1725,7 @@ class _SwitchTile extends StatelessWidget {
 }
 
 class _MapPreview extends StatelessWidget {
+  /// Simple map preview tile displaying the selected area label.
   final String label;
 
   const _MapPreview({required this.label});
@@ -1738,6 +1765,7 @@ class _MapPreview extends StatelessWidget {
 }
 
 class _AmenityGrid extends StatelessWidget {
+  /// Grid of amenity icons with selectable state.
   final List<_AmenityItem> options;
   final Set<String> selected;
   final ValueChanged<String> onTap;
@@ -1817,6 +1845,7 @@ class _AmenityGrid extends StatelessWidget {
 }
 
 class _ImageUploadGroup extends StatelessWidget {
+  /// Upload group for a specific image category.
   final String title;
   final List<XFile> images;
   final VoidCallback onAdd;
@@ -1893,6 +1922,7 @@ class _ImageUploadGroup extends StatelessWidget {
 }
 
 class _ImagePreviewTile extends StatelessWidget {
+  /// Thumbnail preview for a selected image.
   final XFile image;
   final double size;
   final VoidCallback onRemove;
@@ -1950,6 +1980,7 @@ class _ImagePreviewTile extends StatelessWidget {
 }
 
 class _VideoTile extends StatelessWidget {
+  /// Tile for selecting and removing a video tour.
   final String? videoName;
   final VoidCallback onTap;
   final VoidCallback onRemove;
@@ -2004,12 +2035,14 @@ class _VideoTile extends StatelessWidget {
 }
 
 class _AmenityItem {
+  /// Icon + label tuple for amenity selection.
   final String label;
   final IconData icon;
 
   const _AmenityItem(this.label, this.icon);
 }
 
+/// Location input with inline search suggestions overlay.
 class _LocationSearchField extends StatefulWidget {
   final TextEditingController controller;
   final bool isCompact;

@@ -56,23 +56,24 @@ This file tracks the status of adding code comments and Dart doc comments (///) 
 	- [x] lib/screens/marketplace_screen.dart
 
 ## Files: No Comments Detected
-- [ ] lib/widgets/top_app_bar.dart
-- [ ] lib/widgets/bottom_nav_bar.dart
+- [x] lib/widgets/top_app_bar.dart
+- [x] lib/widgets/bottom_nav_bar.dart
+- [x] lib/widgets/listing_card.dart
 - [x] lib/models/requirement_model.dart
 - [x] lib/models/listing_model.dart
 - [x] lib/models/chat_model.dart
-- [ ] lib/screens/account_deletion_screen.dart
+- [x] lib/screens/account_deletion_screen.dart
 - [x] lib/screens/chat_detail_screen.dart
-- [ ] lib/screens/complete_profile_screen.dart
-- [ ] lib/screens/flatmate_room_details_screen.dart
-- [ ] lib/screens/housing_entry_screen.dart
+- [x] lib/screens/complete_profile_screen.dart
+- [x] lib/screens/flatmate_room_details_screen.dart
+- [x] lib/screens/housing_entry_screen.dart
 - [x] lib/screens/listing_detail_screen.dart
-- [ ] lib/screens/splash_screen.dart
-- [ ] lib/screens/services_screen.dart
+- [x] lib/screens/splash_screen.dart
+- [x] lib/screens/services_screen.dart
 - [x] lib/screens/search_results_screen.dart
-- [ ] lib/screens/saved_listings_screen.dart
+- [x] lib/screens/saved_listings_screen.dart
 - [x] lib/screens/post_listing_screen.dart
-- [ ] lib/screens/pg_listing_form_screen.dart
+- [x] lib/screens/pg_listing_form_screen.dart
 - [ ] lib/screens/my_listings_screen.dart
 - [x] lib/screens/marketplace_screen.dart
 - [ ] lib/theme/app_theme.dart
@@ -90,34 +91,34 @@ This file tracks the status of adding code comments and Dart doc comments (///) 
 - [ ] android/app/build.gradle.kts
 
 ## Files: Missing Doc Comments (///)
-- [ ] lib/widgets/top_app_bar.dart
-- [ ] lib/widgets/listing_card.dart
-- [ ] lib/widgets/bottom_nav_bar.dart
+- [x] lib/widgets/top_app_bar.dart
+- [x] lib/widgets/listing_card.dart
+- [x] lib/widgets/bottom_nav_bar.dart
 - [x] lib/models/requirement_model.dart
 - [x] lib/models/listing_model.dart
 - [x] lib/models/chat_model.dart
-- [ ] lib/screens/account_deletion_screen.dart
+- [x] lib/screens/account_deletion_screen.dart
 - [ ] lib/screens/about_screen.dart
 - [x] lib/screens/chat_detail_screen.dart
 - [x] lib/screens/chat_list_screen.dart
-- [ ] lib/screens/complete_profile_screen.dart
-- [ ] lib/screens/flatmate_room_details_screen.dart
+- [x] lib/screens/complete_profile_screen.dart
+- [x] lib/screens/flatmate_room_details_screen.dart
 - [ ] lib/screens/edit_profile_screen.dart
 - [ ] lib/screens/help_support_screen.dart
 - [ ] lib/screens/home_screen.dart
 - [x] lib/screens/housing_feed_screen.dart
-- [ ] lib/screens/housing_entry_screen.dart
+- [x] lib/screens/housing_entry_screen.dart
 - [x] lib/screens/listing_detail_screen.dart
 - [ ] lib/screens/welcome_screen.dart
 - [ ] lib/screens/user_profile_screen.dart
-- [ ] lib/screens/splash_screen.dart
-- [ ] lib/screens/services_screen.dart
+- [x] lib/screens/splash_screen.dart
+- [x] lib/screens/services_screen.dart
 - [x] lib/screens/search_results_screen.dart
-- [ ] lib/screens/saved_listings_screen.dart
+- [x] lib/screens/saved_listings_screen.dart
 - [x] lib/screens/requirement_form_screen.dart
 - [x] lib/screens/post_listing_screen.dart
 - [ ] lib/screens/policy_screen.dart
-- [ ] lib/screens/pg_listing_form_screen.dart
+- [x] lib/screens/pg_listing_form_screen.dart
 - [ ] lib/screens/onboarding_screen.dart
 - [ ] lib/screens/my_listings_screen.dart
 - [x] lib/screens/marketplace_screen.dart

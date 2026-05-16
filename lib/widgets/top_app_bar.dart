@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
+/// Top app bar with greeting, location picker, and avatar shortcut.
 class TriozyTopAppBar extends StatelessWidget {
   final String? userDisplayName;
   final String? location;
@@ -31,11 +32,13 @@ class TriozyTopAppBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Resolve greeting and location text once per build.
     final cityLabel = _cityLabel(location);
     final greeting = _getGreeting();
     final screenHeight = MediaQuery.of(context).size.height;
     final isSmallScreen = screenHeight < 700;
     
+    // Scale typography and paddings for smaller devices.
     final greetingFontSize = isSmallScreen ? 18.0 : 22.0;
     final locationFontSize = isSmallScreen ? 12.0 : 13.0;
     final dropdownIconSize = isSmallScreen ? 14.0 : 16.0;
@@ -54,6 +57,7 @@ class TriozyTopAppBar extends StatelessWidget {
           children: [
             Expanded(
               child: GestureDetector(
+                // Entire greeting + location block opens the location sheet.
                 onTap: () => _showLocationBottomSheet(context),
                 behavior: HitTestBehavior.opaque,
                 child: Column(
@@ -87,6 +91,7 @@ class TriozyTopAppBar extends StatelessWidget {
                     Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
+                        // Location row hints to tap for selection.
                         Icon(
                           Icons.location_on_rounded,
                           color: AppColors.primary,
@@ -131,6 +136,7 @@ class TriozyTopAppBar extends StatelessWidget {
   }
 
   String _getGreetingEmoji() {
+    // Simple time-of-day emoji for a friendly header.
     final hour = DateTime.now().hour;
     if (hour < 12) return '☀️';
     if (hour < 17) return '👋';
@@ -138,6 +144,7 @@ class TriozyTopAppBar extends StatelessWidget {
   }
 
   String _getGreeting() {
+    // Add the first name when available to personalize the header.
     final hour = DateTime.now().hour;
     String timeGreeting;
     if (hour < 12) {
@@ -156,6 +163,7 @@ class TriozyTopAppBar extends StatelessWidget {
   }
 
   String _cityLabel(String? rawLocation) {
+    // Reduce a full address to the first meaningful segment.
     final cleaned = (rawLocation ?? '').trim();
     if (cleaned.isEmpty) {
       return 'Your city';
@@ -168,6 +176,7 @@ class TriozyTopAppBar extends StatelessWidget {
   }
 
   void _showLocationBottomSheet(BuildContext context) {
+    // Compact modal for manual entry vs auto-detect choice.
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -223,6 +232,7 @@ class TriozyTopAppBar extends StatelessWidget {
   }
 }
 
+/// Bottom-sheet row for choosing a location action.
 class _LocationOption extends StatelessWidget {
   final IconData icon;
   final String title;
@@ -236,6 +246,7 @@ class _LocationOption extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Tappable card with icon + label.
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
@@ -276,6 +287,7 @@ class _LocationOption extends StatelessWidget {
   }
 }
 
+/// Avatar button with optional unread dot indicator.
 class _AvatarButton extends StatelessWidget {
   final String? avatarUrl;
   final VoidCallback? onTap;
@@ -291,6 +303,7 @@ class _AvatarButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Stack for avatar + unread dot badge.
     return Stack(
       clipBehavior: Clip.none,
       children: [
@@ -329,6 +342,7 @@ class _AvatarButton extends StatelessWidget {
           Positioned(
             right: 0,
             top: 0,
+            // Badge indicates there are unread messages.
             child: Container(
               width: 12,
               height: 12,
@@ -347,6 +361,7 @@ class _AvatarButton extends StatelessWidget {
   }
 
   Widget _placeholder() {
+    // Fallback avatar when no image is available.
     return Container(
       color: AppColors.accentLavender,
       child: Icon(
