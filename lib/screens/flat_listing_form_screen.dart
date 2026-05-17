@@ -83,7 +83,11 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
     '4BHK+',
   ];
   static const List<String> _tenantOptions = ['Male', 'Female', 'Anyone'];
-  static const List<String> _visitorOptions = ['Allowed', 'Restricted', 'Not Allowed'];
+  static const List<String> _visitorOptions = [
+    'Allowed',
+    'Restricted',
+    'Not Allowed',
+  ];
   static const List<String> _foodOptions = ['Veg', 'Non-Veg', 'Both'];
 
   @override
@@ -133,26 +137,35 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
     _city.text = prefs.getString('${_draftPrefix}city') ?? '';
     _area.text = prefs.getString('${_draftPrefix}area') ?? '';
     _totalRent.text = prefs.getString('${_draftPrefix}totalRent') ?? '';
-    _securityDeposit.text = prefs.getString('${_draftPrefix}securityDeposit') ?? '';
+    _securityDeposit.text =
+        prefs.getString('${_draftPrefix}securityDeposit') ?? '';
     _description.text = prefs.getString('${_draftPrefix}description') ?? '';
-    
+
     _latitude = prefs.getDouble('${_draftPrefix}lat');
     _longitude = prefs.getDouble('${_draftPrefix}lon');
 
     setState(() {
       _sameAsContact = prefs.getBool('${_draftPrefix}sameAsContact') ?? false;
-      _furnishingType = prefs.getString('${_draftPrefix}furnishingType') ?? _furnishingType;
+      _furnishingType =
+          prefs.getString('${_draftPrefix}furnishingType') ?? _furnishingType;
       _bhkType = prefs.getString('${_draftPrefix}bhkType') ?? _bhkType;
-      _preferredTenant = prefs.getString('${_draftPrefix}preferredTenant') ?? _preferredTenant;
+      _preferredTenant =
+          prefs.getString('${_draftPrefix}preferredTenant') ?? _preferredTenant;
       _isIndependent = prefs.getBool('${_draftPrefix}isIndependent') ?? false;
-      _maintenanceIncluded = prefs.getBool('${_draftPrefix}maintenanceIncluded') ?? false;
-      _electricityIncluded = prefs.getBool('${_draftPrefix}electricityIncluded') ?? false;
+      _maintenanceIncluded =
+          prefs.getBool('${_draftPrefix}maintenanceIncluded') ?? false;
+      _electricityIncluded =
+          prefs.getBool('${_draftPrefix}electricityIncluded') ?? false;
       _smokingAllowed = prefs.getBool('${_draftPrefix}smokingAllowed') ?? false;
-      _drinkingAllowed = prefs.getBool('${_draftPrefix}drinkingAllowed') ?? false;
+      _drinkingAllowed =
+          prefs.getBool('${_draftPrefix}drinkingAllowed') ?? false;
       _petsAllowed = prefs.getBool('${_draftPrefix}petsAllowed') ?? false;
-      _visitorPolicy = prefs.getString('${_draftPrefix}visitorPolicy') ?? _visitorPolicy;
-      _foodPreference = prefs.getString('${_draftPrefix}foodPreference') ?? _foodPreference;
-      _immediateMoveIn = prefs.getBool('${_draftPrefix}immediateMoveIn') ?? true;
+      _visitorPolicy =
+          prefs.getString('${_draftPrefix}visitorPolicy') ?? _visitorPolicy;
+      _foodPreference =
+          prefs.getString('${_draftPrefix}foodPreference') ?? _foodPreference;
+      _immediateMoveIn =
+          prefs.getBool('${_draftPrefix}immediateMoveIn') ?? true;
     });
   }
 
@@ -163,7 +176,9 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
     final data = await context.read<DatabaseService>().getUserData(user.uid);
     if (!mounted) return;
 
-    final savedName = (data?['name'] ?? user.displayName ?? '').toString().trim();
+    final savedName = (data?['name'] ?? user.displayName ?? '')
+        .toString()
+        .trim();
     final savedPhone = (data?['phoneNumber'] ?? '').toString().trim();
 
     setState(() {
@@ -193,12 +208,25 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
     await prefs.setBool('${_draftPrefix}isIndependent', _isIndependent);
     await prefs.setString('${_draftPrefix}city', _city.text);
     await prefs.setString('${_draftPrefix}area', _area.text);
-    if (_latitude != null) await prefs.setDouble('${_draftPrefix}lat', _latitude!);
-    if (_longitude != null) await prefs.setDouble('${_draftPrefix}lon', _longitude!);
+    if (_latitude != null) {
+      await prefs.setDouble('${_draftPrefix}lat', _latitude!);
+    }
+    if (_longitude != null) {
+      await prefs.setDouble('${_draftPrefix}lon', _longitude!);
+    }
     await prefs.setString('${_draftPrefix}totalRent', _totalRent.text);
-    await prefs.setString('${_draftPrefix}securityDeposit', _securityDeposit.text);
-    await prefs.setBool('${_draftPrefix}maintenanceIncluded', _maintenanceIncluded);
-    await prefs.setBool('${_draftPrefix}electricityIncluded', _electricityIncluded);
+    await prefs.setString(
+      '${_draftPrefix}securityDeposit',
+      _securityDeposit.text,
+    );
+    await prefs.setBool(
+      '${_draftPrefix}maintenanceIncluded',
+      _maintenanceIncluded,
+    );
+    await prefs.setBool(
+      '${_draftPrefix}electricityIncluded',
+      _electricityIncluded,
+    );
     await prefs.setBool('${_draftPrefix}smokingAllowed', _smokingAllowed);
     await prefs.setBool('${_draftPrefix}drinkingAllowed', _drinkingAllowed);
     await prefs.setBool('${_draftPrefix}petsAllowed', _petsAllowed);
@@ -210,7 +238,9 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
 
   Future<void> _clearDraft() async {
     final prefs = await SharedPreferences.getInstance();
-    for (final key in prefs.getKeys().where((key) => key.startsWith(_draftPrefix))) {
+    for (final key in prefs.getKeys().where(
+      (key) => key.startsWith(_draftPrefix),
+    )) {
       await prefs.remove(key);
     }
   }
@@ -229,7 +259,9 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final remaining = _maxImages - _propertyImages.length;
     if (remaining <= 0) {
-      messenger.showSnackBar(const SnackBar(content: Text('You can upload up to 10 images here')));
+      messenger.showSnackBar(
+        const SnackBar(content: Text('You can upload up to 10 images here')),
+      );
       return;
     }
     final images = await _picker.pickMultiImage(
@@ -251,7 +283,9 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
     if (!mounted) return;
     setState(() => _propertyImages.addAll(accepted));
     if (rejectedOversize) {
-      messenger.showSnackBar(const SnackBar(content: Text('Each image must be 10 MB or smaller')));
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Each image must be 10 MB or smaller')),
+      );
     }
   }
 
@@ -310,12 +344,16 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
     }
 
     setState(() {
-      _requiredErrors..clear()..addAll(errors);
+      _requiredErrors
+        ..clear()
+        ..addAll(errors);
     });
 
     if (errors.isNotEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Please complete: ${errors.take(3).join(', ')}')),
+        SnackBar(
+          content: Text('Please complete: ${errors.take(3).join(', ')}'),
+        ),
       );
       return false;
     }
@@ -329,7 +367,9 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
     if (user == null) {
-      messenger.showSnackBar(const SnackBar(content: Text('Sign in to publish flat listing')));
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Sign in to publish flat listing')),
+      );
       return;
     }
 
@@ -339,9 +379,13 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
       final db = context.read<DatabaseService>();
       final userData = await db.getUserData(user.uid);
       final imageUrls = await _uploadImages(id);
-      
-      final ownerDisplayName = (userData?['name'] ?? user.displayName ?? '').toString().trim();
-      final ownerPhotoUrl = (userData?['photoUrl'] ?? user.photoURL ?? '').toString().trim();
+
+      final ownerDisplayName = (userData?['name'] ?? user.displayName ?? '')
+          .toString()
+          .trim();
+      final ownerPhotoUrl = (userData?['photoUrl'] ?? user.photoURL ?? '')
+          .toString()
+          .trim();
       final locationParts = [
         _area.text.trim(),
         _city.text.trim(),
@@ -350,12 +394,16 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
       final highlights = <String>[
         _bhkType,
         _furnishingType,
-        _preferredTenant != 'Anyone' ? 'Prefers $_preferredTenant' : 'Any Tenant',
+        _preferredTenant != 'Anyone'
+            ? 'Prefers $_preferredTenant'
+            : 'Any Tenant',
         if (_isIndependent) 'Independent Flat',
         if (_maintenanceIncluded) 'Maintenance Included',
         if (_electricityIncluded) 'Electricity Included',
         if (!_isIndependent) ...[
-          _visitorPolicy == 'Allowed' ? 'Visitors Allowed' : 'Visitors $_visitorPolicy',
+          _visitorPolicy == 'Allowed'
+              ? 'Visitors Allowed'
+              : 'Visitors $_visitorPolicy',
           'Food: $_foodPreference',
         ],
       ].take(12).toList();
@@ -369,7 +417,8 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
         'Maintenance: ${_maintenanceIncluded ? 'Included' : 'Not Included'}',
         'Electricity: ${_electricityIncluded ? 'Included' : 'Not Included'}',
         'Contact: ${_contactNumber.text.trim()}',
-        if (_whatsAppNumber.text.trim().isNotEmpty) 'WhatsApp: ${_whatsAppNumber.text.trim()}',
+        if (_whatsAppNumber.text.trim().isNotEmpty)
+          'WhatsApp: ${_whatsAppNumber.text.trim()}',
         if (!_isIndependent) ...[
           'Smoking: ${_smokingAllowed ? 'Allowed' : 'Not allowed'}',
           'Drinking: ${_drinkingAllowed ? 'Allowed' : 'Not allowed'}',
@@ -385,9 +434,11 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
             ? (ownerDisplayName.isEmpty ? 'Flat Owner' : ownerDisplayName)
             : _ownerName.text.trim(),
         ownerPhotoUrl: ownerPhotoUrl,
-        title: '${_bhkType} Flat in ${_area.text.trim()}',
+        title: '$_bhkType Flat in ${_area.text.trim()}',
         description: description,
-        location: locationParts.isEmpty ? _city.text.trim() : locationParts.join(', '),
+        location: locationParts.isEmpty
+            ? _city.text.trim()
+            : locationParts.join(', '),
         latitude: _latitude,
         longitude: _longitude,
         price: double.tryParse(_totalRent.text.trim()) ?? 0,
@@ -412,7 +463,9 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
       navigator.pop(true);
     } catch (error) {
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text('Could not publish: $error')));
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not publish: $error')),
+      );
     } finally {
       if (mounted) setState(() => _submitting = false);
     }
@@ -444,23 +497,29 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
       if (!mounted) return;
 
       final address = locationProvider.address.trim();
-      final hasResolvedAddress = address.isNotEmpty &&
-          address != 'Locating...' && address != 'Location unavailable';
-      
+      final hasResolvedAddress =
+          address.isNotEmpty &&
+          address != 'Locating...' &&
+          address != 'Location unavailable';
+
       if (!hasResolvedAddress) {
-        messenger.showSnackBar(const SnackBar(content: Text('Could not detect your location')));
+        messenger.showSnackBar(
+          const SnackBar(content: Text('Could not detect your location')),
+        );
         return;
       }
 
       setState(() {
-        _area.text = address; 
+        _area.text = address;
         _latitude = locationProvider.latitude;
         _longitude = locationProvider.longitude;
       });
       _saveDraft();
     } catch (error) {
       if (!mounted) return;
-      messenger.showSnackBar(SnackBar(content: Text('Could not detect location: $error')));
+      messenger.showSnackBar(
+        SnackBar(content: Text('Could not detect location: $error')),
+      );
     } finally {
       if (mounted) setState(() => _detectingLocation = false);
     }
@@ -483,12 +542,20 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
         final isCompact = MediaQuery.sizeOf(context).width < 380;
         return SafeArea(
           child: Padding(
-            padding: EdgeInsets.fromLTRB(isCompact ? 16 : 20, 8, isCompact ? 16 : 20, 24),
+            padding: EdgeInsets.fromLTRB(
+              isCompact ? 16 : 20,
+              8,
+              isCompact ? 16 : 20,
+              24,
+            ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: AppTheme.headline(fontSize: isCompact ? 19 : 22)),
+                Text(
+                  title,
+                  style: AppTheme.headline(fontSize: isCompact ? 19 : 22),
+                ),
                 SizedBox(height: isCompact ? 10 : 14),
                 ...values.map(
                   (value) => ListTile(
@@ -496,7 +563,10 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
                     contentPadding: EdgeInsets.zero,
                     title: Text(value),
                     trailing: selected == value
-                        ? const Icon(Icons.check_rounded, color: AppColors.primary)
+                        ? const Icon(
+                            Icons.check_rounded,
+                            color: AppColors.primary,
+                          )
                         : null,
                     onTap: () {
                       Navigator.pop(context);
@@ -527,7 +597,13 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
         actions: [
           TextButton(
             onPressed: _saveDraft,
-            child: Text('Save draft', style: AppTheme.body(fontWeight: FontWeight.w800, color: AppColors.primary)),
+            child: Text(
+              'Save draft',
+              style: AppTheme.body(
+                fontWeight: FontWeight.w800,
+                color: AppColors.primary,
+              ),
+            ),
           ),
         ],
       ),
@@ -550,7 +626,11 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
                       icon: Icons.info_outline_rounded,
                       children: [
                         _AppField(controller: _ownerName, label: 'Owner Name'),
-                        _AppField(controller: _contactNumber, label: 'Contact Number', keyboardType: TextInputType.phone),
+                        _AppField(
+                          controller: _contactNumber,
+                          label: 'Contact Number',
+                          keyboardType: TextInputType.phone,
+                        ),
                         Row(
                           children: [
                             SizedBox(
@@ -563,7 +643,8 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
                                   setState(() {
                                     _sameAsContact = val ?? false;
                                     if (_sameAsContact) {
-                                      _whatsAppNumber.text = _contactNumber.text;
+                                      _whatsAppNumber.text =
+                                          _contactNumber.text;
                                     }
                                   });
                                   _saveDraft();
@@ -571,7 +652,10 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
                               ),
                             ),
                             const SizedBox(width: 8),
-                            Text('Same as contact number', style: AppTheme.body(fontSize: 14)),
+                            Text(
+                              'Same as contact number',
+                              style: AppTheme.body(fontSize: 14),
+                            ),
                           ],
                         ),
                         _AppField(
@@ -587,7 +671,8 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
                             title: 'Furnishing Type',
                             values: _furnishingOptions,
                             selected: _furnishingType,
-                            onSelected: (val) => setState(() => _furnishingType = val),
+                            onSelected: (val) =>
+                                setState(() => _furnishingType = val),
                           ),
                         ),
                         _SelectTile(
@@ -609,7 +694,8 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
                             title: 'Preferred Tenant Type',
                             values: _tenantOptions,
                             selected: _preferredTenant,
-                            onSelected: (val) => setState(() => _preferredTenant = val),
+                            onSelected: (val) =>
+                                setState(() => _preferredTenant = val),
                           ),
                         ),
                       ],
@@ -632,16 +718,41 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
                         Align(
                           alignment: Alignment.centerLeft,
                           child: OutlinedButton.icon(
-                            onPressed: _detectingLocation ? null : _detectCurrentLocation,
+                            onPressed: _detectingLocation
+                                ? null
+                                : _detectCurrentLocation,
                             icon: _detectingLocation
-                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                                : const Icon(Icons.my_location_rounded, size: 18),
-                            label: Text(_detectingLocation ? 'Detecting location' : 'Detect current location'),
+                                ? const SizedBox(
+                                    width: 16,
+                                    height: 16,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                    ),
+                                  )
+                                : const Icon(
+                                    Icons.my_location_rounded,
+                                    size: 18,
+                                  ),
+                            label: Text(
+                              _detectingLocation
+                                  ? 'Detecting location'
+                                  : 'Detect current location',
+                            ),
                             style: OutlinedButton.styleFrom(
                               foregroundColor: AppColors.primary,
-                              side: BorderSide(color: AppColors.outlineVariant.withValues(alpha: 0.65)),
-                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                              textStyle: AppTheme.button(fontSize: 13, color: AppColors.primary),
+                              side: BorderSide(
+                                color: AppColors.outlineVariant.withValues(
+                                  alpha: 0.65,
+                                ),
+                              ),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 14,
+                                vertical: 12,
+                              ),
+                              textStyle: AppTheme.button(
+                                fontSize: 13,
+                                color: AppColors.primary,
+                              ),
                             ),
                           ),
                         ),
@@ -657,17 +768,29 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
                       title: 'Pricing',
                       icon: Icons.currency_rupee_rounded,
                       children: [
-                        _AppField(controller: _totalRent, label: 'Total Rent', prefixText: '₹ ', keyboardType: TextInputType.number),
-                        _AppField(controller: _securityDeposit, label: 'Security Deposit', prefixText: '₹ ', keyboardType: TextInputType.number),
+                        _AppField(
+                          controller: _totalRent,
+                          label: 'Total Rent',
+                          prefixText: '₹ ',
+                          keyboardType: TextInputType.number,
+                        ),
+                        _AppField(
+                          controller: _securityDeposit,
+                          label: 'Security Deposit',
+                          prefixText: '₹ ',
+                          keyboardType: TextInputType.number,
+                        ),
                         _SwitchTile(
                           label: 'Maintenance Included?',
                           value: _maintenanceIncluded,
-                          onChanged: (val) => setState(() => _maintenanceIncluded = val),
+                          onChanged: (val) =>
+                              setState(() => _maintenanceIncluded = val),
                         ),
                         _SwitchTile(
                           label: 'Electricity Included?',
                           value: _electricityIncluded,
-                          onChanged: (val) => setState(() => _electricityIncluded = val),
+                          onChanged: (val) =>
+                              setState(() => _electricityIncluded = val),
                         ),
                       ],
                     ),
@@ -678,23 +801,27 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
                         _SwitchTile(
                           label: 'Is it an independent flat?',
                           value: _isIndependent,
-                          onChanged: (val) => setState(() => _isIndependent = val),
+                          onChanged: (val) =>
+                              setState(() => _isIndependent = val),
                         ),
                         if (!_isIndependent) ...[
                           _SwitchTile(
                             label: 'Smoking Allowed?',
                             value: _smokingAllowed,
-                            onChanged: (val) => setState(() => _smokingAllowed = val),
+                            onChanged: (val) =>
+                                setState(() => _smokingAllowed = val),
                           ),
                           _SwitchTile(
                             label: 'Drinking Allowed?',
                             value: _drinkingAllowed,
-                            onChanged: (val) => setState(() => _drinkingAllowed = val),
+                            onChanged: (val) =>
+                                setState(() => _drinkingAllowed = val),
                           ),
                           _SwitchTile(
                             label: 'Pets Allowed?',
                             value: _petsAllowed,
-                            onChanged: (val) => setState(() => _petsAllowed = val),
+                            onChanged: (val) =>
+                                setState(() => _petsAllowed = val),
                           ),
                           _SelectTile(
                             label: 'Visitor Policy',
@@ -704,7 +831,8 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
                               title: 'Visitor Policy',
                               values: _visitorOptions,
                               selected: _visitorPolicy,
-                              onSelected: (val) => setState(() => _visitorPolicy = val),
+                              onSelected: (val) =>
+                                  setState(() => _visitorPolicy = val),
                             ),
                           ),
                           _SelectTile(
@@ -715,7 +843,8 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
                               title: 'Food Preference',
                               values: _foodOptions,
                               selected: _foodPreference,
-                              onSelected: (val) => setState(() => _foodPreference = val),
+                              onSelected: (val) =>
+                                  setState(() => _foodPreference = val),
                             ),
                           ),
                         ],
@@ -734,7 +863,8 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
                           title: 'Property Images (Min 3)',
                           images: _propertyImages,
                           onAdd: _pickImages,
-                          onRemove: (index) => setState(() => _propertyImages.removeAt(index)),
+                          onRemove: (index) =>
+                              setState(() => _propertyImages.removeAt(index)),
                           onReorder: _onReorderImages,
                         ),
                         _VideoTile(
@@ -763,7 +893,8 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
                         _SwitchTile(
                           label: 'Immediate Move-in',
                           value: _immediateMoveIn,
-                          onChanged: (val) => setState(() => _immediateMoveIn = val),
+                          onChanged: (val) =>
+                              setState(() => _immediateMoveIn = val),
                         ),
                         _SelectTile(
                           label: 'Available From Date',
@@ -787,11 +918,20 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
       bottomNavigationBar: SafeArea(
         top: false,
         child: Container(
-          padding: EdgeInsets.fromLTRB(isCompact ? 12 : 16, 10, isCompact ? 12 : 16, 14),
+          padding: EdgeInsets.fromLTRB(
+            isCompact ? 12 : 16,
+            10,
+            isCompact ? 12 : 16,
+            14,
+          ),
           decoration: BoxDecoration(
             color: Colors.white,
             boxShadow: [
-              BoxShadow(color: Colors.black.withValues(alpha: 0.06), blurRadius: 18, offset: const Offset(0, -8)),
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 18,
+                offset: const Offset(0, -8),
+              ),
             ],
           ),
           child: Row(
@@ -805,18 +945,35 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
               if (_step > 0) SizedBox(width: isCompact ? 8 : 10),
               Expanded(
                 child: ElevatedButton(
-                  onPressed: _submitting ? null : (_step == 2 ? _publish : () => _goToStep(_step + 1)),
+                  onPressed: _submitting
+                      ? null
+                      : (_step == 2 ? _publish : () => _goToStep(_step + 1)),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primary,
                     foregroundColor: Colors.white,
-                    padding: EdgeInsets.symmetric(vertical: isCompact ? 14 : 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                    padding: EdgeInsets.symmetric(
+                      vertical: isCompact ? 14 : 16,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
                   ),
                   child: _submitting
-                      ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
                       : Text(
                           _step == 2 ? 'Publish Flat' : 'Continue',
-                          style: AppTheme.body(fontSize: isCompact ? 15 : 16, fontWeight: FontWeight.w800, color: Colors.white),
+                          style: AppTheme.body(
+                            fontSize: isCompact ? 15 : 16,
+                            fontWeight: FontWeight.w800,
+                            color: Colors.white,
+                          ),
                         ),
                 ),
               ),
@@ -841,7 +998,12 @@ class _ProgressHeader extends StatelessWidget {
     final isCompact = MediaQuery.sizeOf(context).width < 380;
     final labels = ['Basic Details', 'Pricing & Rules', 'Media & Details'];
     return Container(
-      padding: EdgeInsets.fromLTRB(isCompact ? 12 : 16, 0, isCompact ? 12 : 16, isCompact ? 10 : 14),
+      padding: EdgeInsets.fromLTRB(
+        isCompact ? 12 : 16,
+        0,
+        isCompact ? 12 : 16,
+        isCompact ? 10 : 14,
+      ),
       color: AppColors.background,
       child: Column(
         children: [
@@ -881,7 +1043,12 @@ class _ValidationBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     final isCompact = MediaQuery.sizeOf(context).width < 380;
     return Container(
-      margin: EdgeInsets.fromLTRB(isCompact ? 12 : 16, 0, isCompact ? 12 : 16, 10),
+      margin: EdgeInsets.fromLTRB(
+        isCompact ? 12 : 16,
+        0,
+        isCompact ? 12 : 16,
+        10,
+      ),
       padding: EdgeInsets.all(isCompact ? 10 : 12),
       decoration: BoxDecoration(
         color: AppColors.errorContainer,
@@ -895,7 +1062,10 @@ class _ValidationBanner extends StatelessWidget {
           Expanded(
             child: Text(
               'Missing: ${errors.take(4).join(', ')}',
-              style: AppTheme.body(fontWeight: FontWeight.w700, color: AppColors.error),
+              style: AppTheme.body(
+                fontWeight: FontWeight.w700,
+                color: AppColors.error,
+              ),
             ),
           ),
         ],
@@ -912,7 +1082,12 @@ class _StepPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final isCompact = MediaQuery.sizeOf(context).width < 380;
     return ListView(
-      padding: EdgeInsets.fromLTRB(isCompact ? 12 : 16, 4, isCompact ? 12 : 16, 24),
+      padding: EdgeInsets.fromLTRB(
+        isCompact ? 12 : 16,
+        4,
+        isCompact ? 12 : 16,
+        24,
+      ),
       children: children.expand((child) sync* {
         yield child;
         yield SizedBox(height: isCompact ? 12 : 16);
@@ -926,7 +1101,11 @@ class _SectionCard extends StatelessWidget {
   final IconData icon;
   final List<Widget> children;
 
-  const _SectionCard({required this.title, required this.icon, required this.children});
+  const _SectionCard({
+    required this.title,
+    required this.icon,
+    required this.children,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -937,7 +1116,11 @@ class _SectionCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(isCompact ? 18 : 24),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 18, offset: const Offset(0, 8)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
         ],
       ),
       child: Column(
@@ -948,11 +1131,25 @@ class _SectionCard extends StatelessWidget {
               Container(
                 width: isCompact ? 34 : 40,
                 height: isCompact ? 34 : 40,
-                decoration: BoxDecoration(color: AppColors.blue50, borderRadius: BorderRadius.circular(isCompact ? 12 : 14)),
-                child: Icon(icon, color: AppColors.primary, size: isCompact ? 18 : 21),
+                decoration: BoxDecoration(
+                  color: AppColors.blue50,
+                  borderRadius: BorderRadius.circular(isCompact ? 12 : 14),
+                ),
+                child: Icon(
+                  icon,
+                  color: AppColors.primary,
+                  size: isCompact ? 18 : 21,
+                ),
               ),
               SizedBox(width: isCompact ? 8 : 12),
-              Expanded(child: Text(title, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppTheme.headline(fontSize: isCompact ? 17 : 19))),
+              Expanded(
+                child: Text(
+                  title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: AppTheme.headline(fontSize: isCompact ? 17 : 19),
+                ),
+              ),
             ],
           ),
           SizedBox(height: isCompact ? 12 : 16),
@@ -974,7 +1171,14 @@ class _AppField extends StatelessWidget {
   final int maxLines;
   final TextInputType? keyboardType;
 
-  const _AppField({required this.controller, required this.label, this.hint, this.prefixText, this.maxLines = 1, this.keyboardType});
+  const _AppField({
+    required this.controller,
+    required this.label,
+    this.hint,
+    this.prefixText,
+    this.maxLines = 1,
+    this.keyboardType,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -991,8 +1195,14 @@ class _AppField extends StatelessWidget {
         prefixText: prefixText,
         filled: true,
         fillColor: AppColors.surfaceContainerLow,
-        contentPadding: EdgeInsets.symmetric(horizontal: isCompact ? 12 : 14, vertical: isCompact ? 12 : 14),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(isCompact ? 12 : 16), borderSide: BorderSide.none),
+        contentPadding: EdgeInsets.symmetric(
+          horizontal: isCompact ? 12 : 14,
+          vertical: isCompact ? 12 : 14,
+        ),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(isCompact ? 12 : 16),
+          borderSide: BorderSide.none,
+        ),
       ),
     );
   }
@@ -1004,7 +1214,12 @@ class _SelectTile extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
 
-  const _SelectTile({required this.label, required this.value, required this.icon, required this.onTap});
+  const _SelectTile({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.onTap,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1014,7 +1229,10 @@ class _SelectTile extends StatelessWidget {
       borderRadius: BorderRadius.circular(16),
       child: Container(
         padding: EdgeInsets.all(isCompact ? 12 : 14),
-        decoration: BoxDecoration(color: AppColors.surfaceContainerLow, borderRadius: BorderRadius.circular(16)),
+        decoration: BoxDecoration(
+          color: AppColors.surfaceContainerLow,
+          borderRadius: BorderRadius.circular(16),
+        ),
         child: Row(
           children: [
             Icon(icon, color: AppColors.primary, size: isCompact ? 20 : 24),
@@ -1025,7 +1243,15 @@ class _SelectTile extends StatelessWidget {
                 children: [
                   Text(label, style: AppTheme.label()),
                   const SizedBox(height: 4),
-                  Text(value, maxLines: 2, overflow: TextOverflow.ellipsis, style: AppTheme.body(fontSize: isCompact ? 14 : 15, fontWeight: FontWeight.w800)),
+                  Text(
+                    value,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.body(
+                      fontSize: isCompact ? 14 : 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
                 ],
               ),
             ),
@@ -1042,7 +1268,11 @@ class _SwitchTile extends StatelessWidget {
   final bool value;
   final ValueChanged<bool> onChanged;
 
-  const _SwitchTile({required this.label, required this.value, required this.onChanged});
+  const _SwitchTile({
+    required this.label,
+    required this.value,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1056,7 +1286,10 @@ class _SwitchTile extends StatelessWidget {
         label,
         maxLines: 2,
         overflow: TextOverflow.ellipsis,
-        style: AppTheme.body(fontSize: isCompact ? 14 : 15, fontWeight: FontWeight.w700),
+        style: AppTheme.body(
+          fontSize: isCompact ? 14 : 15,
+          fontWeight: FontWeight.w700,
+        ),
       ),
     );
   }
@@ -1093,12 +1326,18 @@ class _DraggableImageUploadGroup extends StatelessWidget {
                 title,
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
-                style: AppTheme.body(fontSize: isCompact ? 14 : 15, fontWeight: FontWeight.w800),
+                style: AppTheme.body(
+                  fontSize: isCompact ? 14 : 15,
+                  fontWeight: FontWeight.w800,
+                ),
               ),
             ),
             TextButton.icon(
               onPressed: onAdd,
-              icon: Icon(Icons.add_photo_alternate_rounded, size: isCompact ? 18 : 20),
+              icon: Icon(
+                Icons.add_photo_alternate_rounded,
+                size: isCompact ? 18 : 20,
+              ),
               label: const Text('Upload'),
             ),
           ],
@@ -1107,7 +1346,10 @@ class _DraggableImageUploadGroup extends StatelessWidget {
           Container(
             height: emptyHeight,
             width: double.infinity,
-            decoration: BoxDecoration(color: AppColors.surfaceContainerLow, borderRadius: BorderRadius.circular(18)),
+            decoration: BoxDecoration(
+              color: AppColors.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(18),
+            ),
             child: const Center(child: Icon(Icons.image_outlined)),
           )
         else
@@ -1138,11 +1380,21 @@ class _DraggableImageUploadGroup extends StatelessWidget {
                             bottom: 4,
                             left: 4,
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(color: AppColors.primary, borderRadius: BorderRadius.circular(4)),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 6,
+                                vertical: 2,
+                              ),
+                              decoration: BoxDecoration(
+                                color: AppColors.primary,
+                                borderRadius: BorderRadius.circular(4),
+                              ),
                               child: Text(
                                 'Cover',
-                                style: AppTheme.label(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold),
+                                style: AppTheme.label(
+                                  fontSize: 10,
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
                             ),
                           ),
@@ -1163,7 +1415,11 @@ class _ImagePreviewTile extends StatelessWidget {
   final double size;
   final VoidCallback onRemove;
 
-  const _ImagePreviewTile({required this.image, required this.size, required this.onRemove});
+  const _ImagePreviewTile({
+    required this.image,
+    required this.size,
+    required this.onRemove,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1178,7 +1434,9 @@ class _ImagePreviewTile extends StatelessWidget {
             FutureBuilder<Uint8List>(
               future: image.readAsBytes(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData) return Container(color: AppColors.surfaceContainerHigh);
+                if (!snapshot.hasData) {
+                  return Container(color: AppColors.surfaceContainerHigh);
+                }
                 return Image.memory(snapshot.data!, fit: BoxFit.cover);
               },
             ),
@@ -1190,8 +1448,15 @@ class _ImagePreviewTile extends StatelessWidget {
                 child: Container(
                   width: 24,
                   height: 24,
-                  decoration: const BoxDecoration(color: Colors.black54, shape: BoxShape.circle),
-                  child: const Icon(Icons.close_rounded, color: Colors.white, size: 16),
+                  decoration: const BoxDecoration(
+                    color: Colors.black54,
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.close_rounded,
+                    color: Colors.white,
+                    size: 16,
+                  ),
                 ),
               ),
             ),
@@ -1207,7 +1472,11 @@ class _VideoTile extends StatelessWidget {
   final VoidCallback onTap;
   final VoidCallback onRemove;
 
-  const _VideoTile({required this.videoName, required this.onTap, required this.onRemove});
+  const _VideoTile({
+    required this.videoName,
+    required this.onTap,
+    required this.onRemove,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1215,21 +1484,34 @@ class _VideoTile extends StatelessWidget {
     final isCompact = MediaQuery.sizeOf(context).width < 380;
     return Container(
       padding: EdgeInsets.all(isCompact ? 12 : 14),
-      decoration: BoxDecoration(color: AppColors.surfaceContainerLow, borderRadius: BorderRadius.circular(18)),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(18),
+      ),
       child: Row(
         children: [
-          Icon(Icons.video_library_rounded, color: AppColors.primary, size: isCompact ? 20 : 24),
+          Icon(
+            Icons.video_library_rounded,
+            color: AppColors.primary,
+            size: isCompact ? 20 : 24,
+          ),
           SizedBox(width: isCompact ? 8 : 12),
           Expanded(
             child: Text(
               hasVideo ? videoName! : 'Upload Video Tour (optional)',
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: AppTheme.body(fontSize: isCompact ? 13 : 14, fontWeight: FontWeight.w700),
+              style: AppTheme.body(
+                fontSize: isCompact ? 13 : 14,
+                fontWeight: FontWeight.w700,
+              ),
             ),
           ),
           if (hasVideo)
-            IconButton(onPressed: onRemove, icon: const Icon(Icons.close_rounded))
+            IconButton(
+              onPressed: onRemove,
+              icon: const Icon(Icons.close_rounded),
+            )
           else
             TextButton(onPressed: onTap, child: const Text('Choose')),
         ],
@@ -1241,9 +1523,14 @@ class _VideoTile extends StatelessWidget {
 class _LocationSearchField extends StatefulWidget {
   final TextEditingController controller;
   final bool isCompact;
-  final void Function(String area, String city, double lat, double lon)? onSelected;
+  final void Function(String area, String city, double lat, double lon)?
+  onSelected;
 
-  const _LocationSearchField({required this.controller, required this.isCompact, this.onSelected});
+  const _LocationSearchField({
+    required this.controller,
+    required this.isCompact,
+    this.onSelected,
+  });
 
   @override
   State<_LocationSearchField> createState() => _LocationSearchFieldState();
@@ -1285,7 +1572,8 @@ class _LocationSearchFieldState extends State<_LocationSearchField> {
   }
 
   void _onFocusChanged() {
-    if (_focusNode.hasFocus && (_provider.isLoading || _provider.results.isNotEmpty)) {
+    if (_focusNode.hasFocus &&
+        (_provider.isLoading || _provider.results.isNotEmpty)) {
       _showOverlay();
     } else if (!_focusNode.hasFocus) {
       Future.delayed(const Duration(milliseconds: 150), () {
@@ -1296,7 +1584,7 @@ class _LocationSearchFieldState extends State<_LocationSearchField> {
 
   void _showOverlay() {
     if (_overlayEntry != null) return;
-    
+
     final renderBox = context.findRenderObject() as RenderBox?;
     final width = renderBox?.size.width;
 
@@ -1333,14 +1621,25 @@ class _LocationSearchFieldState extends State<_LocationSearchField> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))]
+          border: Border.all(
+            color: AppColors.outlineVariant.withValues(alpha: 0.5),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: const Center(
           child: SizedBox(
             width: 24,
             height: 24,
-            child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.primary),
+            child: CircularProgressIndicator(
+              strokeWidth: 2,
+              color: AppColors.primary,
+            ),
           ),
         ),
       );
@@ -1353,8 +1652,16 @@ class _LocationSearchFieldState extends State<_LocationSearchField> {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.outlineVariant.withValues(alpha: 0.5)),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))]
+          border: Border.all(
+            color: AppColors.outlineVariant.withValues(alpha: 0.5),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
         ),
         child: ListView(
           padding: EdgeInsets.zero,
@@ -1363,34 +1670,63 @@ class _LocationSearchFieldState extends State<_LocationSearchField> {
             final fullName = place['display_name'] ?? '';
             final nameParts = fullName.split(', ');
             final title = nameParts.isNotEmpty ? nameParts.first : fullName;
-            final subtitle = nameParts.length > 1 ? nameParts.skip(1).join(', ') : '';
+            final subtitle = nameParts.length > 1
+                ? nameParts.skip(1).join(', ')
+                : '';
 
             return ListTile(
-              leading: const Icon(Icons.location_on_rounded, color: AppColors.primary),
-              title: Text(title, style: AppTheme.body(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              leading: const Icon(
+                Icons.location_on_rounded,
+                color: AppColors.primary,
+              ),
+              title: Text(
+                title,
+                style: AppTheme.body(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
               subtitle: subtitle.isNotEmpty
-                  ? Text(subtitle, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTheme.body(fontSize: 12, color: AppColors.textSecondary))
+                  ? Text(
+                      subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.body(
+                        fontSize: 12,
+                        color: AppColors.textSecondary,
+                      ),
+                    )
                   : null,
               onTap: () {
-                final addressDetails = place['address'] as Map<String, dynamic>? ?? {};
-                final shortName = place['name'] ??
+                final addressDetails =
+                    place['address'] as Map<String, dynamic>? ?? {};
+                final shortName =
+                    place['name'] ??
                     addressDetails['neighbourhood'] ??
                     addressDetails['suburb'] ??
                     addressDetails['city_district'] ??
                     addressDetails['city'] ??
                     addressDetails['town'] ??
                     'Unknown Location';
-                
-                final city = (addressDetails['city'] ?? addressDetails['state_district'] ?? addressDetails['county'] ?? '').toString();
-                final lat = double.tryParse(place['lat']?.toString() ?? '') ?? 0.0;
-                final lon = double.tryParse(place['lon']?.toString() ?? '') ?? 0.0;
+
+                final city =
+                    (addressDetails['city'] ??
+                            addressDetails['state_district'] ??
+                            addressDetails['county'] ??
+                            '')
+                        .toString();
+                final lat =
+                    double.tryParse(place['lat']?.toString() ?? '') ?? 0.0;
+                final lon =
+                    double.tryParse(place['lon']?.toString() ?? '') ?? 0.0;
 
                 if (widget.onSelected != null) {
                   widget.onSelected!(shortName, city, lat, lon);
                 } else {
                   widget.controller.text = shortName;
                 }
-                
+
                 _provider.clearSearch();
                 _focusNode.unfocus();
               },
@@ -1432,8 +1768,14 @@ class _LocationSearchFieldState extends State<_LocationSearchField> {
           ),
           filled: true,
           fillColor: AppColors.surfaceContainerLow,
-          contentPadding: EdgeInsets.symmetric(horizontal: widget.isCompact ? 12 : 14, vertical: widget.isCompact ? 12 : 14),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(widget.isCompact ? 12 : 16), borderSide: BorderSide.none),
+          contentPadding: EdgeInsets.symmetric(
+            horizontal: widget.isCompact ? 12 : 14,
+            vertical: widget.isCompact ? 12 : 14,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(widget.isCompact ? 12 : 16),
+            borderSide: BorderSide.none,
+          ),
         ),
       ),
     );
