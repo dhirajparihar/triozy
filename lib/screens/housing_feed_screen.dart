@@ -9,10 +9,6 @@ import '../theme/app_theme.dart';
 import '../widgets/listing_card.dart';
 import 'listing_detail_screen.dart';
 
-
-// === Housing feed ============================================================
-
-/// Tabbed housing feed for rooms, flatmates, and PG listings.
 class HousingFeedScreen extends StatelessWidget {
   final int initialTabIndex;
 
@@ -41,7 +37,6 @@ class HousingFeedScreen extends StatelessWidget {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    // Back navigation
                     _IconBtn(
                       icon: Icons.arrow_back_rounded,
                       onTap: () => Navigator.pop(context),
@@ -52,7 +47,6 @@ class HousingFeedScreen extends StatelessWidget {
                       'Housing',
                       style: AppTheme.headline(fontSize: headerSize, fontWeight: FontWeight.w800, color: AppColors.inverseSurface),
                     ),
-                    // Filters placeholder
                     _IconBtn(
                       icon: Icons.tune_rounded,
                       color: AppColors.primary,
@@ -85,7 +79,7 @@ class HousingFeedScreen extends StatelessWidget {
                   tabs: const [
                     Tab(text: 'Rooms'),
                     Tab(text: 'Flatmates'),
-                    Tab(text: 'PGs'),
+                    Tab(text: 'Properties'),
                   ],
                 ),
               ),
@@ -95,15 +89,15 @@ class HousingFeedScreen extends StatelessWidget {
               Expanded(
                 child: const TabBarView(
                   children: [
-                    // Rooms feed
-                    _HousingTab(propertyType: PropertyType.room),
-                    // Flatmates feed + room requirements
+                    _HousingTab(propertyTypes: [PropertyType.room]),
                     _HousingTab(
                       purpose: ListingPurpose.needRoommate,
                       includeRoomRequirements: true,
                     ),
-                    // PG feed
-                    _HousingTab(propertyType: PropertyType.pg),
+                    _HousingTab(
+                      propertyTypes: [PropertyType.pg, PropertyType.flat],
+                      purpose: ListingPurpose.offerProperty,
+                    ),
                   ],
                 ),
               ),
@@ -146,17 +140,13 @@ class _IconBtn extends StatelessWidget {
   }
 }
 
-
-// === Tab content =============================================================
-
-/// Tab body that loads and filters listings for a specific category.
 class _HousingTab extends StatefulWidget {
-  final PropertyType? propertyType;
+  final List<PropertyType>? propertyTypes;
   final ListingPurpose? purpose;
   final bool includeRoomRequirements;
 
   const _HousingTab({
-    this.propertyType,
+    this.propertyTypes,
     this.purpose,
     this.includeRoomRequirements = false,
   });
@@ -173,12 +163,10 @@ class _HousingTabState extends State<_HousingTab> {
   @override
   void initState() {
     super.initState();
-    // Load content after first frame for smoother transitions.
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
   Future<void> _load() async {
-    // Load listings and saved ids, then filter for the active tab.
     setState(() => _loading = true);
     final db = context.read<DatabaseService>();
     final listings = await db.searchListings(type: ListingType.housing);
@@ -192,7 +180,6 @@ class _HousingTabState extends State<_HousingTab> {
     }
 
     setState(() {
-      // Filter by tab and sort newest-first.
       _listings = listings.where(_matchesTab).toList()
         ..sort(
           (a, b) => (b.createdAt ?? DateTime(0)).compareTo(
@@ -205,7 +192,6 @@ class _HousingTabState extends State<_HousingTab> {
   }
 
   bool _matchesTab(ListingModel listing) {
-    // Include requirement posts only on the flatmates tab if configured.
     if (widget.includeRoomRequirements) {
       return listing.isRequirementPost ||
           (listing.purpose == ListingPurpose.needRoommate &&
@@ -214,8 +200,8 @@ class _HousingTabState extends State<_HousingTab> {
     if (!widget.includeRoomRequirements && listing.isRequirementPost) {
       return false;
     }
-    if (widget.propertyType != null &&
-        listing.propertyType != widget.propertyType) {
+    if (widget.propertyTypes != null &&
+        !widget.propertyTypes!.contains(listing.propertyType)) {
       return false;
     }
     if (widget.purpose != null && listing.purpose != widget.purpose) {
@@ -243,7 +229,6 @@ class _HousingTabState extends State<_HousingTab> {
     }
 
     setState(() {
-      // Toggle local saved state for instant feedback.
       if (_savedIds.contains(listingId)) {
         _savedIds.remove(listingId);
       } else {
@@ -253,7 +238,6 @@ class _HousingTabState extends State<_HousingTab> {
   }
 
   void _openListing(ListingModel listing) {
-    // Navigate to detail screen with a seed to avoid blank state.
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -275,12 +259,11 @@ class _HousingTabState extends State<_HousingTab> {
       child: ListView(
         padding: EdgeInsets.fromLTRB(horizontalPadding, horizontalPadding, horizontalPadding, 24),
         children: [
-          // Loading, empty, or populated states.
           if (_loading)
             const _HousingLoadingState()
           else if (_listings.isEmpty)
             _HousingEmptyState(
-              propertyType: widget.propertyType,
+              propertyTypes: widget.propertyTypes,
               purpose: widget.purpose,
               includeRoomRequirements: widget.includeRoomRequirements,
             )
@@ -305,16 +288,11 @@ class _HousingTabState extends State<_HousingTab> {
   }
 }
 
-
-// === Loading and empty states ================================================
-
-/// Skeleton placeholder shown while listings are loading.
 class _HousingLoadingState extends StatelessWidget {
   const _HousingLoadingState();
 
   @override
   Widget build(BuildContext context) {
-    // Skeleton card used while data loads.
     return Container(
       height: 330,
       decoration: AppTheme.cardDecoration(
@@ -328,48 +306,47 @@ class _HousingLoadingState extends StatelessWidget {
   }
 }
 
-/// Empty-state card tailored to the active housing tab.
 class _HousingEmptyState extends StatelessWidget {
-  final PropertyType? propertyType;
+  final List<PropertyType>? propertyTypes;
   final ListingPurpose? purpose;
   final bool includeRoomRequirements;
 
   const _HousingEmptyState({
-    this.propertyType,
+    this.propertyTypes,
     this.purpose,
     this.includeRoomRequirements = false,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Copy varies depending on the active tab.
-    final (icon, title, subtitle) = switch ((propertyType, purpose)) {
-      (PropertyType.room, _) => (
-        Icons.meeting_room_rounded,
-        'No rooms yet',
-        'Fresh room listings will appear here as soon as they are posted.',
-      ),
-      (_, ListingPurpose.needRoommate) when includeRoomRequirements => (
-        Icons.groups_rounded,
-        'No flatmate or room needs yet',
-        'People looking for rooms or flatmates will appear here.',
-      ),
-      (_, ListingPurpose.needRoommate) => (
-        Icons.groups_rounded,
-        'No flatmate posts yet',
-        'This tab will fill up once people start looking for flatmates.',
-      ),
-      (PropertyType.pg, _) => (
-        Icons.apartment_rounded,
-        'No PGs yet',
-        'PG and hostel listings from owners will show up here.',
-      ),
-      _ => (
-        Icons.home_work_rounded,
-        'No housing listings yet',
-        'Listings will show up here once they are posted.',
-      ),
-    };
+    IconData icon = Icons.home_work_rounded;
+    String title = 'No housing listings yet';
+    String subtitle = 'Listings will show up here once they are posted.';
+
+    if (purpose == ListingPurpose.needRoommate) {
+      icon = Icons.groups_rounded;
+      if (includeRoomRequirements) {
+        title = 'No flatmate or room needs yet';
+        subtitle = 'People looking for rooms or flatmates will appear here.';
+      } else {
+        title = 'No flatmate posts yet';
+        subtitle = 'This tab will fill up once people start looking for flatmates.';
+      }
+    } else if (propertyTypes != null) {
+      if (propertyTypes!.contains(PropertyType.pg) && propertyTypes!.contains(PropertyType.flat)) {
+        icon = Icons.apartment_rounded;
+        title = 'No properties yet';
+        subtitle = 'Flats, PGs, and hostel listings from owners will show up here.';
+      } else if (propertyTypes!.contains(PropertyType.room)) {
+        icon = Icons.meeting_room_rounded;
+        title = 'No rooms yet';
+        subtitle = 'Fresh room listings will appear here as soon as they are posted.';
+      } else if (propertyTypes!.contains(PropertyType.pg)) {
+        icon = Icons.apartment_rounded;
+        title = 'No PGs yet';
+        subtitle = 'PG and hostel listings from owners will show up here.';
+      }
+    }
 
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isCompact = screenWidth < 380;

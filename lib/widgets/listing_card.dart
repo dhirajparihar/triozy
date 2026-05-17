@@ -5,7 +5,6 @@ import '../models/listing_model.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
-/// Shared listing card for housing, marketplace, and requirement posts.
 class ListingCard extends StatelessWidget {
   final ListingModel listing;
   final VoidCallback onTap;
@@ -24,7 +23,6 @@ class ListingCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Compute card sizing from screen width and compact mode.
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isCompactScreen = screenWidth < 380;
 
@@ -40,11 +38,9 @@ class ListingCard extends StatelessWidget {
         final titleSize = compact ? (isNarrow ? 13.0 : 14.0) : 16.0;
         final priceSize = compact ? (isNarrow ? 18.0 : 20.0) : 22.0;
         final maxHighlights = compact ? (isNarrow ? 1 : 2) : 3;
-        // Trim highlights to keep the card tidy.
         final highlights = listing.highlights.take(maxHighlights).toList();
 
-        if (listing.isRequirementPost || listing.needsRoommate) {
-          // Render the flatmate/requirement variant for people-to-people posts.
+        if (listing.isRequirementPost || (listing.needsRoommate && listing.propertyType != PropertyType.room)) {
           return _FlatmateCard(
             listing: listing,
             onTap: onTap,
@@ -93,7 +89,6 @@ class ListingCard extends StatelessWidget {
                     Positioned(
                       left: 12,
                       top: 12,
-                      // Tag the card with the property type label.
                       child: _Badge(
                         label: listing.propertyTypeLabel,
                         background: AppColors.surfaceContainerLowest.withValues(
@@ -194,7 +189,6 @@ class ListingCard extends StatelessWidget {
                           spacing: 8,
                           runSpacing: 8,
                           children: highlights.map((highlight) {
-                            // Highlight chips for quick-scannable features.
                             return _Badge(
                               label: highlight,
                               background: AppColors.secondaryContainer
@@ -246,7 +240,6 @@ class _FlatmateCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Compact variant with avatar + quick details for roommate posts.
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isCompactScreen = screenWidth < 380;
     final isNarrow = isCompactScreen || compact;
@@ -448,7 +441,6 @@ class _FlatmateCard extends StatelessWidget {
 }
 
 class _Badge extends StatelessWidget {
-  /// Chip-like label used for property type and highlights.
   final String label;
   final Color background;
   final Color foreground;

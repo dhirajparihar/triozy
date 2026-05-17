@@ -11,6 +11,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'housing_entry_screen.dart';
 import 'listing_detail_screen.dart';
+import 'list_property_screen.dart';
 import 'location_search_screen.dart';
 import 'pg_listing_form_screen.dart';
 
@@ -148,7 +149,7 @@ class HomeScreenState extends State<HomeScreen> {
     // Open PG/hostel listing flow.
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => const PgListingFormScreen()),
+      MaterialPageRoute(builder: (_) => const ListPropertyScreen()),
     );
   }
 
@@ -457,7 +458,7 @@ class _QuickActions extends StatelessWidget {
               onTap: onFlatmatesTap,
             ),
             _CategoryCard(
-              title: 'Post Listing',
+              title: 'Rent Property',
               subtitle: 'For Owners',
               icon: Icons.add_box_rounded,
               bgColor: const Color(0xFFEEF2FF),
