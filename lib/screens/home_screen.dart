@@ -13,7 +13,6 @@ import 'housing_entry_screen.dart';
 import 'listing_detail_screen.dart';
 import 'list_property_screen.dart';
 import 'location_search_screen.dart';
-import 'pg_listing_form_screen.dart';
 
 /// Home feed with hero, quick actions, and featured listings.
 class HomeScreen extends StatefulWidget {
@@ -34,7 +33,9 @@ class HomeScreen extends StatefulWidget {
 
 /// Drives featured listings, saved state, and quick actions.
 class HomeScreenState extends State<HomeScreen> {
-  List<ListingModel> _featured = [];
+  static const int _maxSectionListings = 5;
+
+  List<ListingModel> _listings = [];
   Set<String> _savedIds = <String>{};
   bool _loading = true;
   bool _hasPublishedRequirement = false;
@@ -54,10 +55,7 @@ class HomeScreenState extends State<HomeScreen> {
     // Fetch featured listings and per-user flags.
     final db = context.read<DatabaseService>();
     try {
-      final featured = await db.getFeaturedListings(
-        type: ListingType.housing,
-        limit: 6,
-      );
+      final listings = await db.getAllListings();
       final userId = FirebaseAuth.instance.currentUser?.uid;
       final saved = userId == null
           ? <ListingModel>[]
@@ -71,7 +69,7 @@ class HomeScreenState extends State<HomeScreen> {
         return;
       }
       setState(() {
-        _featured = featured;
+        _listings = listings;
         _savedIds = saved.map((listing) => listing.id).toSet();
         _hasPublishedRequirement = hasPublishedRequirement;
         _hasPostedHousingListing = hasPostedHousingListing;
@@ -83,6 +81,35 @@ class HomeScreenState extends State<HomeScreen> {
       }
       setState(() => _loading = false);
     }
+  }
+
+  List<ListingModel> _sectionListings(bool Function(ListingModel) test) {
+    return _listings.where(test).take(_maxSectionListings).toList();
+  }
+
+  bool _isRoomListing(ListingModel listing) {
+    return listing.type == ListingType.housing &&
+        listing.propertyType == PropertyType.room &&
+        !listing.isRequirementPost;
+  }
+
+  bool _isFlatmateListing(ListingModel listing) {
+    return listing.type == ListingType.housing &&
+        (listing.isRequirementPost ||
+            (listing.purpose == ListingPurpose.needRoommate &&
+                listing.propertyType == PropertyType.flat));
+  }
+
+  bool _isPropertyListing(ListingModel listing) {
+    return listing.type == ListingType.housing &&
+        listing.purpose == ListingPurpose.offerProperty &&
+        (listing.propertyType == PropertyType.pg ||
+            listing.propertyType == PropertyType.flat);
+  }
+
+  bool _isMarketplaceListing(ListingModel listing) {
+    return listing.type == ListingType.marketplace ||
+        listing.propertyType == PropertyType.item;
   }
 
   Future<void> _toggleSave(String listingId) async {
@@ -169,6 +196,14 @@ class HomeScreenState extends State<HomeScreen> {
     final horizontalPadding = isCompact ? 16.0 : 20.0;
     final cardHeight = isCompact ? 265.0 : 280.0;
     final cardWidth = isCompact ? 180.0 : 200.0;
+    final rooms = _sectionListings(_isRoomListing);
+    final flatmates = _sectionListings(_isFlatmateListing);
+    final properties = _sectionListings(_isPropertyListing);
+    final marketplace = _sectionListings(_isMarketplaceListing);
+    final hasAnyListings = rooms.isNotEmpty ||
+        flatmates.isNotEmpty ||
+        properties.isNotEmpty ||
+        marketplace.isNotEmpty;
 
     return RefreshIndicator(
       onRefresh: _loadData,
@@ -192,42 +227,132 @@ class HomeScreenState extends State<HomeScreen> {
             onAllServicesTap: widget.onSearchTapped ?? widget.onExploreTapped,
           ),
           SizedBox(height: isCompact ? 28 : 32),
-          _SectionHeader(
-            title: 'Recommended for you',
-            actionLabel: 'See all',
-            onActionTap: widget.onExploreTapped,
-          ),
-          SizedBox(height: isCompact ? 14 : 16),
           if (_loading)
             const _HomeLoadingState()
-          else if (_featured.isEmpty)
+          else if (!hasAnyListings)
             const _EmptyFeaturedState()
-          else
-            SizedBox(
-              height: cardHeight,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: _featured.length,
-                separatorBuilder: (_, _) => SizedBox(width: isCompact ? 12 : 14),
-                itemBuilder: (context, index) {
-                  final listing = _featured[index];
-                  return SizedBox(
-                    width: cardWidth,
-                    child: FeaturedListingCard(
-                      listing: listing,
-                      isSaved: _savedIds.contains(listing.id),
-                      onTap: () => _openListing(listing),
-                      onSaveTap: () => _toggleSave(listing.id),
-                    ),
-                  );
-                },
+          else ...[
+            if (rooms.isNotEmpty)
+              _ListingSection(
+                title: 'Rooms',
+                listings: rooms,
+                cardHeight: cardHeight,
+                cardWidth: cardWidth,
+                isSaved: (listing) => _savedIds.contains(listing.id),
+                onListingTap: _openListing,
+                onSaveTap: (listing) => _toggleSave(listing.id),
+                onSeeAllTap: () =>
+                    widget.onPropertyTypeSelected?.call(PropertyType.room),
               ),
-            ),
+            if (flatmates.isNotEmpty)
+              _ListingSection(
+                title: 'Flatmates',
+                listings: flatmates,
+                cardHeight: cardHeight,
+                cardWidth: cardWidth,
+                showProfileCards: true,
+                isSaved: (listing) => _savedIds.contains(listing.id),
+                onListingTap: _openListing,
+                onSaveTap: (listing) => _toggleSave(listing.id),
+                onSeeAllTap: () =>
+                    widget.onPropertyTypeSelected?.call(PropertyType.flat),
+              ),
+            if (properties.isNotEmpty)
+              _ListingSection(
+                title: 'Properties',
+                listings: properties,
+                cardHeight: cardHeight,
+                cardWidth: cardWidth,
+                isSaved: (listing) => _savedIds.contains(listing.id),
+                onListingTap: _openListing,
+                onSaveTap: (listing) => _toggleSave(listing.id),
+                onSeeAllTap: () =>
+                    widget.onPropertyTypeSelected?.call(PropertyType.pg),
+              ),
+            if (marketplace.isNotEmpty)
+              _ListingSection(
+                title: 'Marketplace',
+                listings: marketplace,
+                cardHeight: cardHeight,
+                cardWidth: cardWidth,
+                isSaved: (listing) => _savedIds.contains(listing.id),
+                onListingTap: _openListing,
+                onSaveTap: (listing) => _toggleSave(listing.id),
+                onSeeAllTap: () =>
+                    widget.onPropertyTypeSelected?.call(PropertyType.item),
+              ),
+          ],
         ],
       ),
     );
   }
 
+}
+
+class _ListingSection extends StatelessWidget {
+  final String title;
+  final List<ListingModel> listings;
+  final double cardHeight;
+  final double cardWidth;
+  final bool showProfileCards;
+  final bool Function(ListingModel listing) isSaved;
+  final ValueChanged<ListingModel> onListingTap;
+  final ValueChanged<ListingModel> onSaveTap;
+  final VoidCallback? onSeeAllTap;
+
+  const _ListingSection({
+    required this.title,
+    required this.listings,
+    required this.cardHeight,
+    required this.cardWidth,
+    this.showProfileCards = false,
+    required this.isSaved,
+    required this.onListingTap,
+    required this.onSaveTap,
+    this.onSeeAllTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+
+    return Padding(
+      padding: EdgeInsets.only(bottom: isCompact ? 28 : 32),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _SectionHeader(
+            title: title,
+            actionLabel: 'See all',
+            onActionTap: onSeeAllTap,
+          ),
+          SizedBox(height: isCompact ? 14 : 16),
+          SizedBox(
+            height: cardHeight,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: listings.length,
+              separatorBuilder: (_, _) => SizedBox(width: isCompact ? 12 : 14),
+              itemBuilder: (context, index) {
+                final listing = listings[index];
+                return SizedBox(
+                  width: cardWidth,
+                  child: FeaturedListingCard(
+                    listing: listing,
+                    isSaved: isSaved(listing),
+                    showProfile: showProfileCards,
+                    onTap: () => onListingTap(listing),
+                    onSaveTap: () => onSaveTap(listing),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
 
 class _HeroSection extends StatelessWidget {
@@ -628,6 +753,7 @@ class FeaturedListingCard extends StatelessWidget {
   /// Compact featured listing tile used in the carousel.
   final ListingModel listing;
   final bool isSaved;
+  final bool showProfile;
   final VoidCallback onTap;
   final VoidCallback onSaveTap;
 
@@ -635,15 +761,26 @@ class FeaturedListingCard extends StatelessWidget {
     super.key,
     required this.listing,
     required this.isSaved,
+    this.showProfile = false,
     required this.onTap,
     required this.onSaveTap,
   });
 
   @override
   Widget build(BuildContext context) {
-    final typeLabel = listing.propertyType == PropertyType.pg ? 'PG'
-        : listing.propertyType == PropertyType.flat ? 'Flatmate'
-        : listing.propertyType == PropertyType.room ? 'Room' : 'Item';
+    final typeLabel = listing.propertyType == PropertyType.pg
+        ? 'PG'
+        : listing.propertyType == PropertyType.flat
+            ? listing.needsRoommate
+                ? 'Flatmate'
+                : 'Flat'
+            : listing.propertyType == PropertyType.room
+                ? 'Room'
+                : 'Item';
+    final profileTitle = listing.ownerName.trim().isEmpty
+        ? listing.title.trim()
+        : listing.ownerName.trim();
+    const profileSubtitle = 'Looking for room';
 
     return GestureDetector(
       onTap: onTap,
@@ -668,23 +805,31 @@ class FeaturedListingCard extends StatelessWidget {
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
-                    listing.imageUrls.isEmpty
-                        ? Container(
-                            color: AppColors.accentLavender,
-                            alignment: Alignment.center,
-                            child: Icon(Icons.home_work_outlined,
-                              color: AppColors.primary.withValues(alpha: 0.4), size: 36),
-                          )
-                        : CachedNetworkImage(
-                            imageUrl: listing.imageUrls.first,
-                            fit: BoxFit.cover,
-                            errorWidget: (_, _, _) => Container(
-                              color: AppColors.accentLavender,
-                              alignment: Alignment.center,
-                              child: Icon(Icons.home_work_outlined,
-                                color: AppColors.primary.withValues(alpha: 0.4), size: 36),
-                            ),
-                          ),
+                    showProfile
+                        ? _ProfileCardMedia(listing: listing)
+                        : listing.imageUrls.isEmpty
+                            ? Container(
+                                color: AppColors.accentLavender,
+                                alignment: Alignment.center,
+                                child: Icon(
+                                  Icons.home_work_outlined,
+                                  color: AppColors.primary.withValues(alpha: 0.4),
+                                  size: 36,
+                                ),
+                              )
+                            : CachedNetworkImage(
+                                imageUrl: listing.imageUrls.first,
+                                fit: BoxFit.cover,
+                                errorWidget: (_, _, _) => Container(
+                                  color: AppColors.accentLavender,
+                                  alignment: Alignment.center,
+                                  child: Icon(
+                                    Icons.home_work_outlined,
+                                    color: AppColors.primary.withValues(alpha: 0.4),
+                                    size: 36,
+                                  ),
+                                ),
+                              ),
                     Positioned(
                       bottom: 8, left: 8,
                       child: Container(
@@ -724,10 +869,34 @@ class FeaturedListingCard extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(listing.title,
-                    maxLines: 1, overflow: TextOverflow.ellipsis,
-                    style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary, height: 1.2)),
-                  const SizedBox(height: 4),
+                  Text(
+                    showProfile ? profileTitle : listing.title,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: AppTheme.body(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: AppColors.textPrimary,
+                      height: 1.2,
+                    ),
+                  ),
+                  if (showProfile) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      profileSubtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.body(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: AppColors.textSecondary,
+                      ),
+                    ),
+                  ],
+                  if (!showProfile)
+                    const SizedBox(height: 4)
+                  else
+                    const SizedBox(height: 5),
                   Row(children: [
                     Icon(Icons.location_on_rounded, size: 12, color: AppColors.textSecondary),
                     const SizedBox(width: 3),
@@ -740,7 +909,7 @@ class FeaturedListingCard extends StatelessWidget {
                     style: AppTheme.headline(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
                     children: [
                       TextSpan(text: listing.priceLabel),
-                      TextSpan(text: listing.price > 0 ? ' /month' : '',
+                      TextSpan(text: listing.price > 0 && !listing.priceLabel.endsWith('/mo') ? ' /month' : '',
                         style: AppTheme.body(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
                     ],
                   )),
@@ -748,6 +917,53 @@ class FeaturedListingCard extends StatelessWidget {
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ProfileCardMedia extends StatelessWidget {
+  final ListingModel listing;
+
+  const _ProfileCardMedia({required this.listing});
+
+  @override
+  Widget build(BuildContext context) {
+    final displayName = listing.ownerName.trim().isEmpty
+        ? listing.title.trim()
+        : listing.ownerName.trim();
+    final initial = displayName.isEmpty ? '?' : displayName.substring(0, 1).toUpperCase();
+    final photoUrl = listing.ownerPhotoUrl.trim();
+
+    if (photoUrl.isNotEmpty) {
+      return CachedNetworkImage(
+        imageUrl: photoUrl,
+        fit: BoxFit.cover,
+        errorWidget: (_, _, _) => _ProfileFallback(initial: initial),
+      );
+    }
+
+    return _ProfileFallback(initial: initial);
+  }
+}
+
+class _ProfileFallback extends StatelessWidget {
+  final String initial;
+
+  const _ProfileFallback({required this.initial});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      color: AppColors.accentLavender,
+      alignment: Alignment.center,
+      child: Text(
+        initial,
+        style: AppTheme.headline(
+          fontSize: 42,
+          fontWeight: FontWeight.w800,
+          color: AppColors.primary,
         ),
       ),
     );

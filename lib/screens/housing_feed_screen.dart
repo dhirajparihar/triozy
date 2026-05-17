@@ -1,6 +1,7 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 import '../models/listing_model.dart';
 import '../services/database_service.dart';
@@ -271,13 +272,18 @@ class _HousingTabState extends State<_HousingTab> {
             ..._listings.map((listing) {
               return Padding(
                 padding: EdgeInsets.only(bottom: isCompact ? 12 : 16),
-                child: ListingCard(
-                  listing: listing,
-                  compact: true,
-                  onTap: () => _openListing(listing),
-                  onSaveTap: () => _toggleSave(listing.id),
-                  isSaved: _savedIds.contains(listing.id),
-                ),
+                child: widget.includeRoomRequirements
+                    ? _FlatmateFeedCard(
+                        listing: listing,
+                        onTap: () => _openListing(listing),
+                      )
+                    : ListingCard(
+                        listing: listing,
+                        compact: true,
+                        onTap: () => _openListing(listing),
+                        onSaveTap: () => _toggleSave(listing.id),
+                        isSaved: _savedIds.contains(listing.id),
+                      ),
               );
             }),
         ],
@@ -285,6 +291,324 @@ class _HousingTabState extends State<_HousingTab> {
     );
 
     return list;
+  }
+}
+
+class _FlatmateFeedCard extends StatelessWidget {
+  final ListingModel listing;
+  final VoidCallback onTap;
+
+  const _FlatmateFeedCard({required this.listing, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth < 380;
+    final imageSize = isCompact ? 116.0 : 132.0;
+    final cardRadius = BorderRadius.circular(12);
+    final displayName = _displayName;
+    final location = listing.location.trim();
+    final rentLabel = _rentLabel;
+    final lookingFor = _lookingForLabel;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: cardRadius,
+        onTap: onTap,
+        child: Ink(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: cardRadius,
+            border: Border.all(color: const Color(0xFFEDEDED)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    SizedBox(
+                      width: imageSize,
+                      child: ClipRRect(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(12),
+                        ),
+                        child: AspectRatio(
+                          aspectRatio: 1,
+                          child: _FlatmatePhoto(listing: listing),
+                        ),
+                      ),
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          isCompact ? 14 : 18,
+                          isCompact ? 16 : 20,
+                          isCompact ? 10 : 14,
+                          isCompact ? 12 : 16,
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            if (displayName.isNotEmpty) ...[
+                              Text(
+                                displayName,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTheme.headline(
+                                  fontSize: isCompact ? 17 : 19,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF3F3F3F),
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                            ],
+                            if (location.isNotEmpty) ...[
+                              _FlatmateInfoLine(
+                                icon: Icons.location_on_rounded,
+                                text: location,
+                                fontSize: isCompact ? 14 : 15,
+                              ),
+                              const SizedBox(height: 10),
+                            ],
+                            if (rentLabel.isNotEmpty) ...[
+                              _FlatmateInfoLine(
+                                icon: Icons.currency_rupee_rounded,
+                                text: rentLabel,
+                                fontSize: isCompact ? 14 : 15,
+                              ),
+                              const SizedBox(height: 10),
+                            ],
+                            if (lookingFor.isNotEmpty)
+                              _FlatmateInfoLine(
+                                icon: Icons.person_rounded,
+                                text: lookingFor,
+                                fontSize: isCompact ? 14 : 15,
+                              ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Divider(height: 1, color: Color(0xFFEDEDED)),
+              SizedBox(
+                height: isCompact ? 52 : 58,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: isCompact ? 10 : 12),
+                  child: Row(
+                    children: [
+                      if (_bottomLabel.isNotEmpty)
+                        Expanded(
+                          child: Text(
+                            _bottomLabel,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTheme.body(
+                              fontSize: isCompact ? 14 : 15,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF8E8E8E),
+                            ),
+                          ),
+                        )
+                      else
+                        const Spacer(),
+                      _FlatmateActionButton(
+                        icon: Icons.phone_rounded,
+                        enabled: false,
+                        onTap: null,
+                      ),
+                      SizedBox(width: isCompact ? 10 : 14),
+                      _FlatmateActionButton(
+                        icon: Icons.chat_bubble_rounded,
+                        enabled: true,
+                        onTap: onTap,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  String get _displayName {
+    final ownerName = listing.ownerName.trim();
+    if (ownerName.isNotEmpty) {
+      return ownerName;
+    }
+    return listing.title.trim();
+  }
+
+  String get _rentLabel {
+    final requirement = listing.requirementDetails;
+    if (requirement != null) {
+      if (requirement.minBudget > 0 && requirement.maxBudget > 0) {
+        return '${_formatAmount(requirement.minBudget)} - ${_formatAmount(requirement.maxBudget)} Rent';
+      }
+      if (requirement.maxBudget > 0) {
+        return '${_formatAmount(requirement.maxBudget)} Rent';
+      }
+      if (requirement.minBudget > 0) {
+        return '${_formatAmount(requirement.minBudget)} Rent';
+      }
+    }
+    if (listing.price <= 0) {
+      return '';
+    }
+    return '${_formatAmount(listing.price.round())} Rent';
+  }
+
+  String get _lookingForLabel {
+    final value = (listing.genderPreference ?? listing.requirementDetails?.genderPreference ?? '').trim();
+    if (value.isEmpty) {
+      return '';
+    }
+    return 'Looking for $value';
+  }
+
+  String get _bottomLabel {
+    final availableFrom = (listing.availableFrom ?? '').trim();
+    if (availableFrom.isNotEmpty) {
+      return availableFrom;
+    }
+    final moveInWhen = listing.requirementDetails?.moveInWhen.trim() ?? '';
+    return moveInWhen;
+  }
+
+  String _formatAmount(int amount) {
+    final raw = amount.toString();
+    final buffer = StringBuffer();
+    for (var i = 0; i < raw.length; i++) {
+      final remaining = raw.length - i;
+      buffer.write(raw[i]);
+      if (remaining > 1 && remaining % 2 == 0) {
+        buffer.write(',');
+      }
+    }
+    return buffer.toString();
+  }
+}
+
+class _FlatmatePhoto extends StatelessWidget {
+  final ListingModel listing;
+
+  const _FlatmatePhoto({required this.listing});
+
+  @override
+  Widget build(BuildContext context) {
+    final photoUrl = listing.ownerPhotoUrl.trim().isNotEmpty
+        ? listing.ownerPhotoUrl.trim()
+        : (listing.imageUrls.isNotEmpty ? listing.imageUrls.first.trim() : '');
+
+    if (photoUrl.isNotEmpty) {
+      return CachedNetworkImage(
+        imageUrl: photoUrl,
+        fit: BoxFit.cover,
+        errorWidget: (_, _, _) => _fallback(),
+      );
+    }
+    return _fallback();
+  }
+
+  Widget _fallback() {
+    final initial = listing.ownerName.trim().isNotEmpty
+        ? listing.ownerName.trim()[0].toUpperCase()
+        : '';
+    return Container(
+      color: const Color(0xFFF6F2EE),
+      alignment: Alignment.center,
+      child: initial.isEmpty
+          ? const Icon(Icons.person_rounded, size: 48, color: Color(0xFFB0B0B0))
+          : Text(
+              initial,
+              style: AppTheme.headline(
+                fontSize: 36,
+                fontWeight: FontWeight.w800,
+                color: AppColors.primary,
+              ),
+            ),
+    );
+  }
+}
+
+class _FlatmateInfoLine extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final double fontSize;
+
+  const _FlatmateInfoLine({
+    required this.icon,
+    required this.text,
+    required this.fontSize,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: fontSize + 5, color: AppColors.primary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.body(
+              fontSize: fontSize,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF8E8E8E),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FlatmateActionButton extends StatelessWidget {
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback? onTap;
+
+  const _FlatmateActionButton({
+    required this.icon,
+    required this.enabled,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      customBorder: const CircleBorder(),
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 46,
+        height: 46,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8F8F8),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          icon,
+          size: 20,
+          color: enabled ? AppColors.primary : AppColors.outline,
+        ),
+      ),
+    );
   }
 }
 
