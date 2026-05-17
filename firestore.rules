@@ -51,7 +51,7 @@ service cloud.firestore {
       ]) &&
           hasValidChatParticipants(data) &&
           (!('participantMeta' in data) || data.participantMeta is map) &&
-          data.chatType in ['listing'] &&
+          data.chatType in ['listing', 'marketplace'] &&
           data.referenceId is string &&
           (!('listingTitle' in data) || data.listingTitle is string) &&
           data.lastMessage is string &&

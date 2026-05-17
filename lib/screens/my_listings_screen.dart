@@ -56,6 +56,7 @@ class MyListingsScreen extends StatelessWidget {
         listingId: listing.id,
         userId: userId,
       );
+      await context.read<DatabaseService>().markChatsAsListingDeleted(listing.id);
       messenger.showSnackBar(
         const SnackBar(content: Text('Listing deleted')),
       );
