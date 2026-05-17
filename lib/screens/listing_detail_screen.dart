@@ -2473,159 +2473,165 @@ class _RequirementDetailScaffold extends StatelessWidget {
       ...details.amenities,
       if (details.moveInWhen.isNotEmpty) details.moveInWhen,
     ].where((item) => item.trim().isNotEmpty).toSet().take(6).toList();
-    final preferences = <(IconData, String)>[
-      (Icons.nightlight_round, 'Quiet'),
-      (Icons.local_florist_rounded, 'Lifestyle'),
-      (Icons.menu_book_rounded, 'Study'),
-      (Icons.fitness_center_rounded, 'Fitness'),
-    ];
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.background,
       appBar: AppBar(
-        backgroundColor: Colors.white,
+        backgroundColor: AppColors.background,
         foregroundColor: AppColors.onSurface,
         elevation: 0,
         centerTitle: true,
-        title: Text('Detail', style: AppTheme.headline(fontSize: 24)),
-        actions: [
-          IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.more_vert_rounded),
-          ),
-        ],
+        title: Text('Detail', style: AppTheme.headline(fontSize: 22)),
       ),
-      body: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 42, 20, 28),
-        children: [
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Text(
-                  _ownerName,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.headline(fontSize: 22),
-                ),
-              ),
-              const SizedBox(width: 12),
-              RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Rs ${rent.toString()}',
-                      style: AppTheme.headline(fontSize: 22),
-                    ),
-                    TextSpan(
-                      text: ' pm',
-                      style: AppTheme.body(
-                        fontSize: 20,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.slate500,
+      body: CustomScrollView(
+        slivers: [
+          SliverPadding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
+            sliver: SliverList(
+              delegate: SliverChildListDelegate([
+                _DetailCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _RequirementAvatar(
+                            photoUrl: listing.ownerPhotoUrl,
+                            name: _ownerName,
+                            size: 58,
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  _ownerName,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTheme.headline(fontSize: 22),
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    const Icon(
+                                      Icons.location_on_rounded,
+                                      color: AppColors.slate500,
+                                      size: 18,
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        listing.location,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppTheme.body(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: AppColors.slate500,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              const Icon(
-                Icons.location_on,
-                color: AppColors.slate500,
-                size: 28,
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Text(
-                  listing.location,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: AppTheme.body(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w500,
-                    color: AppColors.slate500,
+                    ],
                   ),
                 ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 70),
-          Text('Basic Info', style: AppTheme.headline(fontSize: 20)),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Expanded(
-                child: _BasicInfoCard(
-                  icon: Icons.transgender_rounded,
-                  label: 'Gender',
-                  value: gender.isEmpty ? 'Any' : gender,
+                const SizedBox(height: 14),
+                _DetailCard(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Rs ${rent.toString()}',
+                              style: AppTheme.headline(
+                                fontSize: 24,
+                                color: AppColors.primary,
+                              ),
+                            ),
+                            TextSpan(
+                              text: ' pm',
+                              style: AppTheme.body(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w700,
+                                color: AppColors.slate500,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: _MiniInfoTile(
+                              icon: Icons.transgender_rounded,
+                              label: 'Gender',
+                              value: gender.isEmpty ? 'Any' : gender,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _MiniInfoTile(
+                              icon: Icons.bed_rounded,
+                              label: 'Occupancy',
+                              value: occupancy.isEmpty ? 'Any' : occupancy,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: _MiniInfoTile(
+                              icon: Icons.manage_search_rounded,
+                              label: 'Looking For',
+                              value: lookingFor.isEmpty
+                                  ? listing.propertyTypeLabel
+                                  : lookingFor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _BasicInfoCard(
-                  icon: Icons.bed_rounded,
-                  label: 'Occupancy',
-                  value: occupancy.isEmpty ? 'Any' : occupancy,
-                ),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: _BasicInfoCard(
-                  icon: Icons.manage_search_rounded,
-                  label: 'Looking For',
-                  value: lookingFor.isEmpty
-                      ? listing.propertyTypeLabel
-                      : lookingFor,
-                ),
-              ),
-            ],
-          ),
-          if (highlights.isNotEmpty) ...[
-            const SizedBox(height: 70),
-            Text('Highlights', style: AppTheme.headline(fontSize: 20)),
-            const SizedBox(height: 22),
-            Wrap(
-              spacing: 12,
-              runSpacing: 16,
-              children: highlights.map((highlight) {
-                return _RequirementHighlightChip(label: highlight);
-              }).toList(),
-            ),
-          ],
-          const SizedBox(height: 70),
-          Text('Preferences', style: AppTheme.headline(fontSize: 20)),
-          const SizedBox(height: 20),
-          SizedBox(
-            height: 86,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: preferences.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 22),
-              itemBuilder: (context, index) {
-                final item = preferences[index];
-                return _PreferenceCircle(icon: item.$1, label: item.$2);
-              },
+                if (highlights.isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  const _SectionHeading('Highlights'),
+                  const SizedBox(height: 10),
+                  _DetailCard(
+                    child: Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: highlights.map((highlight) {
+                        return _PgSpecChip(
+                          icon: Icons.check_circle_rounded,
+                          label: highlight,
+                        );
+                      }).toList(),
+                    ),
+                  ),
+                ],
+                if (listing.description.trim().isNotEmpty) ...[
+                  const SizedBox(height: 18),
+                  const _SectionHeading('Description'),
+                  const SizedBox(height: 10),
+                  _ReadMoreText(text: listing.description.trim()),
+                ],
+                const SizedBox(height: 18),
+                const _SectionHeading('Location'),
+                const SizedBox(height: 10),
+                _PgLocationCard(listing: listing, nearby: ''),
+              ]),
             ),
           ),
-          if (listing.description.trim().isNotEmpty) ...[
-            const SizedBox(height: 44),
-            Text('Description', style: AppTheme.headline(fontSize: 20)),
-            const SizedBox(height: 12),
-            Text(
-              listing.description.trim(),
-              style: AppTheme.body(
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-                color: AppColors.onSurfaceVariant,
-                height: 1.55,
-              ),
-            ),
-          ],
         ],
       ),
       bottomNavigationBar: _RequirementContactBar(
@@ -2639,137 +2645,6 @@ class _RequirementDetailScaffold extends StatelessWidget {
   String get _ownerName {
     final name = listing.ownerName.trim();
     return name.isEmpty ? 'Triozy user' : name;
-  }
-}
-
-class _BasicInfoCard extends StatelessWidget {
-  final IconData icon;
-  final String label;
-  final String value;
-
-  const _BasicInfoCard({
-    required this.icon,
-    required this.label,
-    required this.value,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final isTight = constraints.maxWidth < 105;
-        final labelSize = isTight ? 13.0 : 15.0;
-        final valueSize = isTight ? 15.0 : 17.0;
-
-        return Container(
-          height: isTight ? 146 : 138,
-          padding: EdgeInsets.all(isTight ? 12 : 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            border: Border.all(
-              color: AppColors.outlineVariant.withValues(alpha: 0.32),
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Icon(
-                icon,
-                size: isTight ? 28 : 34,
-                color: AppColors.outlineVariant,
-              ),
-              const Spacer(),
-              Text(
-                label,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: AppTheme.body(
-                  fontSize: labelSize,
-                  fontWeight: FontWeight.w500,
-                  color: AppColors.slate500,
-                  height: 1.15,
-                ),
-              ),
-              const SizedBox(height: 8),
-              FittedBox(
-                alignment: Alignment.centerLeft,
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  value,
-                  maxLines: 1,
-                  style: AppTheme.body(
-                    fontSize: valueSize,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-  }
-}
-
-class _RequirementHighlightChip extends StatelessWidget {
-  final String label;
-
-  const _RequirementHighlightChip({required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 14),
-      decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLow,
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.check_rounded, size: 28, color: AppColors.slate500),
-          const SizedBox(width: 10),
-          Text(
-            label,
-            style: AppTheme.body(fontSize: 20, fontWeight: FontWeight.w500),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PreferenceCircle extends StatelessWidget {
-  final IconData icon;
-  final String label;
-
-  const _PreferenceCircle({required this.icon, required this.label});
-
-  @override
-  Widget build(BuildContext context) {
-    return Tooltip(
-      message: label,
-      child: Container(
-        width: 86,
-        height: 86,
-        decoration: BoxDecoration(
-          color: const Color(0xFFFFF6ED),
-          shape: BoxShape.circle,
-          border: Border.all(
-            color: AppColors.outlineVariant.withValues(alpha: 0.18),
-          ),
-        ),
-        child: Icon(icon, size: 38, color: AppColors.primary),
-      ),
-    );
   }
 }
 
