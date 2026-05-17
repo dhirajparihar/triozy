@@ -5,7 +5,12 @@ import 'package:http/http.dart' as http;
 
 import '../config/cloudinary_config.dart';
 
+
+// === Media uploads ===========================================================
+
+/// Handles Cloudinary uploads for user images.
 class CloudinaryService {
+  /// Uploads image bytes to Cloudinary and returns a secure URL.
   Future<String> uploadImage({
     required Uint8List bytes,
     required String fileName,
@@ -56,6 +61,7 @@ class CloudinaryService {
     return secureUrl;
   }
 
+  /// Normalizes the upload folder for Cloudinary.
   String _normalizeFolder(String folder) {
     final cleanedFolder = folder.trim().replaceAll('\\', '/');
     if (cleanedFolder.isEmpty) {

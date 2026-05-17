@@ -5,6 +5,10 @@ import 'package:flutter/foundation.dart';
 import '../models/chat_model.dart';
 import '../services/chat_service.dart';
 
+
+// === Chat state ==============================================================
+
+/// Manages chat state, optimistic messages, and subscriptions.
 class ChatProvider extends ChangeNotifier {
   final ChatService _chatService;
 
@@ -22,14 +26,22 @@ class ChatProvider extends ChangeNotifier {
   StreamSubscription<List<ConversationModel>>? _conversationsSubscription;
   StreamSubscription<List<MessageModel>>? _messagesSubscription;
 
+  /// Current conversation list.
   List<ConversationModel> get conversations => _conversations;
+  /// Stream messages merged with optimistic messages.
   List<MessageModel> get currentMessages => _mergedCurrentMessages();
+  /// Active conversation id.
   String? get currentConversationId => _currentConversationId;
+  /// Signed-in user id for this provider.
   String? get currentUserId => _currentUserId;
+  /// True while loading conversations or messages.
   bool get isLoading => _isLoading;
+  /// Error message from the last async operation.
   String? get errorMessage => _errorMessage;
+  /// True when current user is typing in the active conversation.
   bool get isTyping => _isTyping;
 
+  /// Current conversation object (if any).
   ConversationModel? get currentConversation {
     final id = _currentConversationId;
     if (id == null || id.isEmpty) {
@@ -43,6 +55,7 @@ class ChatProvider extends ChangeNotifier {
     return null;
   }
 
+  /// Total unread count across all conversations.
   int get totalUnreadCount {
     final userId = _currentUserId;
     if (userId == null || userId.isEmpty) {
@@ -54,6 +67,7 @@ class ChatProvider extends ChangeNotifier {
     );
   }
 
+  /// Starts listening to conversations for the given user.
   void initialize(String userId) {
     _currentUserId = normalizeChatUid(userId);
     _isLoading = true;
@@ -78,6 +92,7 @@ class ChatProvider extends ChangeNotifier {
         );
   }
 
+        /// Opens a conversation and starts streaming messages.
   Future<void> openConversation(String conversationId, String userId) async {
     _currentUserId = normalizeChatUid(userId);
     _currentConversationId = conversationId;
@@ -108,6 +123,7 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
+  /// Marks a conversation read only when there are unread messages.
   Future<void> markConversationAsReadIfNeeded(String conversationId) async {
     final userId = _currentUserId;
     if (userId == null || userId.isEmpty) {
@@ -122,6 +138,7 @@ class ChatProvider extends ChangeNotifier {
     await _chatService.markConversationAsRead(conversationId);
   }
 
+  /// Updates typing state for the current conversation.
   Future<void> setTypingForCurrentConversation(bool value) async {
     if (_currentConversationId == null) {
       return;
@@ -144,6 +161,7 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
+  /// Clears the current conversation and stops message streaming.
   void closeConversation() {
     final conversationId = _currentConversationId;
     if (conversationId != null && _isTyping) {
@@ -157,6 +175,7 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Sends a message and inserts an optimistic placeholder.
   Future<void> sendMessage(String text) async {
     final conversationId = _currentConversationId;
     final currentUserId = _currentUserId;
@@ -190,6 +209,7 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
+  /// Retries a previously failed optimistic message.
   Future<void> retryMessage(String clientId) async {
     MessageModel? failedMessage;
     for (final message in _pendingMessages) {
@@ -209,6 +229,7 @@ class ChatProvider extends ChangeNotifier {
     await sendMessage(failedMessage.text);
   }
 
+  /// Creates a new conversation or returns an existing id.
   Future<String> createOrGetChat({
     required String otherUserId,
     required String chatType,
@@ -253,6 +274,7 @@ class ChatProvider extends ChangeNotifier {
     return null;
   }
 
+  /// Updates a pending message status in-place.
   void _updatePendingStatus(String clientId, String status) {
     _pendingMessages = _pendingMessages
         .map(
@@ -264,6 +286,7 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Removes pending messages that have been confirmed by the server.
   void _reconcilePendingMessages() {
     final currentUserId = _currentUserId;
     if (currentUserId == null || currentUserId.isEmpty) {
@@ -290,6 +313,7 @@ class ChatProvider extends ChangeNotifier {
     }).toList();
   }
 
+  /// Merges server messages with optimistic ones for display.
   List<MessageModel> _mergedCurrentMessages() {
     final merged = [..._streamMessages, ..._pendingMessages];
     merged.sort((a, b) => a.timestamp.compareTo(b.timestamp));

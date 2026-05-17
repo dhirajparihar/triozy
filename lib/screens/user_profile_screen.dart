@@ -11,6 +11,7 @@ import 'help_support_screen.dart';
 import 'my_listings_screen.dart';
 import 'saved_listings_screen.dart';
 
+/// Profile screen for authenticated or guest users.
 class UserProfileScreen extends StatelessWidget {
   final bool isGuest;
 
@@ -19,6 +20,7 @@ class UserProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    // Show guest or authenticated profile based on auth state.
     if (isGuest || user == null) {
       return _GuestProfile(
         onExitGuest: () => context.read<SessionService>().exitGuestMode(),
@@ -96,6 +98,7 @@ class UserProfileScreen extends StatelessWidget {
   }
 
   void _showLogoutDialog(BuildContext context) {
+    // Confirm logout before signing out from Firebase.
     showDialog(
       context: context,
       builder: (dialogContext) {
@@ -125,12 +128,14 @@ class UserProfileScreen extends StatelessWidget {
 }
 
 class _HeaderCard extends StatelessWidget {
+  /// User avatar, name, and edit profile button.
   final User user;
 
   const _HeaderCard({required this.user});
 
   @override
   Widget build(BuildContext context) {
+    // Fallback to placeholder if displayName is empty.
     final displayName = (user.displayName ?? '').trim().isEmpty
         ? 'Sarah Jenkins' // Placeholder matching design, since missing
         : user.displayName!.trim();
@@ -191,6 +196,7 @@ class _HeaderCard extends StatelessWidget {
 }
 
 class _TileGroup extends StatelessWidget {
+  /// Container for a vertical list of tappable menu items.
   final List<_TileItem> children;
 
   const _TileGroup({required this.children});
@@ -224,6 +230,7 @@ class _TileGroup extends StatelessWidget {
 }
 
 class _TileItem extends StatelessWidget {
+  /// Single menu option with icon and label.
   final IconData icon;
   final String label;
   final VoidCallback onTap;
@@ -254,6 +261,7 @@ class _TileItem extends StatelessWidget {
 }
 
 class _GuestProfile extends StatelessWidget {
+  /// Guest mode profile prompting user to sign in.
   final VoidCallback onExitGuest;
 
   const _GuestProfile({required this.onExitGuest});

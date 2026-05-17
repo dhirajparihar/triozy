@@ -8,6 +8,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../utils/validators.dart';
 
+/// Profile completion screen for collecting basic account details.
 class CompleteProfileScreen extends StatefulWidget {
   const CompleteProfileScreen({super.key});
 
@@ -15,6 +16,7 @@ class CompleteProfileScreen extends StatefulWidget {
   State<CompleteProfileScreen> createState() => _CompleteProfileScreenState();
 }
 
+/// Handles form state, validation, and submission for profile completion.
 class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
@@ -26,6 +28,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   @override
   void initState() {
     super.initState();
+    // Prefill name from Firebase when available.
     final user = FirebaseAuth.instance.currentUser;
     if (user != null && (user.displayName ?? '').trim().isNotEmpty) {
       _nameController.text = user.displayName!;
@@ -40,6 +43,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
   }
 
   Future<void> _submit() async {
+    // Validate and persist profile data to the backend.
     if (!_formKey.currentState!.validate()) {
       return;
     }
@@ -51,6 +55,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 
     setState(() => _saving = true);
     try {
+      // Occupation/organization are optional in this flow for now.
       await context.read<AuthService>().completeUserProfile(
         uid: user.uid,
         name: _nameController.text.trim(),
@@ -118,6 +123,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
                   LengthLimitingTextInputFormatter(10),
                 ],
                 validator: Validators.validatePhoneNumber,
+                // Encourage a clean 10-digit entry.
                 decoration: _inputDecoration('Phone number')
                     .copyWith(hintText: '10-digit mobile number'),
               ),
@@ -189,6 +195,7 @@ class _CompleteProfileScreenState extends State<CompleteProfileScreen> {
 }
 
 class _AppField extends StatelessWidget {
+  /// Basic text field wrapper with required validation.
   final TextEditingController controller;
   final String label;
   final String hint;

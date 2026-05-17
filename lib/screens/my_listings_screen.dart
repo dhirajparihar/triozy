@@ -9,6 +9,7 @@ import '../theme/app_theme.dart';
 import '../widgets/listing_card.dart';
 import 'listing_detail_screen.dart';
 
+/// Shows listings created by the signed-in user.
 class MyListingsScreen extends StatelessWidget {
   const MyListingsScreen({super.key});
 
@@ -17,6 +18,7 @@ class MyListingsScreen extends StatelessWidget {
     required ListingModel listing,
     required String userId,
   }) async {
+    // Ask for confirmation before deleting.
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -47,6 +49,7 @@ class MyListingsScreen extends StatelessWidget {
       return;
     }
 
+    // Perform delete and surface a result toast.
     final messenger = ScaffoldMessenger.of(context);
     try {
       await context.read<DatabaseService>().deleteListing(
@@ -65,6 +68,7 @@ class MyListingsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Guard against anonymous access.
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
       return const Scaffold(body: Center(child: Text('Sign in to view your listings')));
@@ -76,6 +80,7 @@ class MyListingsScreen extends StatelessWidget {
         backgroundColor: Colors.white,
       ),
       body: StreamBuilder<List<ListingModel>>(
+        // Live stream of user's listings for instant updates.
         stream: context.read<DatabaseService>().streamUserListings(userId),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
@@ -104,6 +109,7 @@ class MyListingsScreen extends StatelessWidget {
                     listing: listing,
                     compact: true,
                     onTap: () {
+                      // Seed data keeps detail view responsive.
                       Navigator.push(
                         context,
                         MaterialPageRoute(

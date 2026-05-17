@@ -16,6 +16,10 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'listing_detail_screen.dart';
 
+
+// === Marketplace =============================================================
+
+/// Marketplace feed for buying and selling items.
 class MarketplaceScreen extends StatefulWidget {
   const MarketplaceScreen({super.key});
 
@@ -60,6 +64,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   }
 
   Future<void> _loadItems() async {
+    // Fetch listings and saved ids, then filter + sort locally.
     if (mounted) {
       setState(() {
         _loading = true;
@@ -99,6 +104,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   }
 
   List<ListingModel> _filterByCategory(List<ListingModel> listings) {
+    // Categories are stored as highlights on the listing.
     if (_selectedCategory == 'All') {
       return listings;
     }
@@ -110,6 +116,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   }
 
   List<ListingModel> _sortItems(List<ListingModel> listings) {
+    // Sorting is client-side for faster UI iteration.
     final sorted = [...listings];
     switch (_sortBy) {
       case 'Price low':
@@ -135,6 +142,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   }
 
   bool _isUrgent(ListingModel listing) {
+    // Quick heuristics to bubble up urgent items.
     final available = (listing.availableFrom ?? '').toLowerCase();
     return available.contains('today') ||
         available.contains('3 days') ||
@@ -177,6 +185,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
       );
       await _loadItems();
       if (_scrollController.hasClients) {
+        // Bring the newest item into view after posting.
         _scrollController.animateTo(
           0,
           duration: const Duration(milliseconds: 280),
@@ -439,6 +448,7 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
   }
 }
 
+/// Form flow for creating a marketplace item listing.
 class SellItemScreen extends StatefulWidget {
   const SellItemScreen({super.key});
 
@@ -1025,6 +1035,7 @@ class _SellItemScreenState extends State<SellItemScreen> {
   }
 }
 
+/// Location input with inline search suggestions overlay.
 class _LocationSearchField extends StatefulWidget {
   final TextEditingController controller;
   final bool isCompact;
@@ -1260,6 +1271,7 @@ class _LocationSearchFieldState extends State<_LocationSearchField> {
   }
 }
 
+/// Search bar with clear + filter actions for the marketplace feed.
 class _MarketplaceSearchBar extends StatelessWidget {
   final TextEditingController controller;
   final VoidCallback onSubmitted;
@@ -1318,6 +1330,7 @@ class _MarketplaceSearchBar extends StatelessWidget {
   }
 }
 
+/// Horizontal category chips used to filter marketplace items.
 class _CategoryRail extends StatelessWidget {
   final List<String> categories;
   final String selected;
@@ -1364,6 +1377,7 @@ class _CategoryRail extends StatelessWidget {
   }
 }
 
+/// Popup sort selector for item ordering.
 class _SortDropdown extends StatelessWidget {
   final String value;
   final ValueChanged<String> onChanged;
@@ -1398,6 +1412,7 @@ class _SortDropdown extends StatelessWidget {
   }
 }
 
+/// Card tile showing a marketplace item summary.
 class _MarketplaceItemCard extends StatelessWidget {
   final ListingModel item;
   final bool saved;
@@ -1549,6 +1564,7 @@ class _MarketplaceItemCard extends StatelessWidget {
   }
 }
 
+/// Small badge label used for urgency and category tags.
 class _TinyBadge extends StatelessWidget {
   final String label;
   final bool urgent;
@@ -1577,6 +1593,7 @@ class _TinyBadge extends StatelessWidget {
   }
 }
 
+/// Photo upload section with camera/gallery actions + previews.
 class _ImageUploadSection extends StatelessWidget {
   final List<XFile> images;
   final VoidCallback onCameraTap;
@@ -1702,6 +1719,7 @@ class _ImageUploadSection extends StatelessWidget {
   }
 }
 
+/// Button that adapts to compact/expanded layouts.
 class _ResponsiveActionButton extends StatelessWidget {
   final bool filled;
   final VoidCallback onPressed;
@@ -1732,6 +1750,7 @@ class _ResponsiveActionButton extends StatelessWidget {
   }
 }
 
+/// Tile showing a picked image with a remove button.
 class _PickedImageTile extends StatelessWidget {
   final XFile image;
   final VoidCallback onRemove;
@@ -1785,6 +1804,7 @@ class _PickedImageTile extends StatelessWidget {
   }
 }
 
+/// Form section wrapper with title and card styling.
 class _FormSection extends StatelessWidget {
   final String title;
   final Widget child;
@@ -1816,6 +1836,7 @@ class _FormSection extends StatelessWidget {
   }
 }
 
+/// Styled text field used throughout the sell-item form.
 class _ModernTextField extends StatelessWidget {
   final TextEditingController controller;
   final String label;
@@ -1871,6 +1892,7 @@ class _ModernTextField extends StatelessWidget {
   }
 }
 
+/// Choice chip wrap for category/condition/urgency.
 class _ChipWrap extends StatelessWidget {
   final List<String> values;
   final String selected;
@@ -1903,6 +1925,7 @@ class _ChipWrap extends StatelessWidget {
   }
 }
 
+/// Tapable option row with radio-style selection.
 class _SelectableOptionRow extends StatelessWidget {
   final String label;
   final bool selected;
@@ -1968,6 +1991,7 @@ class _SelectableOptionRow extends StatelessWidget {
   }
 }
 
+/// Live preview card for the sell-item form.
 class _MarketplacePreviewCard extends StatelessWidget {
   final String title;
   final String price;
@@ -2053,6 +2077,7 @@ class _MarketplacePreviewCard extends StatelessWidget {
   }
 }
 
+/// Skeleton grid shown while marketplace loads.
 class _MarketplaceSkeleton extends StatelessWidget {
   const _MarketplaceSkeleton();
 
@@ -2083,6 +2108,7 @@ class _MarketplaceSkeleton extends StatelessWidget {
   }
 }
 
+/// Empty state prompting the first marketplace listing.
 class _MarketplaceEmptyState extends StatelessWidget {
   final VoidCallback onSellTap;
 
@@ -2133,6 +2159,7 @@ class _MarketplaceEmptyState extends StatelessWidget {
   }
 }
 
+/// Error state for marketplace loading failures.
 class _MarketplaceErrorState extends StatelessWidget {
   final String message;
   final VoidCallback onRetry;

@@ -3,12 +3,14 @@ import 'package:google_fonts/google_fonts.dart';
 
 import 'app_colors.dart';
 
+/// Shared theme helpers and the app's light Material 3 theme.
 class AppTheme {
   static const double pageMargin = 20;
   static const double radiusSm = 12;
   static const double radiusMd = 16;
   static const double radiusLg = 24;
 
+  /// Typography helper for headings and prominent titles.
   static TextStyle headline({
     double fontSize = 24,
     FontWeight fontWeight = FontWeight.w700,
@@ -25,6 +27,7 @@ class AppTheme {
     );
   }
 
+  /// Typography helper for body copy and paragraphs.
   static TextStyle body({
     double fontSize = 16,
     FontWeight fontWeight = FontWeight.w400,
@@ -41,6 +44,7 @@ class AppTheme {
     );
   }
 
+  /// Typography helper for compact labels and metadata.
   static TextStyle label({
     double fontSize = 12,
     FontWeight fontWeight = FontWeight.w600,
@@ -57,6 +61,7 @@ class AppTheme {
     );
   }
 
+  /// Typography helper for button text.
   static TextStyle button({
     double fontSize = 16,
     FontWeight fontWeight = FontWeight.w700,
@@ -70,10 +75,12 @@ class AppTheme {
     );
   }
 
+  /// Standard rounded-corner helper used by cards and sheets.
   static BorderRadius radius([double value = radiusMd]) {
     return BorderRadius.circular(value);
   }
 
+  /// Shared shadow preset for elevated cards and surfaces.
   static List<BoxShadow> shadow({
     double blur = 28,
     double offsetY = 12,
@@ -88,6 +95,7 @@ class AppTheme {
     ];
   }
 
+  /// Reusable card decoration with border and shadow defaults.
   static BoxDecoration cardDecoration({
     Color color = AppColors.surfaceContainerLowest,
     double radiusValue = radiusMd,
@@ -106,6 +114,7 @@ class AppTheme {
     );
   }
 
+  /// Material 3 light theme configured with the Triozy palette.
   static ThemeData get lightTheme {
     final colorScheme =
         const ColorScheme.light(

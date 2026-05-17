@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+/// Shared color palette used across Triozy's screens and widgets.
 class AppColors {
   // =========================
   // BRAND COLORS

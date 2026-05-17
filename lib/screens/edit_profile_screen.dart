@@ -12,6 +12,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../utils/validators.dart';
 
+/// Profile editor for updating account details and photo.
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({super.key});
 
@@ -19,6 +20,7 @@ class EditProfileScreen extends StatefulWidget {
   State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
+/// Manages loading, editing, and saving of profile fields.
 class _EditProfileScreenState extends State<EditProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -48,6 +50,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _loadProfile() async {
+    // Seed form fields from Firebase auth and Firestore profile data.
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return;
 
@@ -86,6 +89,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _pickPhoto() async {
+    // Pick and upload a new profile photo.
     final cloudinary = context.read<CloudinaryService>();
     final picker = ImagePicker();
     final image = await picker.pickImage(
@@ -133,6 +137,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Future<void> _saveProfile() async {
+    // Validate and persist updates to Firestore.
     if (!_formKey.currentState!.validate()) return;
 
     final user = FirebaseAuth.instance.currentUser;
@@ -301,6 +306,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   Widget _buildAvatar() {
+    // Resolve which avatar image should be displayed.
     ImageProvider<Object>? imageProv;
     if (_uploadingPhoto) {
       // Show old photo or default while uploading
@@ -363,6 +369,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     TextInputType? keyboardType,
     String? Function(String?)? validator,
   }) {
+    // Shared text field styling for profile inputs.
     return TextFormField(
       controller: controller,
       readOnly: readOnly,
@@ -397,6 +404,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required List<DropdownMenuItem<String>> items,
     required void Function(String?) onChanged,
   }) {
+    // Ensure the value exists in the dropdown options before binding.
     // Check if the value exists in the provided items
     final hasValue = value != null && items.any((item) => item.value == value);
 

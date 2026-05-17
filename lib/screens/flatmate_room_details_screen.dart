@@ -13,6 +13,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../providers/location_search_provider.dart';
 
+/// Form for posting roommate/flatmate room details.
 class FlatmateRoomDetailsScreen extends StatefulWidget {
   const FlatmateRoomDetailsScreen({super.key});
 
@@ -21,6 +22,7 @@ class FlatmateRoomDetailsScreen extends StatefulWidget {
       _FlatmateRoomDetailsScreenState();
 }
 
+/// State holder for room details form inputs and submission.
 class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
   static const int _maxImageCount = 3;
   static const int _maxImageBytes = 10 * 1024 * 1024;
@@ -79,6 +81,7 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
   }
 
   Future<void> _pickImages() async {
+    // Enforce max image count and file size before upload.
     final messenger = ScaffoldMessenger.of(context);
     final remainingSlots = _maxImageCount - _pickedImages.length;
     if (remainingSlots <= 0) {
@@ -137,6 +140,7 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
   }
 
   Future<List<String>> _uploadImages(String listingId) async {
+    // Upload images sequentially to preserve order.
     if (_pickedImages.isEmpty) {
       return [];
     }
@@ -156,6 +160,7 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
   }
 
   List<String> _buildHighlights() {
+    // Concise tags used in listing cards and quick filters.
     return <String>[
       _occupancy,
       'Looking for $_lookingFor',
@@ -166,6 +171,7 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
   }
 
   Future<void> _submit() async {
+    // Validate form data and publish the listing.
     final user = FirebaseAuth.instance.currentUser;
     final messenger = ScaffoldMessenger.of(context);
     final navigator = Navigator.of(context);
@@ -239,6 +245,7 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Responsive spacing helpers for compact screens.
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isCompact = screenWidth < 380;
     final horizontalPadding = isCompact ? 14.0 : 16.0;
@@ -452,6 +459,7 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
 }
 
 class _FieldLabel extends StatelessWidget {
+  /// Section label for form fields.
   final String text;
 
   const _FieldLabel(this.text);
@@ -473,6 +481,7 @@ class _FieldLabel extends StatelessWidget {
 }
 
 class _UnderlineTextField extends StatelessWidget {
+  /// Underline-style input used in the room details form.
   final TextEditingController controller;
   final Widget? prefix;
   final TextInputType? keyboardType;
@@ -526,6 +535,7 @@ class _UnderlineTextField extends StatelessWidget {
 }
 
 class _ImagePickerGrid extends StatelessWidget {
+  /// Two-column image grid with one large + two small slots.
   final List<XFile> images;
   final VoidCallback onTap;
 
@@ -581,6 +591,7 @@ class _ImagePickerGrid extends StatelessWidget {
 }
 
 class _ImageSlot extends StatelessWidget {
+  /// Single image slot with upload placeholder.
   final XFile? image;
   final VoidCallback onTap;
 
@@ -626,6 +637,7 @@ class _ImageSlot extends StatelessWidget {
 }
 
 class _DropdownLine extends StatelessWidget {
+  /// Labeled dropdown row for selecting a single option.
   final String label;
   final String value;
   final List<String> values;
@@ -683,6 +695,7 @@ class _DropdownLine extends StatelessWidget {
 }
 
 class _PillChoice extends StatelessWidget {
+  /// Choice pill used for highlight selections.
   final String label;
   final bool selected;
   final VoidCallback onTap;
@@ -729,6 +742,7 @@ class _PillChoice extends StatelessWidget {
 }
 
 class _AmenitiesGrid extends StatelessWidget {
+  /// Icon grid for selecting amenities.
   final List<_AmenityOption> options;
   final Set<String> selected;
   final ValueChanged<String> onTap;
@@ -811,6 +825,7 @@ class _AmenitiesGrid extends StatelessWidget {
 }
 
 class _MobileVisibilityCard extends StatelessWidget {
+  /// Card for selecting whether to show phone number publicly.
   final bool isPublic;
   final ValueChanged<bool> onChanged;
 
@@ -904,6 +919,7 @@ class _MobileVisibilityCard extends StatelessWidget {
 }
 
 class _VisibilityButton extends StatelessWidget {
+  /// Toggle button used in the mobile visibility section.
   final String text;
   final bool selected;
   final VoidCallback onTap;
@@ -949,6 +965,7 @@ class _VisibilityButton extends StatelessWidget {
   }
 }
 
+/// Simple label/icon pair for amenity grid items.
 class _AmenityOption {
   final String label;
   final IconData icon;
@@ -956,6 +973,7 @@ class _AmenityOption {
   const _AmenityOption(this.label, this.icon);
 }
 
+/// Location input with inline search suggestions overlay.
 class _LocationSearchField extends StatefulWidget {
   final TextEditingController controller;
   final bool isCompact;

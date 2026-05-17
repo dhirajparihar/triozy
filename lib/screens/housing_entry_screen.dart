@@ -8,10 +8,12 @@ import 'flatmate_room_details_screen.dart';
 import 'housing_feed_screen.dart';
 import 'requirement_form_screen.dart';
 
+/// Entry screen that routes users into the correct housing flow.
 class HousingEntryScreen extends StatelessWidget {
   const HousingEntryScreen({super.key});
 
   static Future<Route<void>> buildRoute() async {
+    // If the user already posted, jump straight to the feed.
     final user = FirebaseAuth.instance.currentUser;
     final hasPostedHousingListing =
         user != null &&
@@ -34,6 +36,7 @@ class _HousingChoiceScreen extends StatelessWidget {
   const _HousingChoiceScreen();
 
   Future<void> _openFlow(BuildContext context, {required Widget screen}) async {
+    // Push a flow and return to housing feed on success.
     final result = await Navigator.push<bool>(
       context,
       MaterialPageRoute(builder: (_) => screen),
@@ -115,6 +118,7 @@ class _HousingChoiceScreen extends StatelessWidget {
 }
 
 class _HousingChoiceCard extends StatelessWidget {
+  /// Card-style action for selecting a housing entry path.
   final IconData icon;
   final String title;
   final String subtitle;

@@ -3,6 +3,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
+/// Help and support screen with contact options and FAQs.
 class HelpSupportScreen extends StatelessWidget {
   const HelpSupportScreen({super.key});
 
@@ -60,6 +61,7 @@ class HelpSupportScreen extends StatelessWidget {
                   const SizedBox(height: 20),
                   ElevatedButton.icon(
                     onPressed: () async {
+                      // Launch default email client.
                       final uri = Uri(
                         scheme: 'mailto',
                         path: 'triozyapp@gmail.com',
@@ -169,6 +171,7 @@ class HelpSupportScreen extends StatelessWidget {
   }
 
   Widget _contactTile(IconData icon, String title, String subtitle) {
+    // Contact info row used in the Reach Us section.
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
       decoration: BoxDecoration(
@@ -225,6 +228,7 @@ class HelpSupportScreen extends StatelessWidget {
 }
 
 class _FaqTile extends StatefulWidget {
+  /// Expandable FAQ row with answer reveal.
   final String question;
   final String answer;
 

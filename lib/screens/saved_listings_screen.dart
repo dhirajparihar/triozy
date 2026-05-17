@@ -8,11 +8,13 @@ import '../theme/app_theme.dart';
 import '../widgets/listing_card.dart';
 import 'listing_detail_screen.dart';
 
+/// Shows the signed-in user's saved listings.
 class SavedListingsScreen extends StatelessWidget {
   const SavedListingsScreen({super.key});
 
   @override
   Widget build(BuildContext context) {
+    // Guard against anonymous access to saved items.
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
       return const Scaffold(body: Center(child: Text('Sign in to save listings')));
@@ -24,6 +26,7 @@ class SavedListingsScreen extends StatelessWidget {
         backgroundColor: Colors.white,
       ),
       body: FutureBuilder<List<ListingModel>>(
+        // Load saved listings once per screen visit.
         future: context.read<DatabaseService>().getSavedListings(userId),
         builder: (context, snapshot) {
           if (!snapshot.hasData) {
@@ -51,6 +54,7 @@ class SavedListingsScreen extends StatelessWidget {
                 compact: true,
                 isSaved: true,
                 onTap: () {
+                  // Seed data keeps details responsive while loading.
                   Navigator.push(
                     context,
                     MaterialPageRoute(

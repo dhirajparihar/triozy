@@ -1,7 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+
+// === Requirement metadata ====================================================
+
+/// Types of housing needs used in requirement listings.
 enum NeedType { room, flat, pg, hostel }
 
+/// Convenience helpers for serializing and labeling [NeedType].
 extension NeedTypeX on NeedType {
   String get value {
     switch (this) {
@@ -44,6 +49,10 @@ extension NeedTypeX on NeedType {
   }
 }
 
+
+// === Requirement model =======================================================
+
+/// Requirement data for users looking for a place.
 class RequirementModel {
   final String id;
   final String userId;
@@ -77,6 +86,7 @@ class RequirementModel {
     this.createdAt,
   });
 
+  /// Serializes this requirement to a Firestore-friendly map.
   Map<String, dynamic> toMap({bool includeCreatedAt = true}) => {
         'userId': userId,
         'needType': needType.value,
@@ -93,6 +103,7 @@ class RequirementModel {
         if (includeCreatedAt) 'createdAt': FieldValue.serverTimestamp(),
       };
 
+  /// Builds a [RequirementModel] from Firestore data.
   factory RequirementModel.fromMap(Map<String, dynamic> map, String id) {
     return RequirementModel(
       id: id,
@@ -108,7 +119,9 @@ class RequirementModel {
       amenities: List<String>.from(map['amenities'] ?? const <String>[]),
       lifestyle: List<String>.from(map['lifestyle'] ?? const <String>[]),
       contactMethods: List<String>.from(map['contactMethods'] ?? const <String>[]),
-      createdAt: map['createdAt'] is Timestamp ? (map['createdAt'] as Timestamp).toDate() : null,
+      createdAt: map['createdAt'] is Timestamp
+          ? (map['createdAt'] as Timestamp).toDate()
+          : null,
     );
   }
 }

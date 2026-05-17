@@ -11,8 +11,12 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'chat_detail_screen.dart';
 
+
+// === Chat inbox ==============================================================
+
 enum _ChatInboxSegment { all, housing, marketplace }
 
+/// Inbox screen showing conversations and filters.
 class ChatListScreen extends StatefulWidget {
   final bool showScaffold;
 
@@ -27,6 +31,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   final FocusNode _searchFocusNode = FocusNode();
   String? _currentUserId;
   _ChatInboxSegment _selectedSegment = _ChatInboxSegment.all;
+  // Cache listing type per reference id to avoid repeated Firestore lookups.
   final Map<String, ListingType> _referenceTypeCache = {};
   final Set<String> _referenceTypeLoading = {};
 
@@ -39,6 +44,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     _searchController.addListener(() => setState(() {}));
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Start the conversation stream after first frame to avoid build churn.
       final uid = _currentUserId;
       if (uid != null && uid.isNotEmpty) {
         context.read<ChatProvider>().initialize(uid);
@@ -60,6 +66,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
     final isCompact = screenWidth < 380;
     final horizontalPadding = 16.0;
     final listGap = isCompact ? 10.0 : 14.0;
+
+    // Signed-out guard: show a friendly message without wiring streams.
     if (uid == null || uid.isEmpty) {
       return widget.showScaffold
           ? const Scaffold(
@@ -71,6 +79,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
 
     final content = Consumer<ChatProvider>(
       builder: (context, chatProvider, _) {
+        // Search is client-side over cached conversation list.
         final query = _searchController.text.trim().toLowerCase();
         var filtered = chatProvider.conversations.where((conversation) {
           final peer = conversation.peerMetaFor(uid);
@@ -129,6 +138,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   ChatType _effectiveChatType(ConversationModel conversation) {
+    // Marketplace chats are explicit; housing chats may need reference lookup.
     if (conversation.chatType == ChatType.marketplace) {
       return ChatType.marketplace;
     }
@@ -152,6 +162,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   Future<void> _resolveReferenceType(String referenceId) async {
+    // Resolve listing type once and cache to avoid repeated lookups.
     if (referenceId.isEmpty || _referenceTypeCache.containsKey(referenceId)) {
       return;
     }
@@ -186,6 +197,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
       color: AppColors.background,
       child: Column(
         children: [
+          // Header: title, search, and segment filters.
           _ChatListHeader(
             controller: _searchController,
             focusNode: _searchFocusNode,
@@ -197,9 +209,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
           Expanded(
             child: Builder(
               builder: (context) {
+                // Error state overrides all other content.
                 if ((chatProvider.errorMessage ?? '').isNotEmpty) {
                   return _ErrorState(message: chatProvider.errorMessage!);
                 }
+                // Loading state only when no cached conversations yet.
                 if (chatProvider.isLoading && filtered.isEmpty) {
                   return const Center(
                     child: CircularProgressIndicator(
@@ -207,6 +221,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     ),
                   );
                 }
+                // Empty state varies based on search and segment.
                 if (filtered.isEmpty) {
                   return _EmptyState(
                     hasSearch: query.isNotEmpty,
@@ -218,6 +233,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 return RefreshIndicator(
                   color: AppColors.primary,
                   onRefresh: () async {
+                    // Reinitialize to force a fresh stream snapshot.
                     chatProvider.initialize(uid);
                     await Future<void>.delayed(
                       const Duration(milliseconds: 300),
@@ -239,6 +255,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
                         conversation: conversation,
                         currentUserId: uid,
                         onTap: () {
+                          // Open the conversation detail view.
                           Navigator.push(
                             context,
                             MaterialPageRoute(
@@ -306,6 +323,7 @@ class _ChatListHeader extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Section title.
             Text(
               'Messages',
               style: AppTheme.headline(
@@ -373,6 +391,7 @@ class _ChatListHeader extends StatelessWidget {
               physics: const BouncingScrollPhysics(),
               child: Row(
                 children: [
+                  // Segment toggles.
                   _FilterChip(
                     label: 'All',
                     selected: selectedSegment == _ChatInboxSegment.all,
@@ -444,6 +463,9 @@ class _FilterChip extends StatelessWidget {
   }
 }
 
+
+// === Conversation tile =======================================================
+
 class _ConversationTile extends StatelessWidget {
   final ConversationModel conversation;
   final String currentUserId;
@@ -464,6 +486,7 @@ class _ConversationTile extends StatelessWidget {
     final isUnread = unreadCount > 0;
     final peerName = (peer?.name ?? '').trim();
     final name = peerName.isEmpty ? 'User' : peerName;
+    // Prefer typing indicator over last message preview.
     final subtitle = isPeerTyping
         ? 'Typing...'
         : (conversation.lastMessage.trim().isEmpty
@@ -500,6 +523,7 @@ class _ConversationTile extends StatelessWidget {
           ),
           child: Row(
             children: [
+              // Avatar with optional presence dot.
               _Avatar(
                 name: name,
                 photoUrl: photoUrl,
@@ -530,6 +554,7 @@ class _ConversationTile extends StatelessWidget {
                           ),
                         ),
                         SizedBox(width: isCompact ? 6 : 8),
+                        // Show last activity time in a compact format.
                         Text(
                           _formatConversationTime(conversation.lastMessageTime),
                           style: AppTheme.body(
@@ -578,6 +603,7 @@ class _ConversationTile extends StatelessWidget {
                         ),
                         if (isUnread) ...[
                           const SizedBox(width: 12),
+                          // Unread indicator dot.
                           Container(
                             width: 12,
                             height: 12,
@@ -600,6 +626,7 @@ class _ConversationTile extends StatelessWidget {
   }
 
   String _formatConversationTime(DateTime dateTime) {
+    // Format time relative to today for quick scanning.
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final target = DateTime(dateTime.year, dateTime.month, dateTime.day);
@@ -629,6 +656,9 @@ class _ConversationTile extends StatelessWidget {
   }
 }
 
+
+// === Avatar ================================================================
+
 class _Avatar extends StatelessWidget {
   final String name;
   final String photoUrl;
@@ -657,6 +687,7 @@ class _Avatar extends StatelessWidget {
           ),
           child: ClipOval(
             child: photoUrl.isEmpty
+                // Fallback to initials when no photo exists.
                 ? Center(
                     child: Text(
                       initial,
@@ -671,6 +702,7 @@ class _Avatar extends StatelessWidget {
                     imageUrl: photoUrl,
                     fit: BoxFit.cover,
                     errorWidget: (_, _, _) => Center(
+                      // Fallback to initials if image fails.
                       child: Text(
                         initial,
                         style: AppTheme.headline(
@@ -688,6 +720,7 @@ class _Avatar extends StatelessWidget {
             right: 1,
             bottom: 1,
             child: Container(
+              // Presence dot highlights unread or typing state.
               width: 16,
               height: 16,
               decoration: BoxDecoration(
@@ -705,6 +738,9 @@ class _Avatar extends StatelessWidget {
   }
 }
 
+
+// === Error and empty states ==================================================
+
 class _ErrorState extends StatelessWidget {
   final String message;
 
@@ -718,6 +754,7 @@ class _ErrorState extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // Visual cue for network/permission issues.
             Container(
               width: 84,
               height: 84,
@@ -737,6 +774,7 @@ class _ErrorState extends StatelessWidget {
               style: AppTheme.headline(fontSize: 24, color: AppColors.primary),
             ),
             const SizedBox(height: 10),
+            // Surface the error message for debugging.
             Text(
               message,
               textAlign: TextAlign.center,
@@ -767,6 +805,7 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Copy varies based on filter + search state.
     final title = hasSearch
         ? 'No matching chats'
         : selectedSegment == _ChatInboxSegment.marketplace

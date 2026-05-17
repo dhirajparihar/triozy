@@ -9,6 +9,7 @@ import '../theme/app_theme.dart';
 import 'listing_detail_screen.dart';
 import '../providers/location_search_provider.dart';
 
+/// Search screen that resolves a location and shows nearby listings.
 class LocationSearchScreen extends StatefulWidget {
   const LocationSearchScreen({super.key});
 
@@ -34,6 +35,7 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
   }
 
   void _selectLocation(LocationSearchProvider provider, Map<String, dynamic> place) {
+    // Resolve the best readable label from the location payload.
     final addressDetails = place['address'] as Map<String, dynamic>? ?? {};
     final shortName = place['name'] ??
         addressDetails['neighbourhood'] ??
@@ -154,6 +156,7 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
     );
   }
 
+  /// Chooses between search results, feed results, and empty states.
   Widget _buildBody(LocationSearchProvider provider) {
     if (provider.isLoading) return const Center(child: CircularProgressIndicator(color: AppColors.primary));
 
@@ -196,6 +199,7 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
     );
   }
 
+  /// Feed view shown after a location has been selected.
   Widget _buildFeedView(LocationSearchProvider provider) {
     if (provider.isLoadingFeed) return const Center(child: CircularProgressIndicator(color: AppColors.primary));
 
@@ -244,6 +248,7 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
     );
   }
 
+  /// Horizontal section wrapper used for each listing category.
   Widget _buildSection(String title, String subtitle, IconData icon, List<ListingModel> listings, Widget Function(ListingModel) itemBuilder) {
     const purpleAccent = Color(0xFF6C63FF);
     return Column(
@@ -300,6 +305,7 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
 
 // ─── Custom UI Cards matching mockup ─────────────────────────────────────────
 
+/// Card for room and PG listings in the location feed.
 class _RoomPgCard extends StatelessWidget {
   final ListingModel listing;
   final VoidCallback onTap;
@@ -381,6 +387,7 @@ class _RoomPgCard extends StatelessWidget {
   }
 }
 
+/// Card for flatmate search results with owner and budget details.
 class _FlatmateCard extends StatelessWidget {
   final ListingModel listing;
   final VoidCallback onTap;
@@ -463,6 +470,7 @@ class _FlatmateCard extends StatelessWidget {
   }
 }
 
+/// Compact card for marketplace items in the location feed.
 class _MarketplaceCard extends StatelessWidget {
   final ListingModel listing;
   final VoidCallback onTap;

@@ -5,6 +5,7 @@ import '../theme/app_theme.dart';
 
 enum PolicyType { terms, privacy }
 
+/// Policy screen displaying Terms of Service or Privacy Policy in formatted layout.
 class PolicyScreen extends StatelessWidget {
   final PolicyType type;
   const PolicyScreen({super.key, required this.type});
@@ -12,6 +13,7 @@ class PolicyScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isTerms = type == PolicyType.terms;
+    // Switch header gradient color based on policy type (blue for terms, green for privacy).
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Column(
@@ -129,6 +131,7 @@ class PolicyScreen extends StatelessWidget {
 
   // ── Builder helpers ─────────────────────────────────────────────────────────
 
+  /// Intro box with background and border for policy overview.
   Widget _intro(String text) => Padding(
         padding: const EdgeInsets.only(bottom: 28),
         child: Container(
@@ -155,6 +158,7 @@ class PolicyScreen extends StatelessWidget {
         ),
       );
 
+  /// Numbered section with title and child widgets (builder for policy sections).
   Widget _section(String number, String title, List<Widget> children) =>
       Padding(
         padding: const EdgeInsets.only(bottom: 28),
@@ -197,6 +201,7 @@ class PolicyScreen extends StatelessWidget {
         ),
       );
 
+  /// Standard policy paragraph styling.
   Widget _body(String text) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Text(
@@ -206,6 +211,7 @@ class PolicyScreen extends StatelessWidget {
         ),
       );
 
+  /// Bullet row used for policy lists.
   Widget _bullet(String text) => Padding(
         padding: const EdgeInsets.only(left: 4, bottom: 6),
         child: Row(
@@ -236,6 +242,7 @@ class PolicyScreen extends StatelessWidget {
         ),
       );
 
+  /// Highlighted callout used for important policy notes.
   Widget _highlight(String text, {bool isWarning = false}) => Padding(
         padding: const EdgeInsets.only(bottom: 8),
         child: Container(
@@ -269,6 +276,7 @@ class PolicyScreen extends StatelessWidget {
 
   // ── Terms of Service ────────────────────────────────────────────────────────
 
+  /// Full Terms of Service content tree.
   List<Widget> _termsContent() => [
         _intro(
           'Welcome to Triozy — the platform built around three pillars: Workers, Requests, and Mates. '
@@ -387,6 +395,7 @@ class PolicyScreen extends StatelessWidget {
 
   // ── Privacy Policy ──────────────────────────────────────────────────────────
 
+  /// Full Privacy Policy content tree.
   List<Widget> _privacyContent() => [
         _intro(
           'Triozy is built on trust. This Privacy Policy explains what data we collect, '

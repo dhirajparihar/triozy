@@ -5,6 +5,7 @@ import '../main.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
+/// Intro carousel shown before first authenticated session.
 class OnboardingScreen extends StatefulWidget {
   const OnboardingScreen({super.key});
 
@@ -43,6 +44,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   ];
 
   Future<void> _completeOnboarding() async {
+    // Persist the onboarding flag before navigating into the app.
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('isFirstTime', false);
     if (!mounted) {
@@ -292,6 +294,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 }
 
+/// Data model for a single onboarding carousel slide.
 class _OnboardingSlide {
   final String title;
   final String description;

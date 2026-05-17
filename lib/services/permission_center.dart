@@ -1,12 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 
+
+// === Permission messaging ====================================================
+
+/// Centralized permission error handling and user prompts.
 class PermissionCenter {
   PermissionCenter._();
 
   static const Duration _cooldown = Duration(seconds: 20);
   static final Map<String, DateTime> _lastShownAt = <String, DateTime>{};
 
+  /// Throttles duplicate permission messages by [key].
   static bool _canShow(String key) {
     final now = DateTime.now();
     final last = _lastShownAt[key];
@@ -17,6 +22,7 @@ class PermissionCenter {
     return true;
   }
 
+  /// Best-effort check if an error text implies permission denial.
   static bool looksPermissionDenied(Object error) {
     final raw = error.toString().toLowerCase();
     return raw.contains('permission') ||
@@ -24,6 +30,7 @@ class PermissionCenter {
         raw.contains('not allowed');
   }
 
+  /// Shows a permission-denied snack bar with optional settings shortcut.
   static Future<void> showDenied(
     BuildContext context, {
     required String key,
@@ -50,6 +57,7 @@ class PermissionCenter {
     );
   }
 
+  /// Opens app settings (falls back to location settings if needed).
   static Future<void> openSettings() async {
     final opened = await Geolocator.openAppSettings();
     if (!opened) {

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
+/// Informational screen describing how to request account deletion.
 class AccountDeletionScreen extends StatelessWidget {
   const AccountDeletionScreen({super.key});
 
@@ -20,6 +21,7 @@ class AccountDeletionScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Title + intro explain the deletion process at a glance.
                   Text(
                     'Delete Your Triozy Account',
                     style: AppTheme.headline(
@@ -93,6 +95,7 @@ class AccountDeletionScreen extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(height: 10),
+                        // Tap-and-copy support email for deletion requests.
                         SelectableText(
                           supportEmail,
                           style: AppTheme.body(
@@ -114,6 +117,7 @@ class AccountDeletionScreen extends StatelessWidget {
   }
 }
 
+/// Card block for a titled list of deletion details.
 class _InfoCard extends StatelessWidget {
   final String title;
   final List<String> children;

@@ -1,3 +1,4 @@
+/// Centralizes Cloudinary environment flags and validation helpers.
 class CloudinaryConfig {
   static const String cloudName = String.fromEnvironment(
     'CLOUDINARY_CLOUD_NAME',
@@ -10,9 +11,11 @@ class CloudinaryConfig {
     defaultValue: 'triozy',
   );
 
+  /// Whether the required Cloudinary values are present.
   static bool get isConfigured =>
       cloudName.trim().isNotEmpty && uploadPreset.trim().isNotEmpty;
 
+  /// Returns the list of missing Cloudinary environment keys.
   static List<String> get missingKeys {
     final keys = <String>[];
     if (cloudName.trim().isEmpty) {
@@ -24,12 +27,14 @@ class CloudinaryConfig {
     return keys;
   }
 
+  /// Human-readable setup warning for missing Cloudinary values.
   static String get setupMessage {
     final missing = missingKeys.join(', ');
     return 'Cloudinary is not configured. Missing: $missing. '
         'Pass them with --dart-define.';
   }
 
+  /// Example `flutter run` command with the required Dart defines.
   static String exampleRunCommand({String device = ''}) {
     final target = device.trim().isEmpty ? '' : '-d ${device.trim()} ';
     return 'flutter run $target'
