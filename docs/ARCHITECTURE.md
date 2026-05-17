@@ -83,7 +83,7 @@ Service providers:
 
 Shared state providers:
 
-- `SessionService`
+- `SessionService` (ChangeNotifier)
 - `LocationProvider`
 - `ChatProvider`
 
@@ -92,6 +92,7 @@ Provider roles:
 - `SessionService` tracks guest mode.
 - `LocationProvider` tracks current latitude, longitude, address, loading, and errors.
 - `ChatProvider` tracks conversations, the active conversation, active messages, and unread count.
+- Other feature-specific providers (e.g., `LocationSearchProvider`) are used where needed.
 
 ## Navigation
 
@@ -119,14 +120,15 @@ Main tabs:
 
 Common pushed screens include:
 
-- `ListingDetailScreen`
-- `PostListingScreen`
-- `HousingFeedScreen`
-- `RequirementFormScreen`
+- `HousingFeedScreen`, `HousingEntryScreen`
+- `MarketplaceScreen`
+- `ListingDetailScreen`, `FlatmateRoomDetailsScreen`
+- `PostListingScreen`, `PGListingFormScreen`, `RequirementFormScreen`
+- `LocationSearchScreen`
 - `ChatDetailScreen`
-- `EditProfileScreen`
-- `MyListingsScreen`
-- `SavedListingsScreen`
+- `EditProfileScreen`, `CompleteProfileScreen`
+- `MyListingsScreen`, `SavedListingsScreen`
+- `AboutScreen`, `PolicyScreen`, `HelpSupportScreen`
 
 ## Backend Services
 
@@ -154,7 +156,7 @@ users/{uid}
 
 Responsibilities:
 
-- Create listings
+- Create listings (housing, marketplace, etc.)
 - Fetch all, featured, recent, saved, and user-owned listings
 - Search listings
 - Fetch a single listing
@@ -208,11 +210,20 @@ Used by:
 - Listing image uploads
 - Profile image uploads
 
+### FCMService
+
+`FCMService` handles Firebase Cloud Messaging for push notifications.
+
+Responsibilities:
+- Request push notification permissions
+- Obtain FCM tokens
+- Handle background and foreground notifications
+
 ## Domain Models
 
 ### ListingModel
 
-`ListingModel` represents housing and marketplace listings.
+`ListingModel` represents housing, PG, and marketplace listings.
 
 Related enums:
 
@@ -223,7 +234,7 @@ Related enums:
 Supported listing categories include:
 
 - Housing posts
-- Flatmate/roommate requirements
+- PG (Paying Guest) / Flatmate requirements
 - Marketplace item posts
 
 The model includes Firestore mapping with `fromMap` and `toMap`.
@@ -256,7 +267,7 @@ Guest users can enter `MainShell`, but authenticated-only actions prompt sign-in
 ### Listings
 
 ```text
-HomeScreen / HousingFeedScreen
+HomeScreen / HousingFeedScreen / MarketplaceScreen
   -> DatabaseService fetch/search listings
   -> ListingCard displays summary
   -> ListingDetailScreen displays full detail
@@ -267,7 +278,7 @@ Saved listings are stored on the user document as `savedListingIds`.
 ### Posting A Listing
 
 ```text
-PostListingScreen
+PostListingScreen / PGListingFormScreen
   -> ImagePicker selects images
   -> CloudinaryService uploads images
   -> ListingModel is created
@@ -298,7 +309,7 @@ MainShell
   -> TriozyTopAppBar displays address
 ```
 
-If location fails, `MainShell` shows a dialog that can open device settings.
+If location fails, `MainShell` shows a dialog that can open device settings or navigate to `LocationSearchScreen`.
 
 ## Firestore Collections
 
@@ -309,58 +320,33 @@ users
 listings
 chats
 chats/{chatId}/messages
+sessions
 ```
 
 Important user fields:
 
-- `uid`
-- `email`
-- `name`
-- `occupation`
-- `organizationName`
-- `gender`
+- `uid`, `email`, `name`, `occupation`, `organizationName`, `gender`
 - `isProfileComplete`
 - `savedListingIds`
 - `fcmTokens`
 
 Important listing fields:
 
-- `ownerId`
-- `ownerName`
-- `ownerPhotoUrl`
-- `title`
-- `description`
-- `location`
-- `latitude`
-- `longitude`
-- `price`
-- `type`
-- `propertyType`
-- `purpose`
-- `imageUrls`
-- `highlights`
-- `requirementDetails`
-- `isFeatured`
-- `createdAt`
+- `ownerId`, `ownerName`, `ownerPhotoUrl`
+- `title`, `description`, `location`, `latitude`, `longitude`
+- `price`, `type`, `propertyType`, `purpose`
+- `imageUrls`, `highlights`, `requirementDetails`
+- `isFeatured`, `createdAt`
 
 Important chat fields:
 
-- `participants`
-- `chatType`
-- `referenceId`
-- `lastMessage`
-- `lastMessageTime`
-- `lastSenderId`
-- `lastReadAt`
+- `participants`, `chatType`, `referenceId`
+- `lastMessage`, `lastMessageTime`, `lastSenderId`, `lastReadAt`
 - `createdAt`
 
 Important message fields:
 
-- `senderId`
-- `receiverId`
-- `text`
-- `timestamp`
-- `status`
+- `senderId`, `receiverId`, `text`, `timestamp`, `status`
 
 ## UI Layer
 

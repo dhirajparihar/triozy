@@ -3,6 +3,7 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'policy_screen.dart';
 
+/// About page with mission, stats, and policy links.
 class AboutScreen extends StatelessWidget {
   const AboutScreen({super.key});
 
@@ -175,6 +176,7 @@ class AboutScreen extends StatelessWidget {
   }
 
   Widget _statCard(String value, String label, IconData icon) {
+    // Compact stat tile used in the metrics row.
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 12),
       decoration: BoxDecoration(
@@ -216,6 +218,7 @@ class AboutScreen extends StatelessWidget {
   }
 
   Widget _infoTile(IconData icon, String label, {VoidCallback? onTap}) {
+    // Row tile that links to policies or licenses.
     return GestureDetector(
       onTap: onTap,
       child: Container(

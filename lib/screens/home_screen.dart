@@ -14,6 +14,7 @@ import 'listing_detail_screen.dart';
 import 'location_search_screen.dart';
 import 'pg_listing_form_screen.dart';
 
+/// Home feed with hero, quick actions, and featured listings.
 class HomeScreen extends StatefulWidget {
   final VoidCallback? onExploreTapped;
   final VoidCallback? onSearchTapped;
@@ -30,6 +31,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => HomeScreenState();
 }
 
+/// Drives featured listings, saved state, and quick actions.
 class HomeScreenState extends State<HomeScreen> {
   List<ListingModel> _featured = [];
   Set<String> _savedIds = <String>{};
@@ -41,12 +43,14 @@ class HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    // Load feed data after first frame to avoid build timing issues.
     WidgetsBinding.instance.addPostFrameCallback((_) => _loadData());
   }
 
   Future<void> refreshFromShell() => _loadData();
 
   Future<void> _loadData() async {
+    // Fetch featured listings and per-user flags.
     final db = context.read<DatabaseService>();
     try {
       final featured = await db.getFeaturedListings(
@@ -81,6 +85,7 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _toggleSave(String listingId) async {
+    // Persist saved state and update local set.
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
       ScaffoldMessenger.of(
@@ -103,6 +108,7 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   void _openListing(ListingModel listing) {
+    // Seed data for faster detail rendering.
     Navigator.push(
       context,
       MaterialPageRoute(
@@ -113,6 +119,7 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _openFlatmates() async {
+    // Route to housing entry if no listing exists yet.
     if (_hasPostedHousingListing) {
       widget.onPropertyTypeSelected?.call(PropertyType.flat);
       return;
@@ -125,6 +132,7 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _openRoom() async {
+    // Route to housing entry if no listing exists yet.
     if (_hasPostedHousingListing) {
       widget.onPropertyTypeSelected?.call(PropertyType.room);
       return;
@@ -137,6 +145,7 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   void _openPostListing() {
+    // Open PG/hostel listing flow.
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const PgListingFormScreen()),
@@ -144,6 +153,7 @@ class HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _openLocationSearch() async {
+    // Launch location search flow.
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const LocationSearchScreen()),
@@ -152,6 +162,7 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Layout values scale for compact screens.
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isCompact = screenWidth < 380;
     final horizontalPadding = isCompact ? 16.0 : 20.0;
@@ -219,6 +230,7 @@ class HomeScreenState extends State<HomeScreen> {
 }
 
 class _HeroSection extends StatelessWidget {
+  /// Gradient hero block with search CTA.
   final VoidCallback? onSearchTap;
   final String? selectedLocation;
 
@@ -387,6 +399,7 @@ class _HeroSection extends StatelessWidget {
 
 
 class _QuickActions extends StatelessWidget {
+  /// Horizontal scroll of primary actions.
   final bool hasPublishedRequirement;
   final VoidCallback onFindRoomTap;
   final VoidCallback onFlatmatesTap;
@@ -475,6 +488,7 @@ class _QuickActions extends StatelessWidget {
 }
 
 class _CategoryCard extends StatelessWidget {
+  /// Compact action card used in the quick actions row.
   final String title;
   final String subtitle;
   final IconData icon;
@@ -553,6 +567,7 @@ class _CategoryCard extends StatelessWidget {
 }
 
 class _SectionHeader extends StatelessWidget {
+  /// Section header with optional action.
   final String title;
   final String actionLabel;
   final VoidCallback? onActionTap;
@@ -609,6 +624,7 @@ class _SectionHeader extends StatelessWidget {
 }
 
 class FeaturedListingCard extends StatelessWidget {
+  /// Compact featured listing tile used in the carousel.
   final ListingModel listing;
   final bool isSaved;
   final VoidCallback onTap;
@@ -738,6 +754,7 @@ class FeaturedListingCard extends StatelessWidget {
 }
 
 class _HomeLoadingState extends StatelessWidget {
+  /// Skeleton placeholders while loading featured listings.
   const _HomeLoadingState();
 
   @override
@@ -766,6 +783,7 @@ class _HomeLoadingState extends StatelessWidget {
 }
 
 class _EmptyFeaturedState extends StatelessWidget {
+  /// Empty state shown when no featured listings exist.
   const _EmptyFeaturedState();
 
   @override

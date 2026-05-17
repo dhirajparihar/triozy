@@ -10,6 +10,7 @@ import '../services/session_service.dart';
 import '../theme/app_colors.dart';
 import 'policy_screen.dart';
 
+/// Entry screen for sign-in, guest mode, and onboarding links.
 class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
 
@@ -17,6 +18,7 @@ class WelcomeScreen extends StatefulWidget {
   State<WelcomeScreen> createState() => _WelcomeScreenState();
 }
 
+/// Handles Google sign-in, guest mode, and intro UI state.
 class _WelcomeScreenState extends State<WelcomeScreen> {
   late final AuthService _authService;
   bool _isLoading = false;
@@ -28,6 +30,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   void _openAuthenticatedFlow() {
+    // Reset stack to the authenticated app shell.
     Navigator.of(context).pushAndRemoveUntil(
       MaterialPageRoute(builder: (_) => const AuthGate()),
       (route) => false,
@@ -75,6 +78,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   void _handleContinueAsGuest() {
+    // Enable guest mode in the session service.
     context.read<SessionService>().enterGuestMode();
   }
 
@@ -91,6 +95,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   void _showOpenInChromeDialog() {
+    // Prompt web users to switch to Chrome for Google sign-in.
     showDialog(
       context: context,
       barrierDismissible: true,
@@ -166,6 +171,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   Widget _dotPattern() {
+    // Small decorative dot asset used in the background.
     return Container(
       width: 40,
       height: 40,
@@ -179,6 +185,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 
   Widget _circleBlur() {
+    // Soft blurred circle accent.
     return Container(
       width: 100,
       height: 100,
@@ -516,6 +523,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
   }
 }
 
+/// Inline policy disclaimer with tappable links.
 class _PolicyDisclaimerText extends StatelessWidget {
   const _PolicyDisclaimerText();
 

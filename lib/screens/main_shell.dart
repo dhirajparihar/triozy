@@ -22,6 +22,7 @@ import 'user_profile_screen.dart';
 
 enum _LocationDialogAction { skip, openSettings }
 
+/// Root authenticated shell that coordinates tabs, location, and chat state.
 class MainShell extends StatefulWidget {
   final bool isWorker;
   final bool isGuest;
@@ -32,6 +33,7 @@ class MainShell extends StatefulWidget {
   State<MainShell> createState() => _MainShellState();
 }
 
+/// Manages tab selection, app-wide prompts, and shell-level navigation.
 class _MainShellState extends State<MainShell> {
   final GlobalKey<HomeScreenState> _homeScreenKey =
       GlobalKey<HomeScreenState>();
@@ -42,6 +44,7 @@ class _MainShellState extends State<MainShell> {
   String? _profileName;
 
   late final List<Widget> _screens = [
+    // Keep the tab list aligned with the bottom navigation order.
     HomeScreen(
       key: _homeScreenKey,
       onSearchTapped: () {
@@ -135,6 +138,7 @@ class _MainShellState extends State<MainShell> {
     }
     _isLocationDialogOpen = true;
 
+    // Ask the user to enable location only when the fetch actually fails.
     showDialog<_LocationDialogAction>(
       context: context,
       barrierDismissible: false,
@@ -192,6 +196,7 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _handleBackNavigation() {
+    // Double-press back to exit from the home tab only.
     if (_currentIndex != 0) {
       setState(() => _currentIndex = 0);
       return;
