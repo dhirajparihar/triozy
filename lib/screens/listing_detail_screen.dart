@@ -298,25 +298,32 @@ class _FlatDetailScaffoldState extends State<_FlatDetailScaffold> {
     final db = context.read<DatabaseService>();
     final data = await db.getUserData(userId);
     if (!mounted || data == null) return;
-    final savedIds = List<String>.from(data['savedListingIds'] ?? const <String>[]);
+    final savedIds = List<String>.from(
+      data['savedListingIds'] ?? const <String>[],
+    );
     setState(() => _saved = savedIds.contains(widget.listing.id));
   }
 
   Future<void> _toggleSave() async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sign in to save listings')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Sign in to save listings')));
       return;
     }
     setState(() => _saved = !_saved);
     try {
-      await context.read<DatabaseService>().toggleSavedListing(userId: userId, listingId: widget.listing.id);
+      await context.read<DatabaseService>().toggleSavedListing(
+        userId: userId,
+        listingId: widget.listing.id,
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() => _saved = !_saved);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not update saved status')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not update saved status')),
+      );
     }
   }
 
@@ -423,7 +430,8 @@ class _FlatOverviewCard extends StatelessWidget {
             children: [
               _Pill(label: details.bhkType),
               _Pill(label: details.furnishing),
-              if ((listing.genderPreference ?? '').isNotEmpty && listing.genderPreference != 'Anyone')
+              if ((listing.genderPreference ?? '').isNotEmpty &&
+                  listing.genderPreference != 'Anyone')
                 _Pill(label: 'Prefers ${listing.genderPreference}'),
             ],
           ),
@@ -475,7 +483,9 @@ class _FlatPricingCard extends StatelessWidget {
                 child: _MiniInfoTile(
                   icon: Icons.security_rounded,
                   label: 'Deposit',
-                  value: details.deposit.isEmpty ? 'Ask owner' : details.deposit,
+                  value: details.deposit.isEmpty
+                      ? 'Ask owner'
+                      : details.deposit,
                 ),
               ),
               const SizedBox(width: 10),
@@ -483,7 +493,9 @@ class _FlatPricingCard extends StatelessWidget {
                 child: _MiniInfoTile(
                   icon: Icons.build_circle_rounded,
                   label: 'Maintenance',
-                  value: details.maintenance.isEmpty ? 'Ask owner' : details.maintenance,
+                  value: details.maintenance.isEmpty
+                      ? 'Ask owner'
+                      : details.maintenance,
                 ),
               ),
               const SizedBox(width: 10),
@@ -513,10 +525,19 @@ class _FlatRulesCard extends StatelessWidget {
       child: Column(
         children: [
           _RuleRow('Tenant Preference', details.preferredTenant),
-          _RuleRow('Smoking', details.smoking.isEmpty ? 'Ask owner' : details.smoking),
-          _RuleRow('Drinking', details.drinking.isEmpty ? 'Ask owner' : details.drinking),
+          _RuleRow(
+            'Smoking',
+            details.smoking.isEmpty ? 'Ask owner' : details.smoking,
+          ),
+          _RuleRow(
+            'Drinking',
+            details.drinking.isEmpty ? 'Ask owner' : details.drinking,
+          ),
           _RuleRow('Pets', details.pets.isEmpty ? 'Ask owner' : details.pets),
-          _RuleRow('Visitors', details.visitors.isEmpty ? 'Ask owner' : details.visitors),
+          _RuleRow(
+            'Visitors',
+            details.visitors.isEmpty ? 'Ask owner' : details.visitors,
+          ),
         ],
       ),
     );
@@ -576,28 +597,69 @@ class _FlatParsedDetails {
   });
 
   factory _FlatParsedDetails.fromListing(ListingModel listing) {
-    final lines = listing.description.split('\n').map((l) => l.trim()).where((l) => l.isNotEmpty).toList();
+    final lines = listing.description
+        .split('\n')
+        .map((l) => l.trim())
+        .where((l) => l.isNotEmpty)
+        .toList();
     final rawDescription = lines.isEmpty ? listing.description : lines.first;
-    
-    final hiddenPrefixes = ['Location:', 'Rent:', 'Security deposit:', 'Maintenance:', 'Electricity:', 'Contact:', 'WhatsApp:', 'Smoking:', 'Drinking:', 'Pets:', 'Video tour selected:'];
-    final clean = lines.where((line) => !hiddenPrefixes.any(line.startsWith)).join('\n').trim();
 
-    String lineValue(String prefix) => lines.firstWhere((l) => l.startsWith(prefix), orElse: () => '').replaceFirst(prefix, '').trim();
+    final hiddenPrefixes = [
+      'Location:',
+      'Rent:',
+      'Security deposit:',
+      'Maintenance:',
+      'Electricity:',
+      'Contact:',
+      'WhatsApp:',
+      'Smoking:',
+      'Drinking:',
+      'Pets:',
+      'Video tour selected:',
+    ];
+    final clean = lines
+        .where((line) => !hiddenPrefixes.any(line.startsWith))
+        .join('\n')
+        .trim();
+
+    String lineValue(String prefix) => lines
+        .firstWhere((l) => l.startsWith(prefix), orElse: () => '')
+        .replaceFirst(prefix, '')
+        .trim();
 
     return _FlatParsedDetails(
       bhkType: listing.highlights.isNotEmpty ? listing.highlights[0] : 'Flat',
-      furnishing: listing.highlights.length > 1 ? listing.highlights[1] : 'Unfurnished',
+      furnishing: listing.highlights.length > 1
+          ? listing.highlights[1]
+          : 'Unfurnished',
       deposit: lineValue('Security deposit:').replaceFirst('Rs ', '₹'),
       maintenance: lineValue('Maintenance:'),
       contact: lineValue('Contact:'),
       whatsApp: lineValue('WhatsApp:'),
-      preferredTenant: listing.highlights.firstWhere((h) => h.contains('Prefers') || h == 'Any Tenant', orElse: () => 'Any Tenant'),
+      preferredTenant: listing.highlights.firstWhere(
+        (h) => h.contains('Prefers') || h == 'Any Tenant',
+        orElse: () => 'Any Tenant',
+      ),
       smoking: lineValue('Smoking:'),
       drinking: lineValue('Drinking:'),
       pets: lineValue('Pets:'),
-      visitors: listing.highlights.firstWhere((h) => h.contains('Visitors'), orElse: () => 'Ask owner'),
+      visitors: listing.highlights.firstWhere(
+        (h) => h.contains('Visitors'),
+        orElse: () => 'Ask owner',
+      ),
       electricityIncluded: listing.highlights.contains('Electricity Included'),
-      amenities: listing.highlights.where((h) => !h.contains('BHK') && !h.contains('RK') && !h.contains('Furnished') && !h.contains('Prefers') && !h.contains('Tenant') && !h.contains('Included') && !h.contains('Visitors')).toList(),
+      amenities: listing.highlights
+          .where(
+            (h) =>
+                !h.contains('BHK') &&
+                !h.contains('RK') &&
+                !h.contains('Furnished') &&
+                !h.contains('Prefers') &&
+                !h.contains('Tenant') &&
+                !h.contains('Included') &&
+                !h.contains('Visitors'),
+          )
+          .toList(),
       cleanDescription: clean.isEmpty ? rawDescription : clean,
     );
   }
@@ -613,7 +675,8 @@ class _RoomPostDetailScaffold extends StatefulWidget {
   });
 
   @override
-  State<_RoomPostDetailScaffold> createState() => _RoomPostDetailScaffoldState();
+  State<_RoomPostDetailScaffold> createState() =>
+      _RoomPostDetailScaffoldState();
 }
 
 class _RoomPostDetailScaffoldState extends State<_RoomPostDetailScaffold> {
@@ -633,25 +696,32 @@ class _RoomPostDetailScaffoldState extends State<_RoomPostDetailScaffold> {
     final db = context.read<DatabaseService>();
     final data = await db.getUserData(userId);
     if (!mounted || data == null) return;
-    final savedIds = List<String>.from(data['savedListingIds'] ?? const <String>[]);
+    final savedIds = List<String>.from(
+      data['savedListingIds'] ?? const <String>[],
+    );
     setState(() => _saved = savedIds.contains(widget.listing.id));
   }
 
   Future<void> _toggleSave() async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sign in to save listings')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Sign in to save listings')));
       return;
     }
     setState(() => _saved = !_saved);
     try {
-      await context.read<DatabaseService>().toggleSavedListing(userId: userId, listingId: widget.listing.id);
+      await context.read<DatabaseService>().toggleSavedListing(
+        userId: userId,
+        listingId: widget.listing.id,
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() => _saved = !_saved);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not update saved status')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not update saved status')),
+      );
     }
   }
 
@@ -715,7 +785,10 @@ class _RoomPostDetailScaffoldState extends State<_RoomPostDetailScaffold> {
                       const SizedBox(height: 14),
                       Row(
                         children: [
-                          const Icon(Icons.location_on_rounded, color: AppColors.slate500),
+                          const Icon(
+                            Icons.location_on_rounded,
+                            color: AppColors.slate500,
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
@@ -741,7 +814,10 @@ class _RoomPostDetailScaffoldState extends State<_RoomPostDetailScaffold> {
                     children: [
                       Text(
                         '₹${listing.price.toStringAsFixed(0)}/month',
-                        style: AppTheme.headline(fontSize: 24, color: AppColors.primary),
+                        style: AppTheme.headline(
+                          fontSize: 24,
+                          color: AppColors.primary,
+                        ),
                       ),
                       const SizedBox(height: 14),
                       Row(
@@ -855,25 +931,32 @@ class _PgDetailScaffoldState extends State<_PgDetailScaffold> {
     final db = context.read<DatabaseService>();
     final data = await db.getUserData(userId);
     if (!mounted || data == null) return;
-    final savedIds = List<String>.from(data['savedListingIds'] ?? const <String>[]);
+    final savedIds = List<String>.from(
+      data['savedListingIds'] ?? const <String>[],
+    );
     setState(() => _saved = savedIds.contains(widget.listing.id));
   }
 
   Future<void> _toggleSave() async {
     final userId = FirebaseAuth.instance.currentUser?.uid;
     if (userId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sign in to save listings')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Sign in to save listings')));
       return;
     }
     setState(() => _saved = !_saved);
     try {
-      await context.read<DatabaseService>().toggleSavedListing(userId: userId, listingId: widget.listing.id);
+      await context.read<DatabaseService>().toggleSavedListing(
+        userId: userId,
+        listingId: widget.listing.id,
+      );
     } catch (e) {
       if (!mounted) return;
       setState(() => _saved = !_saved);
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Could not update saved status')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Could not update saved status')),
+      );
     }
   }
 
@@ -1766,7 +1849,9 @@ class _ListingLocationPreviewState extends State<_ListingLocationPreview> {
 
     setState(() => _loading = true);
     try {
-      final coordinates = await _locationService.getCoordinatesFromAddress(query);
+      final coordinates = await _locationService.getCoordinatesFromAddress(
+        query,
+      );
       if (!mounted || query != widget.location.trim()) {
         return;
       }
@@ -1873,11 +1958,7 @@ class _ListingLocationPreviewState extends State<_ListingLocationPreview> {
                 decoration: BoxDecoration(
                   color: AppColors.surfaceContainerLowest,
                   borderRadius: BorderRadius.circular(10),
-                  boxShadow: AppTheme.shadow(
-                    blur: 12,
-                    offsetY: 4,
-                    alpha: 0.06,
-                  ),
+                  boxShadow: AppTheme.shadow(blur: 12, offsetY: 4, alpha: 0.06),
                 ),
                 child: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -1981,8 +2062,16 @@ class _MapPreviewPainter extends CustomPainter {
       ..color = AppColors.green50.withValues(alpha: 0.85)
       ..style = PaintingStyle.fill;
 
-    canvas.drawCircle(Offset(size.width * 0.18, size.height * 0.78), 54, greenPaint);
-    canvas.drawCircle(Offset(size.width * 0.88, size.height * 0.18), 44, greenPaint);
+    canvas.drawCircle(
+      Offset(size.width * 0.18, size.height * 0.78),
+      54,
+      greenPaint,
+    );
+    canvas.drawCircle(
+      Offset(size.width * 0.88, size.height * 0.18),
+      44,
+      greenPaint,
+    );
 
     final mainPath = Path()
       ..moveTo(-20, size.height * 0.35)
@@ -2006,7 +2095,11 @@ class _MapPreviewPainter extends CustomPainter {
     }
     for (var i = 0; i < 4; i++) {
       final x = size.width * (0.18 + i * 0.22);
-      canvas.drawLine(Offset(x, 0), Offset(x - 28, size.height), minorRoadPaint);
+      canvas.drawLine(
+        Offset(x, 0),
+        Offset(x - 28, size.height),
+        minorRoadPaint,
+      );
     }
   }
 
@@ -2222,68 +2315,6 @@ Future<void> _launchUri(String rawUrl) async {
 
 String _digitsOnly(String value) {
   return value.replaceAll(RegExp(r'[^0-9]'), '');
-}
-
-class _RoomImageHero extends StatelessWidget {
-  final List<String> imageUrls;
-
-  const _RoomImageHero({required this.imageUrls});
-
-  @override
-  Widget build(BuildContext context) {
-    final hasImages = imageUrls.isNotEmpty;
-
-    return GestureDetector(
-      onTap: hasImages
-          ? () => _openImageViewer(context, imageUrls: imageUrls)
-          : null,
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(18),
-        child: AspectRatio(
-          aspectRatio: 1.55,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              if (hasImages)
-                CachedNetworkImage(
-                  imageUrl: imageUrls.first,
-                  fit: BoxFit.cover,
-                  errorWidget: (_, _, _) => _fallback(),
-                )
-              else
-                _fallback(),
-              if (hasImages)
-                Container(color: Colors.black.withValues(alpha: 0.52)),
-              if (hasImages)
-                Center(
-                  child: Text(
-                    'Tap to view images',
-                    style: AppTheme.body(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _fallback() {
-    return Container(
-      color: AppColors.surfaceContainerHigh,
-      child: const Center(
-        child: Icon(
-          Icons.home_work_rounded,
-          size: 56,
-          color: AppColors.outline,
-        ),
-      ),
-    );
-  }
 }
 
 class _GenericImagePager extends StatelessWidget {
