@@ -138,6 +138,11 @@ class ChatProvider extends ChangeNotifier {
     await _chatService.markConversationAsRead(conversationId);
   }
 
+  /// Hides the current conversation for the signed-in user.
+  Future<void> hideConversation(String conversationId) async {
+    await _chatService.hideConversationForCurrentUser(conversationId);
+  }
+
   /// Updates typing state for the current conversation.
   Future<void> setTypingForCurrentConversation(bool value) async {
     if (_currentConversationId == null) {

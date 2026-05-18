@@ -231,6 +231,9 @@ class ConversationModel {
   final Map<String, int> unreadCountByUser;
   final Map<String, bool> typingByUser;
   final Map<String, ChatParticipantMeta> participantMeta;
+  final bool referenceDeleted;
+  final DateTime? referenceDeletedAt;
+  final List<String> hiddenBy;
   final DateTime createdAt;
 
   const ConversationModel({
@@ -247,6 +250,9 @@ class ConversationModel {
     required this.unreadCountByUser,
     required this.typingByUser,
     required this.participantMeta,
+    required this.referenceDeleted,
+    required this.referenceDeletedAt,
+    required this.hiddenBy,
     required this.createdAt,
   });
 
@@ -298,6 +304,21 @@ class ConversationModel {
       });
     }
 
+    final referenceDeleted = map['referenceDeleted'] == true;
+    DateTime? referenceDeletedAt;
+    if (map['referenceDeletedAt'] is Timestamp) {
+      referenceDeletedAt = (map['referenceDeletedAt'] as Timestamp).toDate();
+    }
+
+    final hiddenBy = <String>[];
+    if (map['hiddenBy'] is Iterable) {
+      for (final entry in map['hiddenBy']!) {
+        if (entry is String && entry.trim().isNotEmpty) {
+          hiddenBy.add(normalizeChatUid(entry));
+        }
+      }
+    }
+
     return ConversationModel(
       id: id,
       participants: List<String>.from(
@@ -319,6 +340,9 @@ class ConversationModel {
       unreadCountByUser: unreadCountByUser,
       typingByUser: typingByUser,
       participantMeta: participantMeta,
+      referenceDeleted: referenceDeleted,
+      referenceDeletedAt: referenceDeletedAt,
+      hiddenBy: hiddenBy,
       createdAt: map['createdAt'] is Timestamp
           ? (map['createdAt'] as Timestamp).toDate()
           : DateTime.now(),

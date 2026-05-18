@@ -235,14 +235,54 @@ class ChatService {
         .limit(40)
         .snapshots()
         .map((snapshot) {
+          final now = DateTime.now();
           final conversations = snapshot.docs
               .map((doc) => ConversationModel.fromMap(doc.data(), doc.id))
+              .where((conversation) {
+                if (conversation.hiddenBy.contains(normalizedUserId)) {
+                  return false;
+                }
+                final deletedAt = conversation.referenceDeletedAt;
+                if (deletedAt != null && now.difference(deletedAt).inDays >= 30) {
+                  // TODO: Move this archival cleanup to a scheduled Cloud Function
+                  // once backend functions are available.
+                  return false;
+                }
+                return true;
+              })
               .toList();
           conversations.sort(
             (a, b) => b.lastMessageTime.compareTo(a.lastMessageTime),
           );
           return conversations;
         });
+  }
+
+  /// Hides the given conversation for the current user only.
+  Future<void> hideConversationForCurrentUser(String conversationId) async {
+    final currentUserId = _currentUserIdOrThrow();
+    await _firestore.collection('chats').doc(conversationId).update({
+      'hiddenBy': FieldValue.arrayUnion([currentUserId]),
+    });
+  }
+
+  /// Marks all chat documents related to a deleted listing as deleted.
+  Future<void> markChatsAsListingDeleted(String listingId) async {
+    final chatQuery = await _firestore
+        .collection('chats')
+        .where('referenceId', isEqualTo: listingId)
+        .get();
+    final batch = _firestore.batch();
+    final now = FieldValue.serverTimestamp();
+
+    for (final doc in chatQuery.docs) {
+      batch.update(doc.reference, {
+        'referenceDeleted': true,
+        'referenceDeletedAt': now,
+      });
+    }
+
+    await batch.commit();
   }
 
   /// Streams messages within a conversation in ascending time order.

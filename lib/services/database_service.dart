@@ -141,6 +141,25 @@ class DatabaseService {
     });
   }
 
+  /// Marks chat threads as deleted when a listing is removed.
+  Future<void> markChatsAsListingDeleted(String listingId) async {
+    final chatQuery = await _firestore
+        .collection('chats')
+        .where('referenceId', isEqualTo: listingId)
+        .get();
+    final batch = _firestore.batch();
+    final now = FieldValue.serverTimestamp();
+
+    for (final doc in chatQuery.docs) {
+      batch.update(doc.reference, {
+        'referenceDeleted': true,
+        'referenceDeletedAt': now,
+      });
+    }
+
+    await batch.commit();
+  }
+
   /// Checks whether a user has posted any listing.
   Future<bool> hasUserPostedListing(String userId) async {
     final snapshot = await _firestore

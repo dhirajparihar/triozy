@@ -31,8 +31,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
   final FocusNode _searchFocusNode = FocusNode();
   String? _currentUserId;
   _ChatInboxSegment _selectedSegment = _ChatInboxSegment.all;
-  // Cache listing type per reference id to avoid repeated Firestore lookups.
-  final Map<String, ListingType> _referenceTypeCache = {};
+  // Cache listing property type per reference id to avoid repeated Firestore lookups.
+  final Map<String, PropertyType> _referenceTypeCache = {};
   final Set<String> _referenceTypeLoading = {};
 
   @override
@@ -71,7 +71,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     if (uid == null || uid.isEmpty) {
       return widget.showScaffold
           ? const Scaffold(
-              backgroundColor: AppColors.background,
+              backgroundColor: Color(0xFFF2F0FF),
               body: Center(child: Text('Please sign in to view chats')),
             )
           : const Center(child: Text('Please sign in to view chats'));
@@ -92,38 +92,32 @@ class _ChatListScreenState extends State<ChatListScreen> {
               (query.isEmpty || searchable.contains(query));
         }).toList();
 
-        // Deduplicate only when the same peer has both housing and marketplace chats.
-        if (_selectedSegment == _ChatInboxSegment.all) {
-          final conversationsByPeer = <String, List<ConversationModel>>{};
-          for (final conversation in filtered) {
-            final peerId = conversation.peerIdFor(uid).trim();
-            final key = peerId.isEmpty ? conversation.id : peerId;
-            conversationsByPeer.putIfAbsent(key, () => []).add(conversation);
+        for (final conversation in chatProvider.conversations) {
+          if (conversation.chatType == ChatType.listing &&
+              conversation.referenceId.trim().isNotEmpty &&
+              !_referenceTypeCache.containsKey(conversation.referenceId)) {
+            _resolveReferenceType(conversation.referenceId);
           }
-
-          final deduped = <ConversationModel>[];
-          for (final group in conversationsByPeer.values) {
-            if (group.length == 1) {
-              deduped.add(group.first);
-              continue;
-            }
-
-            // Check if this peer has conversations of different types
-            final types = group.map((c) => c.chatType).toSet();
-            if (types.length > 1) {
-              // Same peer has both housing and marketplace chats; keep the latest one
-              final combined = [...group];
-              combined.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
-              deduped.add(combined.first);
-            } else {
-              deduped.addAll(group);
-            }
-          }
-
-          filtered = deduped..sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
         }
 
-        return _buildChatList(filtered, chatProvider, query, uid, horizontalPadding, isCompact, listGap);
+        filtered.sort((a, b) => b.lastMessageTime.compareTo(a.lastMessageTime));
+
+        final allUnreadCount = _unreadCountForSegment(chatProvider.conversations, _ChatInboxSegment.all, uid);
+        final housingUnreadCount = _unreadCountForSegment(chatProvider.conversations, _ChatInboxSegment.housing, uid);
+        final marketplaceUnreadCount = _unreadCountForSegment(chatProvider.conversations, _ChatInboxSegment.marketplace, uid);
+
+        return _buildChatList(
+          filtered,
+          chatProvider,
+          query,
+          uid,
+          horizontalPadding,
+          isCompact,
+          listGap,
+          allUnreadCount,
+          housingUnreadCount,
+          marketplaceUnreadCount,
+        );
       },
     );
 
@@ -132,37 +126,13 @@ class _ChatListScreenState extends State<ChatListScreen> {
     }
 
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: const Color(0xFFF2F0FF),
       body: SafeArea(child: content),
     );
   }
 
-  ChatType _effectiveChatType(ConversationModel conversation) {
-    // Marketplace chats are explicit; housing chats may need reference lookup.
-    if (conversation.chatType == ChatType.marketplace) {
-      return ChatType.marketplace;
-    }
-
-    final referenceId = conversation.referenceId.trim();
-    if (referenceId.isEmpty) {
-      return ChatType.listing;
-    }
-
-    final cachedType = _referenceTypeCache[referenceId];
-    if (cachedType != null) {
-      return cachedType == ListingType.marketplace
-          ? ChatType.marketplace
-          : ChatType.listing;
-    }
-
-    // If not cached, trigger async resolution but return listing for now
-    // The UI will update when the cache is populated
-    _resolveReferenceType(referenceId);
-    return ChatType.listing;
-  }
-
   Future<void> _resolveReferenceType(String referenceId) async {
-    // Resolve listing type once and cache to avoid repeated lookups.
+    // Resolve listing property type once and cache to avoid repeated lookups.
     if (referenceId.isEmpty || _referenceTypeCache.containsKey(referenceId)) {
       return;
     }
@@ -178,23 +148,46 @@ class _ChatListScreenState extends State<ChatListScreen> {
       }
       setState(() {
         _referenceTypeCache[referenceId] =
-            listing?.type ?? ListingType.housing;
+            listing?.propertyType ?? PropertyType.room;
       });
     } catch (_) {
       if (!mounted) {
         return;
       }
       setState(() {
-        _referenceTypeCache[referenceId] = ListingType.housing;
+        _referenceTypeCache[referenceId] = PropertyType.room;
       });
     } finally {
       _referenceTypeLoading.remove(referenceId);
     }
   }
 
-  Widget _buildChatList(List<ConversationModel> filtered, ChatProvider chatProvider, String query, String uid, double horizontalPadding, bool isCompact, double listGap) {
+  Future<void> _markAllRead(
+    List<ConversationModel> filtered,
+    ChatProvider chatProvider,
+    String userId,
+  ) async {
+    for (final conversation in filtered) {
+      if (conversation.unreadCountFor(userId) > 0) {
+        await chatProvider.markConversationAsReadIfNeeded(conversation.id);
+      }
+    }
+  }
+
+  Widget _buildChatList(
+    List<ConversationModel> filtered,
+    ChatProvider chatProvider,
+    String query,
+    String uid,
+    double horizontalPadding,
+    bool isCompact,
+    double listGap,
+    int allUnreadCount,
+    int housingUnreadCount,
+    int marketplaceUnreadCount,
+  ) {
     return Container(
-      color: AppColors.background,
+      color: const Color(0xFFF2F0FF),
       child: Column(
         children: [
           // Header: title, search, and segment filters.
@@ -205,7 +198,102 @@ class _ChatListScreenState extends State<ChatListScreen> {
             onSegmentChanged: (segment) {
               setState(() => _selectedSegment = segment);
             },
+            allUnreadCount: allUnreadCount,
+            housingUnreadCount: housingUnreadCount,
+            marketplaceUnreadCount: marketplaceUnreadCount,
           ),
+          if (_selectedSegment == _ChatInboxSegment.all) ...[
+            const SizedBox(height: 12),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4EDFF),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.shield_outlined,
+                      color: AppColors.primary,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        'Chat with confidence',
+                        style: AppTheme.body(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.primary,
+                        ),
+                      ),
+                    ),
+                    OutlinedButton(
+                      onPressed: () {},
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: AppColors.primary,
+                        side: const BorderSide(color: AppColors.primary),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                      child: Text(
+                        'Learn more',
+                        style: AppTheme.body(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+          const SizedBox(height: 12),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                Text(
+                  'Recent',
+                  style: AppTheme.headline(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF1A1A2E),
+                  ),
+                ),
+                const Spacer(),
+                GestureDetector(
+                  onTap: () async {
+                    await _markAllRead(filtered, chatProvider, uid);
+                  },
+                  child: Row(
+                    children: const [
+                      Icon(
+                        Icons.check_circle_outline_rounded,
+                        size: 16,
+                        color: Color(0xFF5B4FCF),
+                      ),
+                      SizedBox(width: 6),
+                      Text(
+                        'Mark all as read',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: Color(0xFF5B4FCF),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
           Expanded(
             child: Builder(
               builder: (context) {
@@ -247,13 +335,17 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       horizontalPadding,
                       24,
                     ),
-                    itemCount: filtered.length,
+                    itemCount: filtered.length + 1,
                     separatorBuilder: (_, _) => SizedBox(height: listGap),
                     itemBuilder: (context, index) {
+                      if (index == filtered.length) {
+                        return _ChatListFooter(isCompact: isCompact);
+                      }
                       final conversation = filtered[index];
                       return _ConversationTile(
                         conversation: conversation,
                         currentUserId: uid,
+                        referencePropertyType: _referenceTypeCache[conversation.referenceId],
                         onTap: () {
                           // Open the conversation detail view.
                           Navigator.push(
@@ -278,15 +370,38 @@ class _ChatListScreenState extends State<ChatListScreen> {
   }
 
   bool _matchesSegment(ConversationModel conversation) {
-    final effectiveType = _effectiveChatType(conversation);
     switch (_selectedSegment) {
       case _ChatInboxSegment.all:
         return true;
       case _ChatInboxSegment.housing:
-        return effectiveType == ChatType.listing;
+        return conversation.chatType == ChatType.listing;
       case _ChatInboxSegment.marketplace:
-        return effectiveType == ChatType.marketplace;
+        return conversation.chatType == ChatType.marketplace;
     }
+  }
+
+  bool _matchesSegmentFilter(ConversationModel conversation, _ChatInboxSegment segment) {
+    switch (segment) {
+      case _ChatInboxSegment.all:
+        return true;
+      case _ChatInboxSegment.housing:
+        return conversation.chatType == ChatType.listing;
+      case _ChatInboxSegment.marketplace:
+        return conversation.chatType == ChatType.marketplace;
+    }
+  }
+
+  int _unreadCountForSegment(
+    List<ConversationModel> conversations,
+    _ChatInboxSegment segment,
+    String userId,
+  ) {
+    return conversations.fold<int>(0, (sum, conversation) {
+      if (!_matchesSegmentFilter(conversation, segment)) {
+        return sum;
+      }
+      return sum + conversation.unreadCountFor(userId);
+    });
   }
 }
 
@@ -295,12 +410,18 @@ class _ChatListHeader extends StatelessWidget {
   final FocusNode focusNode;
   final _ChatInboxSegment selectedSegment;
   final ValueChanged<_ChatInboxSegment> onSegmentChanged;
+  final int allUnreadCount;
+  final int housingUnreadCount;
+  final int marketplaceUnreadCount;
 
   const _ChatListHeader({
     required this.controller,
     required this.focusNode,
     required this.selectedSegment,
     required this.onSegmentChanged,
+    required this.allUnreadCount,
+    required this.housingUnreadCount,
+    required this.marketplaceUnreadCount,
   });
 
   @override
@@ -309,12 +430,12 @@ class _ChatListHeader extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surface,
+        color: Colors.white,
         boxShadow: [
           BoxShadow(
-            color: AppColors.primary.withValues(alpha: 0.05),
-            blurRadius: 12,
-            offset: const Offset(0, 4),
+            color: const Color(0x14000000),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -395,18 +516,21 @@ class _ChatListHeader extends StatelessWidget {
                   _FilterChip(
                     label: 'All',
                     selected: selectedSegment == _ChatInboxSegment.all,
+                    badgeCount: allUnreadCount,
                     onTap: () => onSegmentChanged(_ChatInboxSegment.all),
                   ),
                   const SizedBox(width: 8),
                   _FilterChip(
                     label: 'Housing',
                     selected: selectedSegment == _ChatInboxSegment.housing,
+                    badgeCount: housingUnreadCount,
                     onTap: () => onSegmentChanged(_ChatInboxSegment.housing),
                   ),
                   const SizedBox(width: 8),
                   _FilterChip(
                     label: 'Marketplace',
                     selected: selectedSegment == _ChatInboxSegment.marketplace,
+                    badgeCount: marketplaceUnreadCount,
                     onTap: () => onSegmentChanged(_ChatInboxSegment.marketplace),
                   ),
                 ],
@@ -422,11 +546,13 @@ class _ChatListHeader extends StatelessWidget {
 class _FilterChip extends StatelessWidget {
   final String label;
   final bool selected;
+  final int badgeCount;
   final VoidCallback onTap;
 
   const _FilterChip({
     required this.label,
     required this.selected,
+    this.badgeCount = 0,
     required this.onTap,
   });
 
@@ -440,27 +566,159 @@ class _FilterChip extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOut,
         alignment: Alignment.center,
-        padding: EdgeInsets.symmetric(
-          horizontal: isCompact ? 16 : 20,
-          vertical: isCompact ? 8 : 10,
-        ),
+        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
         decoration: BoxDecoration(
-          color: selected
-              ? AppColors.textPrimary
-              : AppColors.chipBackground,
-          borderRadius: BorderRadius.circular(100),
+          color: selected ? const Color(0xFF5B4FCF) : Colors.white,
+          borderRadius: BorderRadius.circular(999),
+          border: selected
+              ? null
+              : Border.all(
+                  color: const Color(0xFF5B4FCF),
+                  width: 1.5,
+                ),
         ),
-        child: Text(
-          label,
-          style: AppTheme.body(
-            fontSize: isCompact ? 13 : 15,
-            fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
-            color: selected ? Colors.white : AppColors.onSurfaceVariant,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              _iconForLabel(label),
+              size: isCompact ? 16 : 18,
+              color: selected ? Colors.white : const Color(0xFF5B4FCF),
+            ),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: AppTheme.body(
+                fontSize: 11,
+                fontWeight: FontWeight.w700,
+                color: selected ? Colors.white : const Color(0xFF5B4FCF),
+              ),
+            ),
+            if (badgeCount > 0) ...[
+              const SizedBox(width: 8),
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 8,
+                  vertical: 3,
+                ),
+                decoration: BoxDecoration(
+                  color: selected ? Colors.white : const Color(0xFF5B4FCF),
+                  borderRadius: BorderRadius.circular(999),
+                ),
+                child: Text(
+                  badgeCount.toString(),
+                  style: AppTheme.body(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: selected ? const Color(0xFF5B4FCF) : Colors.white,
+                  ),
+                ),
+              ),
+            ],
+          ],
         ),
       ),
     );
   }
+
+  IconData _iconForLabel(String label) {
+    final lower = label.toLowerCase();
+    if (lower.contains('market')) {
+      return Icons.storefront_rounded;
+    }
+    if (lower.contains('house') || lower.contains('housing')) {
+      return Icons.home_work_rounded;
+    }
+    return Icons.chat_bubble_rounded;
+  }
+}
+
+class _ConversationCategoryChip extends StatelessWidget {
+  final ChatType chatType;
+  final PropertyType? propertyType;
+
+  const _ConversationCategoryChip({
+    required this.chatType,
+    this.propertyType,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+    final label = _chipLabel();
+    final colors = _chipColors();
+
+    return Container(
+      padding: EdgeInsets.symmetric(
+        horizontal: isCompact ? 8 : 10,
+        vertical: isCompact ? 5 : 6,
+      ),
+      decoration: BoxDecoration(
+        color: colors.background,
+        borderRadius: BorderRadius.circular(999),
+      ),
+      child: Text(
+        label,
+        style: AppTheme.body(
+          fontSize: isCompact ? 11 : 12,
+          fontWeight: FontWeight.w700,
+          color: colors.text,
+        ),
+      ),
+    );
+  }
+
+  String _chipLabel() {
+    if (chatType == ChatType.marketplace) {
+      return 'Marketplace';
+    }
+    switch (propertyType) {
+      case PropertyType.pg:
+        return 'PG';
+      case PropertyType.room:
+        return 'Room';
+      case PropertyType.flat:
+        return 'Flat/Flatmate';
+      case PropertyType.item:
+        return 'Marketplace';
+      default:
+        return 'Housing';
+    }
+  }
+
+  _ChipColors _chipColors() {
+    if (chatType == ChatType.marketplace || propertyType == PropertyType.item) {
+      return const _ChipColors(
+        background: Color(0xFFEDE7F6),
+        text: Color(0xFF5B4FCF),
+      );
+    }
+    switch (propertyType) {
+      case PropertyType.pg:
+        return const _ChipColors(
+          background: Color(0xFFFFE4F0),
+          text: Color(0xFFD63384),
+        );
+      case PropertyType.room:
+        return const _ChipColors(
+          background: Color(0xFFE4F0FF),
+          text: Color(0xFF0D6EFD),
+        );
+      case PropertyType.flat:
+      default:
+        return const _ChipColors(
+          background: Color(0xFFFFF3E0),
+          text: Color(0xFFE65100),
+        );
+    }
+  }
+}
+
+class _ChipColors {
+  final Color background;
+  final Color text;
+
+  const _ChipColors({required this.background, required this.text});
 }
 
 
@@ -469,11 +727,13 @@ class _FilterChip extends StatelessWidget {
 class _ConversationTile extends StatelessWidget {
   final ConversationModel conversation;
   final String currentUserId;
+  final PropertyType? referencePropertyType;
   final VoidCallback onTap;
 
   const _ConversationTile({
     required this.conversation,
     required this.currentUserId,
+    this.referencePropertyType,
     required this.onTap,
   });
 
@@ -500,7 +760,7 @@ class _ConversationTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(isCompact ? 18 : 22),
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
         child: Ink(
           padding: EdgeInsets.symmetric(
@@ -508,16 +768,13 @@ class _ConversationTile extends StatelessWidget {
             vertical: isCompact ? 12 : 16,
           ),
           decoration: BoxDecoration(
-            color: AppColors.surfaceContainerLowest,
-            borderRadius: BorderRadius.circular(isCompact ? 18 : 22),
-            border: Border.all(
-              color: AppColors.outlineVariant.withValues(alpha: 0.28),
-            ),
-            boxShadow: [
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: const [
               BoxShadow(
-                color: AppColors.primary.withValues(alpha: 0.05),
-                blurRadius: 18,
-                offset: const Offset(0, 8),
+                color: Color(0x14000000),
+                blurRadius: 6,
+                offset: Offset(0, 2),
               ),
             ],
           ),
@@ -548,8 +805,8 @@ class _ConversationTile extends StatelessWidget {
                                   ? FontWeight.w700
                                   : FontWeight.w600,
                               color: isUnread
-                                  ? AppColors.onSurface
-                                  : AppColors.onSurfaceVariant,
+                                  ? const Color(0xFF1A1A2E)
+                                  : const Color(0xFF444444),
                             ),
                           ),
                         ),
@@ -558,30 +815,27 @@ class _ConversationTile extends StatelessWidget {
                         Text(
                           _formatConversationTime(conversation.lastMessageTime),
                           style: AppTheme.body(
-                            fontSize: isCompact ? 11 : 12,
-                            fontWeight: isUnread
-                                ? FontWeight.w700
-                                : FontWeight.w600,
-                            color: isUnread
-                                ? AppColors.primary
-                                : AppColors.outlineVariant,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFFAAAAAA),
                           ),
                         ),
                       ],
                     ),
                     SizedBox(height: isCompact ? 3 : 4),
+                    _ConversationCategoryChip(
+                      chatType: conversation.chatType,
+                      propertyType: referencePropertyType,
+                    ),
+                    SizedBox(height: isCompact ? 6 : 8),
                     Text(
                       listingTitle,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: AppTheme.body(
-                        fontSize: isCompact ? 12 : 14,
-                        fontWeight: isUnread
-                            ? FontWeight.w700
-                            : FontWeight.w500,
-                        color: isUnread
-                            ? AppColors.primary
-                            : AppColors.onSurfaceVariant,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF444444),
                       ),
                     ),
                     SizedBox(height: isCompact ? 4 : 6),
@@ -590,26 +844,32 @@ class _ConversationTile extends StatelessWidget {
                         Expanded(
                           child: Text(
                             subtitle,
-                            maxLines: 1,
+                            maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: AppTheme.body(
-                              fontSize: isCompact ? 13 : 15,
+                              fontSize: 13,
                               fontWeight: FontWeight.w500,
-                              color: isUnread
-                                  ? AppColors.onSurface
-                                  : AppColors.slate500,
+                              color: const Color(0xFF888888),
                             ),
                           ),
                         ),
                         if (isUnread) ...[
                           const SizedBox(width: 12),
-                          // Unread indicator dot.
                           Container(
-                            width: 12,
-                            height: 12,
+                            width: 22,
+                            height: 22,
                             decoration: const BoxDecoration(
-                              color: AppColors.primary,
+                              color: Color(0xFF5B4FCF),
                               shape: BoxShape.circle,
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              unreadCount > 99 ? '99+' : unreadCount.toString(),
+                              style: AppTheme.body(
+                                fontSize: 11,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ],
@@ -659,6 +919,88 @@ class _ConversationTile extends StatelessWidget {
 
 // === Avatar ================================================================
 
+class _ChatListFooter extends StatelessWidget {
+  final bool isCompact;
+
+  const _ChatListFooter({required this.isCompact});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.all(isCompact ? 16 : 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x14000000),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Find your perfect match faster',
+                  style: AppTheme.headline(
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF1A1A2E),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Get more responses by exploring listings tailored to your preferences.',
+                  style: AppTheme.body(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF888888),
+                    height: 1.5,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                FilledButton(
+                  onPressed: () {},
+                  style: FilledButton.styleFrom(
+                    backgroundColor: const Color(0xFF5B4FCF),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    padding: EdgeInsets.symmetric(
+                      vertical: isCompact ? 14 : 16,
+                      horizontal: isCompact ? 20 : 24,
+                    ),
+                  ),
+                  child: Text(
+                    'Explore Now',
+                    style: AppTheme.body(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 16),
+          const Icon(
+            Icons.people_rounded,
+            size: 48,
+            color: Color(0xFFDDD5FF),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _Avatar extends StatelessWidget {
   final String name;
   final String photoUrl;
@@ -681,9 +1023,9 @@ class _Avatar extends StatelessWidget {
         Container(
           width: size,
           height: size,
-          decoration: const BoxDecoration(
+          decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: AppColors.surfaceContainerHigh,
+            color: _avatarColor(name),
           ),
           child: ClipOval(
             child: photoUrl.isEmpty
@@ -694,7 +1036,7 @@ class _Avatar extends StatelessWidget {
                       style: AppTheme.headline(
                         fontSize: isCompact ? 18 : 20,
                         fontWeight: FontWeight.w600,
-                        color: AppColors.slate500,
+                        color: Colors.white,
                       ),
                     ),
                   )
@@ -708,7 +1050,7 @@ class _Avatar extends StatelessWidget {
                         style: AppTheme.headline(
                           fontSize: isCompact ? 18 : 20,
                           fontWeight: FontWeight.w600,
-                          color: AppColors.slate500,
+                          color: Colors.white,
                         ),
                       ),
                     ),
@@ -720,14 +1062,13 @@ class _Avatar extends StatelessWidget {
             right: 1,
             bottom: 1,
             child: Container(
-              // Presence dot highlights unread or typing state.
               width: 16,
               height: 16,
               decoration: BoxDecoration(
-                color: AppColors.secondary,
+                color: const Color(0xFF4CAF50),
                 shape: BoxShape.circle,
                 border: Border.all(
-                  color: AppColors.surfaceContainerLowest,
+                  color: Colors.white,
                   width: 3,
                 ),
               ),
@@ -735,6 +1076,19 @@ class _Avatar extends StatelessWidget {
           ),
       ],
     );
+  }
+
+  Color _avatarColor(String name) {
+    const colors = [
+      Color(0xFF7C3AED),
+      Color(0xFF0D6EFD),
+      Color(0xFFD63384),
+      Color(0xFF2E7D32),
+      Color(0xFFE65100),
+      Color(0xFF0097A7),
+    ];
+    if (name.isEmpty) return colors[0];
+    return colors[name.codeUnitAt(0) % colors.length];
   }
 }
 
