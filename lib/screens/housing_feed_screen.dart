@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 
 import '../models/listing_model.dart';
+import '../providers/location_provider.dart';
 import '../services/database_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -170,7 +171,18 @@ class _HousingTabState extends State<_HousingTab> {
   Future<void> _load() async {
     setState(() => _loading = true);
     final db = context.read<DatabaseService>();
-    final listings = await db.searchListings(type: ListingType.housing);
+    final locProvider = context.read<LocationProvider>();
+
+    if (!locProvider.isAvailable && !locProvider.hasError) {
+      await locProvider.fetchLocation();
+    }
+
+    final listings = await db.searchListings(
+      type: ListingType.housing,
+      lat: locProvider.latitude,
+      lon: locProvider.longitude,
+      locationName: locProvider.address,
+    );
     final userId = FirebaseAuth.instance.currentUser?.uid;
     final saved = userId == null
         ? <ListingModel>[]

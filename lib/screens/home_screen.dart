@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../models/listing_model.dart';
+import '../providers/location_provider.dart';
 import '../services/database_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
@@ -54,8 +55,17 @@ class HomeScreenState extends State<HomeScreen> {
   Future<void> _loadData() async {
     // Fetch featured listings and per-user flags.
     final db = context.read<DatabaseService>();
+    final locProvider = context.read<LocationProvider>();
     try {
-      final listings = await db.getAllListings();
+      if (!locProvider.isAvailable && !locProvider.hasError) {
+        await locProvider.fetchLocation();
+      }
+
+      final listings = await db.searchListings(
+        lat: locProvider.latitude,
+        lon: locProvider.longitude,
+        locationName: locProvider.address,
+      );
       final userId = FirebaseAuth.instance.currentUser?.uid;
       final saved = userId == null
           ? <ListingModel>[]
