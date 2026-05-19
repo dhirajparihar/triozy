@@ -8,6 +8,7 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'theme/app_theme.dart';
+import 'theme/app_colors.dart';
 import 'services/auth_service.dart';
 import 'services/cloudinary_service.dart';
 import 'services/database_service.dart';
