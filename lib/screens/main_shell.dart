@@ -243,7 +243,7 @@ class _MainShellState extends State<MainShell> {
             Padding(
               padding: EdgeInsets.only(
                 top: _currentIndex == 0
-                    ? MediaQuery.of(context).padding.top + 60
+                    ? MediaQuery.of(context).padding.top + 45
                     : MediaQuery.of(context).padding.top,
               ),
               child: IndexedStack(index: _currentIndex, children: _screens),

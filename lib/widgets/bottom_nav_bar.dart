@@ -37,7 +37,7 @@ class AppBottomNavBar extends StatelessWidget {
       child: SafeArea(
         top: false,
         child: Padding(
-          padding: const EdgeInsets.only(top: 10, bottom: 10),
+          padding: const EdgeInsets.only(top: 6, bottom: 6),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.spaceAround,
             children: List.generate(items.length, (index) {
@@ -60,13 +60,13 @@ class AppBottomNavBar extends StatelessWidget {
                           color: selected
                               ? AppColors.primary
                               : AppColors.slate400,
-                          size: 26,
+                          size: 24,
                         ),
-                        const SizedBox(height: 4),
+                        const SizedBox(height: 2),
                         Text(
                           item.$3,
                           style: AppTheme.body(
-                            fontSize: 11,
+                            fontSize: 10,
                             fontWeight: selected
                                 ? FontWeight.w700
                                 : FontWeight.w600,

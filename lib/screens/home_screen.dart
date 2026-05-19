@@ -220,7 +220,7 @@ class HomeScreenState extends State<HomeScreen> {
       color: AppColors.primary,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
-        padding: EdgeInsets.fromLTRB(horizontalPadding, 0, horizontalPadding, 24),
+        padding: EdgeInsets.fromLTRB(horizontalPadding, isCompact ? 12 : 16, horizontalPadding, 24),
         children: [
           _HeroSection(
             onSearchTap: _openLocationSearch,
@@ -457,7 +457,7 @@ class _HeroSection extends StatelessWidget {
             onTap: onSearchTap,
             child: Container(
               width: double.infinity,
-              padding: EdgeInsets.only(left: isCompact ? 16 : 20, right: 6, top: 6, bottom: 6),
+              padding: EdgeInsets.only(left: isCompact ? 14 : 16, right: 5, top: 5, bottom: 5),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(999),
@@ -480,7 +480,7 @@ class _HeroSection extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: AppTheme.body(
-                                fontSize: 14,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: AppColors.textPrimary,
                               ),
@@ -493,7 +493,7 @@ class _HeroSection extends StatelessWidget {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: AppTheme.body(
-                                fontSize: 14,
+                                fontSize: 13,
                                 fontWeight: FontWeight.w500,
                                 color: AppColors.textSecondary,
                               ),
@@ -501,8 +501,8 @@ class _HeroSection extends StatelessWidget {
                           ),
                   ),
                   Container(
-                    width: isCompact ? 42 : 46,
-                    height: isCompact ? 42 : 46,
+                    width: isCompact ? 38 : 42,
+                    height: isCompact ? 38 : 42,
                     decoration: BoxDecoration(
                       gradient: AppColors.primaryGradient,
                       shape: BoxShape.circle,
@@ -517,7 +517,7 @@ class _HeroSection extends StatelessWidget {
                     child: Icon(
                       Icons.search_rounded,
                       color: Colors.white,
-                      size: isCompact ? 20 : 22,
+                      size: isCompact ? 18 : 20,
                     ),
                   ),
                 ],
@@ -556,7 +556,7 @@ class _QuickActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.symmetric(vertical: 20),
+      padding: const EdgeInsets.symmetric(vertical: 14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(24),
@@ -609,8 +609,8 @@ class _QuickActions extends StatelessWidget {
               onTap: onMarketplaceTap,
             ),
             _CategoryCard(
-              title: 'Daily Help',
-              subtitle: 'Services',
+              title: 'All Services',
+              subtitle: 'Browse',
               icon: Icons.grid_view_rounded,
               bgColor: const Color(0xFFECFDF5),
               iconColor: const Color(0xFF10B981),
@@ -646,7 +646,7 @@ class _CategoryCard extends StatelessWidget {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isCompact = screenWidth < 380;
     // Fixed width ensures text doesn't wrap awkwardly and fits nicely in a scrollable row
-    final itemWidth = isCompact ? 80.0 : 90.0;
+    final itemWidth = isCompact ? 72.0 : 82.0;
 
     return GestureDetector(
       onTap: onTap,
@@ -657,8 +657,8 @@ class _CategoryCard extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: isCompact ? 52 : 58,
-              height: isCompact ? 52 : 58,
+              width: isCompact ? 46 : 50,
+              height: isCompact ? 46 : 50,
               decoration: BoxDecoration(
                 color: bgColor,
                 shape: BoxShape.circle,
@@ -666,30 +666,30 @@ class _CategoryCard extends StatelessWidget {
               child: Icon(
                 icon,
                 color: iconColor,
-                size: isCompact ? 24 : 28,
+                size: isCompact ? 20 : 24,
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 8),
             Text(
               title,
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTheme.body(
-                fontSize: isCompact ? 10 : 11,
+                fontSize: isCompact ? 9 : 10,
                 fontWeight: FontWeight.w700,
                 color: AppColors.textPrimary,
                 height: 1.1,
               ),
             ),
-            const SizedBox(height: 3),
+            const SizedBox(height: 2),
             Text(
               subtitle,
               textAlign: TextAlign.center,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: AppTheme.body(
-                fontSize: isCompact ? 8 : 9,
+                fontSize: isCompact ? 7 : 8,
                 fontWeight: FontWeight.w500,
                 color: AppColors.textSecondary,
                 height: 1.1,
@@ -787,31 +787,35 @@ class FeaturedListingCard extends StatelessWidget {
             : listing.propertyType == PropertyType.room
                 ? 'Room'
                 : 'Item';
-    final profileTitle = listing.ownerName.trim().isEmpty
-        ? listing.title.trim()
-        : listing.ownerName.trim();
-    const profileSubtitle = 'Looking for room';
+    final isRoommateNeeded = listing.purpose == ListingPurpose.needRoommate;
+    String displayTitle = listing.title;
+    if (isRoommateNeeded) {
+      final gender = (listing.genderPreference ?? listing.requirementDetails?.genderPreference ?? '').trim();
+      if (gender.isNotEmpty && gender.toLowerCase() != 'any') {
+        final capGender = gender[0].toUpperCase() + gender.substring(1).toLowerCase();
+        displayTitle = '$capGender roommate needed';
+      } else {
+        displayTitle = 'Roommate needed';
+      }
+    } else if (showProfile) {
+      displayTitle = listing.ownerName.trim().isEmpty ? listing.title.trim() : listing.ownerName.trim();
+    }
+
+    final locationWords = listing.location.trim().split(RegExp(r'\s+'));
+    final displayLocation = locationWords.length > 2
+        ? '${locationWords.take(2).join(' ')}...'
+        : listing.location;
 
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.06),
-              blurRadius: 16,
-              offset: const Offset(0, 6),
-            ),
-          ],
-        ),
+        // Remove white background and shadow so text sits directly on scaffold
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(
               child: ClipRRect(
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(18)),
+                borderRadius: BorderRadius.circular(16),
                 child: Stack(
                   fit: StackFit.expand,
                   children: [
@@ -841,31 +845,42 @@ class FeaturedListingCard extends StatelessWidget {
                                 ),
                               ),
                     Positioned(
-                      bottom: 8, left: 8,
+                      top: 12, left: 12,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                         decoration: BoxDecoration(
-                          gradient: AppColors.primaryGradient,
-                          borderRadius: BorderRadius.circular(8),
+                          color: Colors.white.withValues(alpha: 0.95),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.1),
+                              blurRadius: 4,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
                         ),
                         child: Text(typeLabel,
-                          style: AppTheme.body(fontSize: 10, fontWeight: FontWeight.w700, color: Colors.white)),
+                          style: AppTheme.body(fontSize: 11, fontWeight: FontWeight.w700, color: AppColors.textPrimary)),
                       ),
                     ),
                     Positioned(
-                      top: 8, right: 8,
+                      top: 10, right: 10,
                       child: GestureDetector(
                         onTap: onSaveTap,
                         child: Container(
-                          width: 32, height: 32,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withValues(alpha: 0.9),
-                            shape: BoxShape.circle,
-                          ),
+                          padding: const EdgeInsets.all(4),
                           child: Icon(
                             isSaved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                            color: isSaved ? AppColors.tertiary : AppColors.textSecondary,
-                            size: 16,
+                            color: isSaved ? AppColors.tertiary : Colors.white,
+                            size: 24,
+                            shadows: [
+                              if (!isSaved)
+                                Shadow(
+                                  color: Colors.black.withValues(alpha: 0.4),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 1),
+                                ),
+                            ],
                           ),
                         ),
                       ),
@@ -875,54 +890,82 @@ class FeaturedListingCard extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(10, 10, 10, 12),
+              padding: const EdgeInsets.only(top: 10, bottom: 4, right: 8),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    showProfile ? profileTitle : listing.title,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTheme.body(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: AppColors.textPrimary,
-                      height: 1.2,
-                    ),
-                  ),
-                  if (showProfile) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      profileSubtitle,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTheme.body(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: AppColors.textSecondary,
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    alignment: Alignment.centerLeft,
+                    child: RichText(
+                      text: TextSpan(
+                        style: AppTheme.headline(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w800,
+                          color: AppColors.textPrimary,
+                        ),
+                        children: [
+                          TextSpan(text: displayTitle),
+                          if (showProfile && (listing.price > 0 || (listing.requirementDetails?.minBudget ?? 0) > 0 || (listing.requirementDetails?.maxBudget ?? 0) > 0)) ...[
+                            const TextSpan(text: '  |  '),
+                            const TextSpan(text: '₹'),
+                            if (listing.requirementDetails != null && listing.requirementDetails!.minBudget > 0 && listing.requirementDetails!.maxBudget > 0)
+                              TextSpan(text: '${listing.requirementDetails!.minBudget} - ₹${listing.requirementDetails!.maxBudget}')
+                            else if (listing.requirementDetails != null && listing.requirementDetails!.maxBudget > 0)
+                              TextSpan(text: 'Upto ${listing.requirementDetails!.maxBudget}')
+                            else if (listing.requirementDetails != null && listing.requirementDetails!.minBudget > 0)
+                              TextSpan(text: '${listing.requirementDetails!.minBudget} onwards')
+                            else if (listing.price > 0)
+                              TextSpan(text: listing.priceLabel.replaceFirst(RegExp(r'(?:Rs\.?|₹)\s*', caseSensitive: false), '')),
+                            if (listing.price > 0 && !listing.priceLabel.endsWith('/mo'))
+                              TextSpan(text: ' /mo', style: AppTheme.body(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
+                          ],
+                        ],
                       ),
                     ),
-                  ],
-                  if (!showProfile)
-                    const SizedBox(height: 4)
-                  else
-                    const SizedBox(height: 5),
-                  Row(children: [
-                    Icon(Icons.location_on_rounded, size: 12, color: AppColors.textSecondary),
-                    const SizedBox(width: 3),
-                    Expanded(child: Text(listing.location,
-                      maxLines: 1, overflow: TextOverflow.ellipsis,
-                      style: AppTheme.body(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary))),
-                  ]),
-                  const SizedBox(height: 6),
-                  RichText(text: TextSpan(
-                    style: AppTheme.headline(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      TextSpan(text: listing.priceLabel),
-                      TextSpan(text: listing.price > 0 && !listing.priceLabel.endsWith('/mo') ? ' /month' : '',
-                        style: AppTheme.body(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
+                      Flexible(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.start,
+                          children: [
+                            const Icon(Icons.location_on_rounded, size: 12, color: AppColors.primary),
+                            const SizedBox(width: 3),
+                            Flexible(
+                              child: Text(
+                                displayLocation,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: AppTheme.body(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      if (!showProfile)
+                        const SizedBox(width: 8),
+                      if (!showProfile)
+                        Flexible(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerRight,
+                            child: RichText(
+                              text: TextSpan(
+                                style: AppTheme.headline(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                                children: [
+                                  if (listing.price > 0)
+                                    const TextSpan(text: '₹', style: TextStyle(color: AppColors.primary)),
+                                  TextSpan(text: listing.price > 0 ? listing.priceLabel.replaceFirst(RegExp(r'(?:Rs\.?|₹)\s*', caseSensitive: false), '') : listing.priceLabel),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ),
                     ],
-                  )),
+                  ),
                 ],
               ),
             ),

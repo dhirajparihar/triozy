@@ -14,6 +14,30 @@
       },
       "oauth_client": [
         {
+          "client_id": "552703049298-gqvjufpqnsghc4gfbfm5nastb800ttkf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.triozy.triozy_app",
+            "certificate_hash": "ffef08c18f330e02ff9c8f9d0a0aa5688484dc93"
+          }
+        },
+        {
+          "client_id": "552703049298-l9f4auapb8fprki6e6q7bv5b8qaqkare.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.triozy.triozy_app",
+            "certificate_hash": "d99248f32e18046fae67887bede898d8cb425d3b"
+          }
+        },
+        {
+          "client_id": "552703049298-r5b6gfnk148jtcuu647ed85i5l22vnuf.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.triozy.triozy_app",
+            "certificate_hash": "0779ac3ff0dfab9a99c4bc8208e9ba256962e205"
+          }
+        },
+        {
           "client_id": "552703049298-tffl2t8201h4vtbdr4r3ut8qr8phkjth.apps.googleusercontent.com",
           "client_type": 3
         }
@@ -29,6 +53,13 @@
             {
               "client_id": "552703049298-sojetjnnsj2o7bku4kk06rph7jmjdnk6.apps.googleusercontent.com",
               "client_type": 3
+            },
+            {
+              "client_id": "552703049298-1rmgi8lvqj296m998bsabjul2svt2gum.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.triozy.triozy-app"
+              }
             }
           ]
         }

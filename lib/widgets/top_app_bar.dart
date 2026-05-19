@@ -39,12 +39,11 @@ class TriozyTopAppBar extends StatelessWidget {
     final isSmallScreen = screenHeight < 700;
     
     // Scale typography and paddings for smaller devices.
-    final greetingFontSize = isSmallScreen ? 18.0 : 22.0;
-    final locationFontSize = isSmallScreen ? 12.0 : 13.0;
-    final dropdownIconSize = isSmallScreen ? 14.0 : 16.0;
-    final avatarSize = isSmallScreen ? 40.0 : 44.0;
-    final appBarHeight = isSmallScreen ? 56.0 : 62.0;
-    final topPadding = isSmallScreen ? 6.0 : 8.0;
+    final greetingFontSize = isSmallScreen ? 16.0 : 18.0;
+    final locationFontSize = isSmallScreen ? 11.0 : 12.0;
+    final avatarSize = isSmallScreen ? 36.0 : 40.0;
+    final appBarHeight = isSmallScreen ? 48.0 : 54.0;
+    final topPadding = isSmallScreen ? 4.0 : 6.0;
     final bottomPadding = isSmallScreen ? 2.0 : 4.0;
 
     return SafeArea(
@@ -109,12 +108,6 @@ class TriozyTopAppBar extends StatelessWidget {
                               color: AppColors.textSecondary,
                             ),
                           ),
-                        ),
-                        const SizedBox(width: 2),
-                        Icon(
-                          Icons.keyboard_arrow_down_rounded,
-                          color: AppColors.textSecondary,
-                          size: dropdownIconSize,
                         ),
                       ],
                     ),
