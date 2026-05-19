@@ -78,9 +78,18 @@ class DatabaseService {
     ListingPurpose? purpose,
     double? maxPrice,
     bool featuredOnly = false,
+    double? lat,
+    double? lon,
+    String locationName = '',
+    double radiusKm = 50.0,
   }) async {
     final listings = await getAllListings();
     final q = query.trim().toLowerCase();
+    final locationTerms = locationName
+        .toLowerCase()
+        .split(RegExp(r'[\s,]+'))
+        .where((t) => t.length > 2)
+        .toSet();
 
     return listings.where((listing) {
       if (type != null && listing.type != type) return false;
@@ -90,6 +99,26 @@ class DatabaseService {
       if (purpose != null && listing.purpose != purpose) return false;
       if (maxPrice != null && listing.price > maxPrice) return false;
       if (featuredOnly && !listing.isFeatured) return false;
+
+      // Proximity Filtering
+      if (lat != null && lon != null) {
+        bool isNearby = false;
+        if (listing.latitude != null && listing.longitude != null) {
+          final distance = _haversineKm(
+            lat, lon, listing.latitude!, listing.longitude!,
+          );
+          if (distance <= radiusKm) {
+            isNearby = true;
+          }
+        } else if (locationTerms.isNotEmpty) {
+          final loc = listing.location.toLowerCase();
+          if (locationTerms.any((term) => loc.contains(term))) {
+            isNearby = true;
+          }
+        }
+        if (!isNearby) return false;
+      }
+
       if (q.isEmpty) return true;
       final requirement = listing.requirementDetails;
       return listing.title.toLowerCase().contains(q) ||
@@ -272,7 +301,7 @@ class DatabaseService {
   Future<List<ListingModel>> getNearbyListings({
     required double lat,
     required double lon,
-    double radiusKm = 10.0,
+    double radiusKm = 50.0,
     String locationName = '',
   }) async {
     final listings = await getAllListings();

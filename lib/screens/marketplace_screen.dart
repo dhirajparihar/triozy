@@ -74,10 +74,19 @@ class _MarketplaceScreenState extends State<MarketplaceScreen> {
 
     try {
       final db = context.read<DatabaseService>();
+      final locProvider = context.read<LocationProvider>();
+
+      if (!locProvider.isAvailable && !locProvider.hasError) {
+        await locProvider.fetchLocation();
+      }
+
       final listings = await db.searchListings(
         query: _searchController.text,
         type: ListingType.marketplace,
         propertyType: PropertyType.item,
+        lat: locProvider.latitude,
+        lon: locProvider.longitude,
+        locationName: locProvider.address,
       );
       final userId = FirebaseAuth.instance.currentUser?.uid;
       final saved = userId == null
