@@ -96,14 +96,14 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      backgroundColor: AppColors.primary,
       body: DecoratedBox(
         decoration: BoxDecoration(
           // Soft vertical gradient sets the splash mood.
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
-            colors: [AppColors.background, AppColors.surfaceContainerLow],
+            colors: [AppColors.primary, AppColors.primaryDark],
           ),
         ),
         child: Stack(
@@ -120,7 +120,7 @@ class _SplashScreenState extends State<SplashScreen>
                         center: const Alignment(0, -0.1),
                         radius: 0.92 + (_pulseController.value * 0.04),
                         colors: [
-                          AppColors.primary.withValues(alpha: _glowPulse.value),
+                          Colors.white.withValues(alpha: _glowPulse.value),
                           Colors.transparent,
                         ],
                       ),
@@ -137,7 +137,7 @@ class _SplashScreenState extends State<SplashScreen>
                 height: 180,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.secondaryContainer.withValues(alpha: 0.34),
+                  color: Colors.white.withValues(alpha: 0.1),
                 ),
               ),
             ),
@@ -149,7 +149,7 @@ class _SplashScreenState extends State<SplashScreen>
                 height: 220,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppColors.accentSoft.withValues(alpha: 0.34),
+                  color: Colors.white.withValues(alpha: 0.1),
                 ),
               ),
             ),
@@ -202,7 +202,7 @@ class _SplashScreenState extends State<SplashScreen>
                                   Text(
                                     'Triozy',
                                     style: AppTheme.headline(
-                                      color: AppColors.primary,
+                                      color: AppColors.onPrimary,
                                       fontSize: 32,
                                       fontWeight: FontWeight.w700,
                                     ),
@@ -219,7 +219,7 @@ class _SplashScreenState extends State<SplashScreen>
                                       style: AppTheme.body(
                                         fontSize: 16,
                                         fontWeight: FontWeight.w400,
-                                        color: AppColors.onSurfaceVariant,
+                                        color: AppColors.onPrimary.withValues(alpha: 0.8),
                                         height: 1.5,
                                       ),
                                     ),
@@ -240,9 +240,9 @@ class _SplashScreenState extends State<SplashScreen>
                                   children: [
                                     // Thin progress line for startup work.
                                     LinearProgressIndicator(
-                                      backgroundColor: AppColors.outlineVariant
+                                      backgroundColor: AppColors.onPrimary
                                           .withValues(alpha: 0.3),
-                                      color: AppColors.primary,
+                                      color: AppColors.onPrimary,
                                       minHeight: 2,
                                     ),
                                     const SizedBox(height: 24),
@@ -252,7 +252,7 @@ class _SplashScreenState extends State<SplashScreen>
                                         fontSize: 11,
                                         letterSpacing: 1.5,
                                         fontWeight: FontWeight.w600,
-                                        color: AppColors.onSurfaceVariant
+                                        color: AppColors.onPrimary
                                             .withValues(alpha: 0.8),
                                       ),
                                     ),
