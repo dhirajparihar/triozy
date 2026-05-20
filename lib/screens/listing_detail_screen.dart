@@ -1,4 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
@@ -682,12 +683,32 @@ class _RoomPostDetailScaffold extends StatefulWidget {
 class _RoomPostDetailScaffoldState extends State<_RoomPostDetailScaffold> {
   final PageController _imageController = PageController();
   int _imageIndex = 0;
+  String? _ownerPhone;
   bool _saved = false;
 
   @override
   void initState() {
     super.initState();
     _initSavedState();
+    _loadOwnerPhone();
+  }
+
+  Future<void> _loadOwnerPhone() async {
+    if (widget.listing.phonePublic != true) return;
+    try {
+      // This assumes the phone number is stored in the user's document in a 'phone' field.
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.listing.ownerId)
+          .get();
+      if (!mounted) return;
+      final phone = userDoc.data()?['phoneNumber'] as String?;
+      if (phone != null && phone.isNotEmpty) {
+        setState(() => _ownerPhone = phone);
+      }
+    } catch (_) {
+      // Silently ignore errors, the call button will not appear.
+    }
   }
 
   Future<void> _initSavedState() async {
@@ -873,8 +894,8 @@ class _RoomPostDetailScaffoldState extends State<_RoomPostDetailScaffold> {
       ),
       bottomNavigationBar: _RequirementContactBar(
         listing: listing,
-        gender: lookingFor,
         onStartChat: widget.onStartChat,
+        onCall: _ownerPhone == null ? null : () => _launchUri('tel:$_ownerPhone'),
       ),
     );
   }
@@ -2667,7 +2688,6 @@ class _RequirementDetailScaffold extends StatelessWidget {
       ),
       bottomNavigationBar: _RequirementContactBar(
         listing: listing,
-        gender: gender.isEmpty ? 'Any' : gender,
         onStartChat: onStartChat,
       ),
     );
@@ -2681,13 +2701,13 @@ class _RequirementDetailScaffold extends StatelessWidget {
 
 class _RequirementContactBar extends StatelessWidget {
   final ListingModel listing;
-  final String gender;
   final VoidCallback onStartChat;
+  final VoidCallback? onCall;
 
   const _RequirementContactBar({
     required this.listing,
-    required this.gender,
     required this.onStartChat,
+    this.onCall,
   });
 
   @override
@@ -2699,7 +2719,7 @@ class _RequirementContactBar extends StatelessWidget {
     return SafeArea(
       top: false,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(28, 12, 28, 16),
+        padding: const EdgeInsets.fromLTRB(20, 10, 20, 12),
         decoration: BoxDecoration(
           color: Colors.white,
           border: Border(
@@ -2713,9 +2733,9 @@ class _RequirementContactBar extends StatelessWidget {
             _RequirementAvatar(
               photoUrl: listing.ownerPhotoUrl,
               name: name,
-              size: 58,
+              size: 48,
             ),
-            const SizedBox(width: 18),
+            const SizedBox(width: 14),
             Expanded(
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -2725,28 +2745,37 @@ class _RequirementContactBar extends StatelessWidget {
                     name,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: AppTheme.headline(fontSize: 20),
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    gender,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: AppTheme.body(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w500,
-                      color: AppColors.slate500,
-                    ),
+                    style: AppTheme.headline(fontSize: 18),
                   ),
                 ],
               ),
             ),
             const SizedBox(width: 16),
+            if (onCall != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 8),
+                child: GestureDetector(
+                  onTap: onCall,
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: const BoxDecoration(
+                      color: AppColors.surfaceContainerLow,
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.call_rounded,
+                      color: AppColors.secondary,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
             GestureDetector(
               onTap: onStartChat,
               child: Container(
-                width: 58,
-                height: 58,
+                width: 48,
+                height: 48,
                 decoration: const BoxDecoration(
                   color: AppColors.surfaceContainerLow,
                   shape: BoxShape.circle,
@@ -2754,7 +2783,7 @@ class _RequirementContactBar extends StatelessWidget {
                 child: const Icon(
                   Icons.chat_bubble_rounded,
                   color: AppColors.secondary,
-                  size: 28,
+                  size: 24,
                 ),
               ),
             ),

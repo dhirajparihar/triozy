@@ -219,6 +219,7 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
         furnishing: _selectedAmenities.isEmpty ? null : 'With amenities',
         availableFrom: 'Available now',
         purpose: ListingPurpose.needRoommate,
+        phonePublic: _mobilePublic,
       );
 
       await database.createListing(listing);

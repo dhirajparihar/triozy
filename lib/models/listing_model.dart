@@ -187,6 +187,7 @@ class ListingModel {
   final RequirementModel? requirementDetails;
   final bool isFeatured;
   final DateTime? createdAt;
+  final bool phonePublic;
 
   const ListingModel({
     required this.id,
@@ -211,6 +212,7 @@ class ListingModel {
     this.requirementDetails,
     this.isFeatured = false,
     this.createdAt,
+    this.phonePublic = false,
   }) : assert(
           (type == ListingType.marketplace &&
                   propertyType == PropertyType.item &&
@@ -256,6 +258,7 @@ class ListingModel {
       createdAt: map['createdAt'] is Timestamp
           ? (map['createdAt'] as Timestamp).toDate()
           : null,
+      phonePublic: map['phonePublic'] as bool? ?? false,
     );
   }
 
@@ -284,6 +287,7 @@ class ListingModel {
         'requirementDetails':
             requirementDetails!.toMap(includeCreatedAt: false),
       'isFeatured': isFeatured,
+      'phonePublic': phonePublic,
       if (includeCreatedAt) 'createdAt': FieldValue.serverTimestamp(),
     };
   }

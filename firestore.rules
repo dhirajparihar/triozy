@@ -173,6 +173,7 @@ service cloud.firestore {
         'furnishing',
         'availableFrom',
         'isFeatured',
+        'phonePublic',
         'createdAt',
       ]) &&
           data.ownerId is string &&
@@ -198,7 +199,8 @@ service cloud.firestore {
           isValidOptionalString(data, 'condition') &&
           isValidOptionalString(data, 'furnishing') &&
           isValidOptionalString(data, 'availableFrom') &&
-          (!( 'isFeatured' in data) || data.isFeatured is bool);
+          (!('isFeatured' in data) || data.isFeatured is bool) &&
+          (!('phonePublic' in data) || data.phonePublic is bool);
     }
 
     match /users/{userId} {
