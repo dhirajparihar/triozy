@@ -18,6 +18,9 @@ class MyListingsScreen extends StatelessWidget {
     required ListingModel listing,
     required String userId,
   }) async {
+    final messenger = ScaffoldMessenger.of(context);
+    final databaseService = context.read<DatabaseService>();
+
     // Ask for confirmation before deleting.
     final confirmed = await showDialog<bool>(
       context: context,
@@ -45,18 +48,17 @@ class MyListingsScreen extends StatelessWidget {
       },
     );
 
-    if (confirmed != true || !context.mounted) {
+    if (confirmed != true) {
       return;
     }
 
     // Perform delete and surface a result toast.
-    final messenger = ScaffoldMessenger.of(context);
     try {
-      await context.read<DatabaseService>().deleteListing(
+      await databaseService.deleteListing(
         listingId: listing.id,
         userId: userId,
       );
-      await context.read<DatabaseService>().markChatsAsListingDeleted(listing.id);
+      await databaseService.markChatsAsListingDeleted(listing.id);
       messenger.showSnackBar(
         const SnackBar(content: Text('Listing deleted')),
       );
