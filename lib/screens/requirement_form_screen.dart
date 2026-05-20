@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
@@ -48,6 +48,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
   final Set<String> _lifestyle = {};
   final Set<String> _contact = {'In-app Chat'};
   final ImagePicker _picker = ImagePicker();
+  bool _mobilePublic = true;
 
   Timer? _autosaveTimer;
   bool _uploadingProfilePhoto = false;
@@ -165,6 +166,10 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
     }
   }
 
+  /// Asset paths for bundled avatars.
+  static const _kMaleAvatarAsset = 'assets/images/male avtar.png';
+  static const _kFemaleAvatarAsset = 'assets/images/female avtar.png';
+
   Future<void> _chooseAvatar(String avatarKey) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
@@ -174,13 +179,14 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
       return;
     }
 
-    // Optimistically update to keep the UI snappy.
-    final photoUrl = _avatarUrl(avatarKey, user.uid);
+    // Use local asset path for preview; store a generated URL in Firestore.
+    final assetPath = avatarKey == 'female' ? _kFemaleAvatarAsset : _kMaleAvatarAsset;
     final previousPhotoUrl = _profilePhotoUrl;
-    setState(() => _profilePhotoUrl = photoUrl);
+    setState(() => _profilePhotoUrl = assetPath);
 
     try {
-      await _saveProfilePhotoUrl(user, photoUrl);
+      final remoteUrl = _avatarUrl(avatarKey, user.uid);
+      await _saveProfilePhotoUrl(user, remoteUrl);
     } catch (e) {
       if (!mounted) {
         return;
@@ -203,7 +209,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
     if (!mounted) {
       return;
     }
-    setState(() => _profilePhotoUrl = photoUrl);
+    // Keep asset path in local state for preview; remote URL is already saved.
   }
 
   String _avatarUrl(String avatarKey, String userId) {
@@ -433,6 +439,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
         furnishing: _amenities.contains('Furnished') ? 'Furnished' : null,
         availableFrom: _moveIn,
         purpose: ListingPurpose.needPlace,
+        phonePublic: _mobilePublic,
         requirementDetails: requirement,
       );
 
@@ -676,6 +683,11 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
               ],
             ),
             SizedBox(height: sectionGap),
+            _MobileVisibilityCard(
+              isPublic: _mobilePublic,
+              onChanged: (value) => setState(() => _mobilePublic = value),
+            ),
+            SizedBox(height: sectionGap),
             Text(
               'Short description',
               style: AppTheme.headline(fontSize: headingSize),
@@ -905,6 +917,147 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
                 ),
               ),
             ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MobileVisibilityCard extends StatelessWidget {
+  /// Card for selecting whether to show phone number publicly.
+  final bool isPublic;
+  final ValueChanged<bool> onChanged;
+
+  const _MobileVisibilityCard({
+    required this.isPublic,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isCompact = constraints.maxWidth < 340;
+
+        return Container(
+          padding: EdgeInsets.fromLTRB(
+            isCompact ? 14 : 16,
+            isCompact ? 16 : 18,
+            isCompact ? 14 : 16,
+            isCompact ? 16 : 18,
+          ),
+          decoration: BoxDecoration(
+            color: AppColors.secondaryContainer,
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Make your mobile number visible to other users?',
+                style: AppTheme.body(
+                  fontSize: isCompact ? 15 : 16,
+                  fontWeight: FontWeight.w800,
+                  height: 1.25,
+                  color: AppColors.onSurface,
+                ),
+              ),
+              SizedBox(height: isCompact ? 14 : 16),
+              if (isCompact)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _VisibilityButton(
+                      text: 'Yes, public',
+                      selected: isPublic,
+                      onTap: () => onChanged(true),
+                    ),
+                    const SizedBox(height: 10),
+                    _VisibilityButton(
+                      text: 'No, private',
+                      selected: !isPublic,
+                      onTap: () => onChanged(false),
+                    ),
+                  ],
+                )
+              else
+                Row(
+                  children: [
+                    Expanded(
+                      child: _VisibilityButton(
+                        text: 'Yes, public',
+                        selected: isPublic,
+                        onTap: () => onChanged(true),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: _VisibilityButton(
+                        text: 'No, private',
+                        selected: !isPublic,
+                        onTap: () => onChanged(false),
+                      ),
+                    ),
+                  ],
+                ),
+              SizedBox(height: isCompact ? 14 : 16),
+              Text(
+                'Note: If your mobile number is private, others can contact you only through chat.',
+                style: AppTheme.body(
+                  fontSize: 12,
+                  height: 1.35,
+                  color: AppColors.onSurfaceVariant,
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _VisibilityButton extends StatelessWidget {
+  /// Toggle button used in the mobile visibility section.
+  final String text;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _VisibilityButton({
+    required this.text,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final isCompact = MediaQuery.sizeOf(context).width < 380;
+
+    return SizedBox(
+      height: isCompact ? 46 : 48,
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          elevation: 0,
+          backgroundColor: selected
+              ? AppColors.primary
+              : AppColors.surfaceContainerHigh,
+          foregroundColor: selected ? AppColors.onPrimary : AppColors.onSurface,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10),
+          ),
+        ),
+        child: Text(
+          text,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: AppTheme.body(
+            fontSize: isCompact ? 13 : 14,
+            height: 1.15,
+            fontWeight: FontWeight.w700,
+            color: selected ? AppColors.onPrimary : AppColors.onSurface,
           ),
         ),
       ),
@@ -1257,18 +1410,12 @@ class _ProfilePhotoSection extends StatelessWidget {
           children: [
             _PresetAvatarButton(
               label: 'Female',
-              imageUrl: _normalAvatarUrl(
-                seed: 'triozy-female-preview',
-                gender: 'female',
-              ),
+              assetPath: 'assets/images/female avtar.png',
               onTap: uploading ? null : () => onAvatarTap('female'),
             ),
             _PresetAvatarButton(
               label: 'Male',
-              imageUrl: _normalAvatarUrl(
-                seed: 'triozy-male-preview',
-                gender: 'male',
-              ),
+              assetPath: 'assets/images/male avtar.png',
               onTap: uploading ? null : () => onAvatarTap('male'),
             ),
           ],
@@ -1297,7 +1444,11 @@ class _ProfilePhotoSection extends StatelessWidget {
                 key: ValueKey(imageUrl),
                 radius: avatarRadius,
                 backgroundColor: AppColors.surfaceContainerLow,
-                backgroundImage: imageUrl.isEmpty ? null : NetworkImage(imageUrl),
+                backgroundImage: imageUrl.isEmpty
+                    ? null
+                    : imageUrl.startsWith('assets/')
+                        ? AssetImage(imageUrl) as ImageProvider
+                        : NetworkImage(imageUrl) as ImageProvider,
                 child: imageUrl.isEmpty && !uploading
                     ? Icon(
                         Icons.person_rounded,
@@ -1357,23 +1508,23 @@ class _ProfilePhotoActionChip extends StatelessWidget {
 /// Selectable preset avatar option.
 class _PresetAvatarButton extends StatelessWidget {
   final String label;
-  final String imageUrl;
+  final String assetPath;
   final VoidCallback? onTap;
 
   const _PresetAvatarButton({
     required this.label,
-    required this.imageUrl,
+    required this.assetPath,
     this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     final isCompact = MediaQuery.sizeOf(context).width < 380;
-    final size = isCompact ? 48.0 : 54.0;
+    final size = isCompact ? 56.0 : 64.0;
 
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(28),
+      borderRadius: BorderRadius.circular(32),
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -1382,14 +1533,15 @@ class _PresetAvatarButton extends StatelessWidget {
             height: size,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
-              color: const Color(0xFFDDEBFF),
+              color: const Color(0xFFEEF2FF),
               border: Border.all(
-                color: AppColors.outlineVariant.withValues(alpha: 0.42),
+                color: AppColors.primary.withValues(alpha: 0.25),
+                width: 2,
               ),
             ),
             clipBehavior: Clip.antiAlias,
-            child: Image.network(
-              imageUrl,
+            child: Image.asset(
+              assetPath,
               fit: BoxFit.cover,
               errorBuilder: (_, _, _) => const Icon(
                 Icons.person_rounded,
@@ -1397,7 +1549,7 @@ class _PresetAvatarButton extends StatelessWidget {
               ),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           Text(
             label,
             style: AppTheme.label(

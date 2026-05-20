@@ -368,10 +368,10 @@ class _FlatmateFeedCard extends StatelessWidget {
                     Expanded(
                       child: Padding(
                         padding: EdgeInsets.fromLTRB(
-                          isCompact ? 14 : 18,
-                          isCompact ? 16 : 20,
+                          isCompact ? 10 : 12,
                           isCompact ? 10 : 14,
-                          isCompact ? 12 : 16,
+                          isCompact ? 8 : 10,
+                          isCompact ? 8 : 10,
                         ),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,34 +383,34 @@ class _FlatmateFeedCard extends StatelessWidget {
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: AppTheme.headline(
-                                  fontSize: isCompact ? 17 : 19,
-                                  fontWeight: FontWeight.w800,
+                                  fontSize: isCompact ? 14 : 16,
+                                  fontWeight: FontWeight.w700,
                                   color: const Color(0xFF3F3F3F),
                                 ),
                               ),
-                              const SizedBox(height: 12),
+                              const SizedBox(height: 6),
                             ],
                             if (location.isNotEmpty) ...[
                               _FlatmateInfoLine(
                                 icon: Icons.location_on_rounded,
                                 text: location,
-                                fontSize: isCompact ? 14 : 15,
+                                fontSize: isCompact ? 11 : 12,
                               ),
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 5),
                             ],
                             if (rentLabel.isNotEmpty) ...[
                               _FlatmateInfoLine(
                                 icon: Icons.currency_rupee_rounded,
                                 text: rentLabel,
-                                fontSize: isCompact ? 14 : 15,
+                                fontSize: isCompact ? 11 : 12,
                               ),
-                              const SizedBox(height: 10),
+                              const SizedBox(height: 5),
                             ],
                             if (lookingFor.isNotEmpty)
                               _FlatmateInfoLine(
                                 icon: Icons.person_rounded,
                                 text: lookingFor,
-                                fontSize: isCompact ? 14 : 15,
+                                fontSize: isCompact ? 11 : 12,
                               ),
                           ],
                         ),
@@ -421,7 +421,7 @@ class _FlatmateFeedCard extends StatelessWidget {
               ),
               const Divider(height: 1, color: Color(0xFFEDEDED)),
               SizedBox(
-                height: isCompact ? 52 : 58,
+                height: isCompact ? 42 : 46,
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: isCompact ? 10 : 12),
                   child: Row(
@@ -433,7 +433,7 @@ class _FlatmateFeedCard extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTheme.body(
-                              fontSize: isCompact ? 14 : 15,
+                              fontSize: isCompact ? 11 : 12,
                               fontWeight: FontWeight.w500,
                               color: const Color(0xFF8E8E8E),
                             ),
@@ -614,8 +614,8 @@ class _FlatmateActionButton extends StatelessWidget {
       customBorder: const CircleBorder(),
       onTap: enabled ? onTap : null,
       child: Container(
-        width: 46,
-        height: 46,
+        width: 36,
+        height: 36,
         decoration: BoxDecoration(
           color: const Color(0xFFF8F8F8),
           shape: BoxShape.circle,

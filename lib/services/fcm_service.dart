@@ -37,16 +37,19 @@ class FCMService {
 
     try {
       await _setupLocalNotifications();
-      await _requestPermissions();
+      final granted = await _requestPermissions();
 
-      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-      FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
-      FirebaseMessaging.onMessageOpenedApp.listen((message) {
-        debugPrint('FCM onMessageOpenedApp: ${message.messageId}');
-      });
+      if (granted) {
+        FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+        FirebaseMessaging.onMessage.listen(_handleForegroundMessage);
+        FirebaseMessaging.onMessageOpenedApp.listen((message) {
+          debugPrint('FCM onMessageOpenedApp: ${message.messageId}');
+        });
 
-      await _persistTokenForCurrentUser();
-      _messaging.onTokenRefresh.listen(_persistTokenForCurrentUserByToken);
+        await _persistTokenForCurrentUser();
+        _messaging.onTokenRefresh.listen(_persistTokenForCurrentUserByToken);
+      }
+
       _initialized = true;
     } catch (e) {
       debugPrint('FCM initialize failed: $e');
@@ -86,13 +89,32 @@ class FCMService {
   }
 
   /// Requests notification permissions and foreground display options.
-  Future<void> _requestPermissions() async {
-    await _messaging.requestPermission(
-      alert: true,
-      badge: true,
-      sound: true,
-      provisional: false,
-    );
+  /// Returns true if notifications are authorized, false if denied/blocked.
+  Future<bool> _requestPermissions() async {
+    NotificationSettings settings;
+    try {
+      settings = await _messaging.requestPermission(
+        alert: true,
+        badge: true,
+        sound: true,
+        provisional: false,
+      );
+    } catch (e) {
+      // permission-blocked or other platform error — proceed without notifications.
+      debugPrint('FCM permission request error (non-fatal): $e');
+      return false;
+    }
+
+    final granted =
+        settings.authorizationStatus == AuthorizationStatus.authorized ||
+        settings.authorizationStatus == AuthorizationStatus.provisional;
+
+    if (!granted) {
+      debugPrint(
+        'FCM notifications not granted: ${settings.authorizationStatus}',
+      );
+      return false;
+    }
 
     if (!kIsWeb) {
       await _messaging.setForegroundNotificationPresentationOptions(
@@ -101,6 +123,8 @@ class FCMService {
         sound: true,
       );
     }
+
+    return true;
   }
 
   /// Handles foreground messages by showing a local notification.
