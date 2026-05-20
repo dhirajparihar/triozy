@@ -8,7 +8,6 @@ import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'theme/app_theme.dart';
-import 'theme/app_colors.dart';
 import 'services/auth_service.dart';
 import 'services/cloudinary_service.dart';
 import 'services/database_service.dart';
@@ -24,9 +23,7 @@ import 'screens/complete_profile_screen.dart';
 import 'screens/main_shell.dart';
 import 'screens/account_deletion_screen.dart';
 
-
 // === App bootstrap ===========================================================
-
 
 /// App entry point.
 ///
@@ -57,8 +54,6 @@ void main() async {
   }
   runApp(const TriozyApp());
 }
-
-
 
 // === Root widget =============================================================
 
@@ -115,8 +110,6 @@ class TriozyApp extends StatelessWidget {
     );
   }
 }
-
-
 
 // === Startup gates ===========================================================
 
@@ -215,8 +208,6 @@ class _DeepLinkGateState extends State<_DeepLinkGate> {
     return const AuthGate();
   }
 }
-
-
 
 // === Auth and profile routing ===============================================
 
