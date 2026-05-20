@@ -45,11 +45,20 @@ class LocationProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    _fetchFuture = _performFetch();
+    _fetchFuture = _doFetchLocation();
     return _fetchFuture!;
   }
 
-  Future<void> _performFetch() async {
+  /// Force a fresh GPS location fetch, overriding any custom location.
+  Future<void> forceRefetchLocation() async {
+    _latitude = null;
+    _longitude = null;
+    _address = 'Locating...';
+    notifyListeners();
+    return fetchLocation();
+  }
+
+  Future<void> _doFetchLocation() async {
     try {
       final position = await _locationService.getCurrentPosition();
       _latitude = position.latitude;
@@ -81,6 +90,16 @@ class LocationProvider extends ChangeNotifier {
     _fetchFuture = null; // Clear any ongoing fetch so we start a new one
     notifyListeners();
     await fetchLocation();
+  }
+
+  /// Manually override location data without geocoding.
+  void setLocationData(double lat, double lon, String addressLabel) {
+    _latitude = lat;
+    _longitude = lon;
+    _address = addressLabel;
+    _hasError = false;
+    _errorMessage = null;
+    notifyListeners();
   }
 
   /// Manually set location from user-entered address/city text.

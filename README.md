@@ -2,41 +2,32 @@
 
 > **Your local network, for everything.**
 
-Triozy is a hyperlocal community connection platform built with Flutter and Firebase. It connects users directly with nearby service professionals, lets them post open requests, and enables peer-to-peer connections for roommates, helpmates, and ride sharing — all in one app.
-
-No booking fees. No middlemen. Just direct, instant, human-to-human access.
+Triozy is a platform developed for students and working professionals to find rooms/PGs and flatmates when they move to a new city. Users can also buy and sell used items on the platform. Built with Flutter and Firebase, an all-in-one app.
 
 ---
 
 ## Core Pillars
 
-### 🔧 Services
-Browse and search local professionals across 30+ categories — electricians, plumbers, AC repair, tailors, and more. Tap a profile and call directly. No appointment booking, no platform fee.
+### 🏠 Housing & PGs
+Find the perfect place to stay. Browse listings for rooms, PGs, and apartments with detailed filters for location, budget, and amenities.
 
-### 📋 Requests
-Can't find what you need? Post a public service request. The community sees it in the Requests tab and responds. Supports budget tiers, photos, and location tagging.
+### 👥 Flatmates
+Looking for someone to share a flat with? Find compatible flatmates nearby with matching budget, gender preferences, and lifestyle.
 
-### 👥 Mates
-Three unique peer-to-peer connection types:
-
-| Type | Purpose |
-|---|---|
-| **Roommate** | Find a compatible flatmate nearby with budget, gender preference, and lifestyle filters |
-| **Helpmate** | Connect with someone nearby who can help in any situation — errands, emergencies, medical, moving |
-| **Ridemate** | Match with someone sharing your daily commute route on a bike or car |
+### 🛒 Marketplace
+Buy and sell used items within your local community. Perfect for students and professionals moving in or out.
 
 ---
 
 ## Features
 
-- **Direct Call Model** — No transactions flow through the app. Users call service providers directly from their profile.
-- **Location-Based Discovery** — GPS-powered nearby worker search using geospatial queries (`geoflutterfire_plus`), within a 25km radius.
-- **Mates Hub** — Dedicated tab with sub-tabs, live search, and per-type filters (gender, availability, vehicle type, frequency).
-- **Request Board** — Public job board where customers post requests visible to all workers.
-- **Worker Dashboard** — Professionals manage their profile, availability toggle, location refresh, and mate listings.
-- **My Mate Posts** — Users and workers can manage, review, and delete their own Roommate / Helpmate / Ridemate listings.
-- **Firebase Auth** — Google Sign-In with role-based routing (customer vs. worker).
-- **Real-Time Streams** — Firestore live streams for requests and mates listings.
+- **Location-Based Discovery** — GPS-powered nearby search using geospatial queries (`geoflutterfire_plus`) to find listings in your area.
+- **Housing Feed** — Browse curated listings for rooms, PGs, and flatmates with easy-to-use filters.
+- **Marketplace** — Dedicated section for buying and selling local items.
+- **Direct Messaging** — Real-time chat with landlords, sellers, or potential flatmates.
+- **My Listings** — Users can seamlessly post, manage, review, and delete their own housing or marketplace listings.
+- **Firebase Auth** — Secure Google Sign-In authentication.
+- **Real-Time Streams** — Firestore live streams for real-time listing updates and chats.
 - **Premium Design System** — "Tactile Concierge" design language: Manrope + Inter typography, glassmorphism, tonal surface hierarchy, ambient shadows.
 
 ---

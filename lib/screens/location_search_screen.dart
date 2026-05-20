@@ -7,7 +7,11 @@ import '../services/database_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import 'listing_detail_screen.dart';
+import 'home_screen.dart';
 import '../providers/location_search_provider.dart';
+import '../providers/location_provider.dart';
+import 'housing_feed_screen.dart';
+import 'marketplace_screen.dart';
 
 /// Search screen that resolves a location and shows nearby listings.
 class LocationSearchScreen extends StatefulWidget {
@@ -52,8 +56,11 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
     _controller.text = shortName;
     _focusNode.unfocus();
 
+    final locName = city.isNotEmpty ? city : shortName;
+    context.read<LocationProvider>().setLocationData(lat, lon, locName);
+
     final db = context.read<DatabaseService>();
-    provider.fetchFeedForLocation(db, lat, lon, city.isNotEmpty ? city : shortName);
+    provider.fetchFeedForLocation(db, lat, lon, locName);
   }
 
   void _openListing(ListingModel listing) {
@@ -82,71 +89,53 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
             ),
             title: Padding(
               padding: const EdgeInsets.only(right: 16.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: Container(
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: Colors.grey.shade200),
-                        boxShadow: [
-                          BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))
-                        ]
-                      ),
-                      child: Row(
-                        children: [
-                          const SizedBox(width: 12),
-                          Icon(Icons.search_rounded, color: Colors.grey.shade500, size: 22),
-                          const SizedBox(width: 8),
-                          Expanded(
-                            child: TextField(
-                              controller: _controller,
-                              focusNode: _focusNode,
-                              onChanged: provider.onSearchChanged,
-                              decoration: InputDecoration(
-                                hintText: 'Search city or locality...',
-                                hintStyle: AppTheme.body(fontSize: 15, color: AppColors.textHint),
-                                border: InputBorder.none,
-                                isDense: true,
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                              style: AppTheme.body(fontSize: 15, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
-                            ),
-                          ),
-                          if (_controller.text.isNotEmpty)
-                            IconButton(
-                              icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary, size: 20),
-                              onPressed: () {
-                                _controller.clear();
-                                provider.clearSearch();
-                                provider.resetFeed();
-                                _focusNode.requestFocus();
-                              },
-                            ),
-                        ],
+              child: Container(
+                height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(999),
+                  boxShadow: [
+                    BoxShadow(color: AppColors.primary.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, 4))
+                  ]
+                ),
+                child: Row(
+                  children: [
+                    const SizedBox(width: 16),
+                    const Icon(Icons.search_rounded, color: AppColors.textSecondary, size: 22),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: TextField(
+                        controller: _controller,
+                        focusNode: _focusNode,
+                        onChanged: provider.onSearchChanged,
+                        decoration: InputDecoration(
+                          hintText: 'Search city or locality...',
+                          hintStyle: AppTheme.body(fontSize: 15, color: AppColors.textHint),
+                          border: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                        style: AppTheme.body(fontSize: 15, fontWeight: FontWeight.w500, color: AppColors.textPrimary),
                       ),
                     ),
-                  ),
-                  const SizedBox(width: 12),
-                  Container(
-                    width: 48,
-                    height: 48,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade200),
-                      boxShadow: [
-                        BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2))
-                      ]
-                    ),
-                    child: IconButton(
-                      icon: const Icon(Icons.tune_rounded, color: AppColors.textPrimary, size: 22),
-                      onPressed: () {},
-                    ),
-                  ),
-                ],
+                    if (_controller.text.isNotEmpty)
+                      IconButton(
+                        icon: const Icon(Icons.close_rounded, color: AppColors.textSecondary, size: 20),
+                        onPressed: () {
+                          _controller.clear();
+                          provider.clearSearch();
+                          provider.resetFeed();
+                          _focusNode.requestFocus();
+                        },
+                      ),
+                    if (_controller.text.isEmpty)
+                      const SizedBox(width: 12),
+                  ],
+                ),
               ),
             ),
           ),
@@ -224,32 +213,61 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
       );
     }
 
-    final pgs = provider.feedListings.where((l) => l.propertyType == PropertyType.pg).toList();
-    final rooms = provider.feedListings.where((l) => l.propertyType == PropertyType.room).toList();
-    final flatmates = provider.feedListings.where((l) => l.purpose == ListingPurpose.needRoommate || l.isRequirementPost).toList();
-    final items = provider.feedListings.where((l) => l.propertyType == PropertyType.item).toList();
+    final rooms = provider.feedListings.where((l) => l.type == ListingType.housing && l.purpose == ListingPurpose.needRoommate).toList();
+    final flatmates = provider.feedListings.where((l) => l.type == ListingType.housing && l.isRequirementPost).toList();
+    final properties = provider.feedListings.where((l) => l.type == ListingType.housing && l.purpose == ListingPurpose.offerProperty).toList();
+    final items = provider.feedListings.where((l) => l.type == ListingType.marketplace || l.propertyType == PropertyType.item).toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 40),
       physics: const BouncingScrollPhysics(),
       child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
         if (rooms.isNotEmpty) 
-          _buildSection('Rooms', 'Listed by people who have a room and looking for a roommate', Icons.bed_outlined, rooms, (l) => _RoomPgCard(listing: l, onTap: () => _openListing(l))),
+          _buildSection('Rooms', Icons.bed_outlined, rooms, provider, (l) => FeaturedListingCard(listing: l, isSaved: false, onTap: () => _openListing(l), onSaveTap: () {})),
         if (flatmates.isNotEmpty) 
-          _buildSection('Flatmates', 'People who are searching for a room', Icons.people_alt_outlined, flatmates, (l) => _FlatmateCard(listing: l, onTap: () => _openListing(l))),
-        if (pgs.isNotEmpty) 
-          _buildSection('PGs', 'Listed by PG owners', Icons.home_work_outlined, pgs, (l) => _RoomPgCard(listing: l, onTap: () => _openListing(l))),
+          _buildSection('Flatmates', Icons.people_alt_outlined, flatmates, provider, (l) => FeaturedListingCard(listing: l, isSaved: false, showProfile: true, onTap: () => _openListing(l), onSaveTap: () {})),
+        if (properties.isNotEmpty) 
+          _buildSection('Properties', Icons.home_work_outlined, properties, provider, (l) => FeaturedListingCard(listing: l, isSaved: false, onTap: () => _openListing(l), onSaveTap: () {})),
         if (items.isNotEmpty) 
-          _buildSection('Marketplace', 'Buy and sell items', Icons.shopping_bag_outlined, items, (l) => _MarketplaceCard(listing: l, onTap: () => _openListing(l))),
+          _buildSection('Marketplace', Icons.shopping_bag_outlined, items, provider, (l) => FeaturedListingCard(listing: l, isSaved: false, onTap: () => _openListing(l), onSaveTap: () {})),
           
-        if (pgs.isEmpty && rooms.isEmpty && flatmates.isEmpty && items.isEmpty) 
-          _buildSection('All Results', 'Listings in this area', Icons.explore_outlined, provider.feedListings, (l) => _RoomPgCard(listing: l, onTap: () => _openListing(l))),
+        if (properties.isEmpty && rooms.isEmpty && flatmates.isEmpty && items.isEmpty) 
+          _buildSection('All Results', Icons.explore_outlined, provider.feedListings, provider, (l) => FeaturedListingCard(listing: l, isSaved: false, onTap: () => _openListing(l), onSaveTap: () {})),
       ]),
     );
   }
 
+  void _onSeeAllTapped(String section, LocationSearchProvider provider) {
+    final lat = provider.selectedLat;
+    final lon = provider.selectedLon;
+    final locName = provider.selectedLocationName;
+    
+    if (lat != null && lon != null && locName != null) {
+      context.read<LocationProvider>().setLocationData(lat, lon, locName);
+    }
+    
+    if (section == 'Marketplace') {
+      Navigator.push(
+        context,
+        MaterialPageRoute(builder: (_) => const MarketplaceScreen()),
+      );
+      return;
+    }
+
+    int tabIndex = 0;
+    if (section == 'Rooms') tabIndex = 0;
+    else if (section == 'Flatmates') tabIndex = 1;
+    else if (section == 'Properties') tabIndex = 2;
+    else tabIndex = 0;
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => HousingFeedScreen(initialTabIndex: tabIndex)),
+    );
+  }
+
   /// Horizontal section wrapper used for each listing category.
-  Widget _buildSection(String title, String subtitle, IconData icon, List<ListingModel> listings, Widget Function(ListingModel) itemBuilder) {
+  Widget _buildSection(String title, IconData icon, List<ListingModel> listings, LocationSearchProvider provider, Widget Function(ListingModel) itemBuilder) {
     const purpleAccent = Color(0xFF6C63FF);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -257,7 +275,7 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
         Padding(
           padding: const EdgeInsets.fromLTRB(20, 32, 20, 16),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
                 padding: const EdgeInsets.all(10),
@@ -269,243 +287,39 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text(title, style: AppTheme.headline(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
-                        Text('View all', style: AppTheme.body(fontSize: 14, fontWeight: FontWeight.w700, color: purpleAccent)),
-                      ],
+                    Text(title, style: AppTheme.headline(fontSize: 18, fontWeight: FontWeight.w800, color: AppColors.textPrimary)),
+                    GestureDetector(
+                      onTap: () => _onSeeAllTapped(title, provider),
+                      child: Text('View all', style: AppTheme.body(fontSize: 14, fontWeight: FontWeight.w700, color: purpleAccent)),
                     ),
-                    const SizedBox(height: 2),
-                    Text(subtitle, style: AppTheme.body(fontSize: 13, color: AppColors.textSecondary)),
                   ],
                 ),
               ),
             ],
           ),
         ),
-        SizedBox(
-          height: title == 'Flatmates' ? 260 : (title == 'Marketplace' ? 240 : 280),
-          child: ListView.separated(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
-            itemCount: listings.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 16),
-            itemBuilder: (context, index) => itemBuilder(listings[index]),
-          ),
-        ),
+        LayoutBuilder(builder: (context, constraints) {
+          final isCompact = MediaQuery.sizeOf(context).width < 380;
+          return SizedBox(
+            height: isCompact ? 265 : 280,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: listings.length,
+              separatorBuilder: (context, index) => SizedBox(width: isCompact ? 12 : 14),
+              itemBuilder: (context, index) => SizedBox(
+                width: isCompact ? 180 : 200,
+                child: itemBuilder(listings[index]),
+              ),
+            ),
+          );
+        }),
       ],
     );
   }
 }
 
-// ─── Custom UI Cards matching mockup ─────────────────────────────────────────
-
-/// Card for room and PG listings in the location feed.
-class _RoomPgCard extends StatelessWidget {
-  final ListingModel listing;
-  final VoidCallback onTap;
-
-  const _RoomPgCard({required this.listing, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    const purpleAccent = Color(0xFF6C63FF);
-    final tags = listing.propertyType == PropertyType.pg 
-        ? ['Twin Sharing', 'Food Included'] 
-        : ['Private Room', 'Attached Bath'];
-
-    return GestureDetector(
-      onTap: onTap,
-      child: SizedBox(
-        width: 240,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Stack(children: [
-            Container(
-              height: 160,
-              width: 240,
-              decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: Colors.grey.shade200),
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(16),
-                child: listing.imageUrls.isEmpty
-                    ? Icon(Icons.home_work_outlined, color: Colors.grey.shade300, size: 48)
-                    : CachedNetworkImage(imageUrl: listing.imageUrls.first, fit: BoxFit.cover),
-              ),
-            ),
-            Positioned(
-              top: 12,
-              right: 12,
-              child: Container(
-                padding: const EdgeInsets.all(6),
-                decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                child: const Icon(Icons.favorite_border_rounded, size: 18, color: Colors.black87),
-              ),
-            ),
-            Positioned(
-              bottom: 12,
-              left: 12,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.6), borderRadius: BorderRadius.circular(20)),
-                child: Row(children: [
-                  const Icon(Icons.location_on, color: Colors.white, size: 12),
-                  const SizedBox(width: 4),
-                  Text(listing.location.split(',').first, style: AppTheme.body(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white))
-                ]),
-              ),
-            ),
-          ]),
-          const SizedBox(height: 12),
-          Text(listing.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTheme.headline(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.black87)),
-          const SizedBox(height: 8),
-          Row(children: tags.map((t) => Padding(
-            padding: const EdgeInsets.only(right: 8),
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: purpleAccent.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(8)),
-              child: Text(t, style: AppTheme.body(fontSize: 11, fontWeight: FontWeight.w700, color: purpleAccent)),
-            ),
-          )).toList()),
-          const SizedBox(height: 10),
-          RichText(
-            text: TextSpan(
-              style: AppTheme.headline(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.black87),
-              children: [
-                TextSpan(text: listing.priceLabel),
-                if (listing.price > 0) TextSpan(text: '/mo', style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
-                TextSpan(text: ' • Furnished', style: AppTheme.body(fontSize: 13, color: AppColors.textSecondary)),
-              ],
-            ),
-          ),
-        ]),
-      ),
-    );
-  }
-}
-
-/// Card for flatmate search results with owner and budget details.
-class _FlatmateCard extends StatelessWidget {
-  final ListingModel listing;
-  final VoidCallback onTap;
-
-  const _FlatmateCard({required this.listing, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    const purpleAccent = Color(0xFF6C63FF);
-    final req = listing.requirementDetails;
-    final budgetText = req != null && (req.minBudget > 0 || req.maxBudget > 0) 
-        ? '₹${req.minBudget}${req.maxBudget > 0 && req.minBudget > 0 ? ' - ₹${req.maxBudget}' : (req.maxBudget > 0 ? ' - ₹${req.maxBudget}' : '')}' 
-        : listing.priceLabel;
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 280,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: Colors.grey.shade100),
-          boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4))],
-        ),
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Row(children: [
-            Stack(children: [
-              CircleAvatar(radius: 26, backgroundColor: Colors.grey.shade200, backgroundImage: listing.ownerPhotoUrl.isNotEmpty ? NetworkImage(listing.ownerPhotoUrl) : null, child: listing.ownerPhotoUrl.isEmpty ? Text(listing.ownerName.isNotEmpty ? listing.ownerName[0] : '?', style: AppTheme.headline(fontSize: 18)) : null),
-              Positioned(bottom: 0, right: 0, child: Container(width: 14, height: 14, decoration: BoxDecoration(color: Colors.green, shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)))),
-            ]),
-            const SizedBox(width: 12),
-            Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(listing.ownerName.isNotEmpty ? listing.ownerName : 'Anonymous', maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTheme.headline(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.black87)),
-              const SizedBox(height: 2),
-              Text('24 • Male', style: AppTheme.body(fontSize: 12, color: AppColors.textSecondary)), // Mocked demographic
-              const SizedBox(height: 4),
-              Row(children: [
-                const Icon(Icons.location_on, size: 12, color: AppColors.textSecondary),
-                const SizedBox(width: 4),
-                Expanded(child: Text(listing.location, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTheme.body(fontSize: 12, color: AppColors.textSecondary))),
-              ]),
-            ])),
-          ]),
-          const SizedBox(height: 16),
-          _buildInfoRow(Icons.person_outline, 'Working Professional'),
-          const SizedBox(height: 8),
-          _buildInfoRow(Icons.search_rounded, 'Looking for a private room'),
-          const SizedBox(height: 8),
-          _buildInfoRow(Icons.account_balance_wallet_outlined, 'Budget: $budgetText'),
-          const Spacer(),
-          Row(children: [
-            Expanded(child: TextButton(
-              onPressed: onTap,
-              style: TextButton.styleFrom(backgroundColor: purpleAccent.withValues(alpha: 0.08), foregroundColor: purpleAccent, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
-              child: Text('View Profile', style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w700)),
-            )),
-            const SizedBox(width: 12),
-            Container(
-              width: 44,
-              height: 44,
-              decoration: BoxDecoration(color: purpleAccent.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12)),
-              child: IconButton(
-                icon: const Icon(Icons.chat_bubble_outline_rounded, color: purpleAccent, size: 20),
-                onPressed: () {}, // Add chat tap logic if needed
-              ),
-            ),
-          ]),
-        ]),
-      ),
-    );
-  }
-
-  Widget _buildInfoRow(IconData icon, String text) {
-    return Row(children: [
-      Icon(icon, size: 16, color: AppColors.textSecondary),
-      const SizedBox(width: 8),
-      Expanded(child: Text(text, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTheme.body(fontSize: 13, color: Colors.black87))),
-    ]);
-  }
-}
-
-/// Compact card for marketplace items in the location feed.
-class _MarketplaceCard extends StatelessWidget {
-  final ListingModel listing;
-  final VoidCallback onTap;
-  const _MarketplaceCard({required this.listing, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: SizedBox(
-        width: 140,
-        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Container(
-            height: 140,
-            width: 140,
-            decoration: BoxDecoration(borderRadius: BorderRadius.circular(16), color: Colors.grey.shade100),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: listing.imageUrls.isEmpty
-                  ? Icon(Icons.image_outlined, color: Colors.grey.shade400, size: 40)
-                  : CachedNetworkImage(imageUrl: listing.imageUrls.first, fit: BoxFit.cover),
-            ),
-          ),
-          const SizedBox(height: 12),
-          Text(listing.priceLabel, style: AppTheme.headline(fontSize: 15, fontWeight: FontWeight.w800, color: Colors.black87)),
-          const SizedBox(height: 4),
-          Text(listing.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTheme.body(fontSize: 13, fontWeight: FontWeight.w600, color: Colors.black87)),
-          const SizedBox(height: 4),
-          Row(children: [
-            const Icon(Icons.location_on, size: 12, color: AppColors.textSecondary),
-            const SizedBox(width: 4),
-            Expanded(child: Text(listing.location.split(',').first, maxLines: 1, overflow: TextOverflow.ellipsis, style: AppTheme.body(fontSize: 12, color: AppColors.textSecondary))),
-          ]),
-        ]),
-      ),
-    );
-  }
-}
