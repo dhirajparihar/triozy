@@ -168,6 +168,12 @@ class _HousingTabState extends State<_HousingTab> {
     WidgetsBinding.instance.addPostFrameCallback((_) => _load());
   }
 
+  Future<void> _handleRefresh() async {
+    final locProvider = context.read<LocationProvider>();
+    await locProvider.forceRefetchLocation();
+    await _load();
+  }
+
   Future<void> _load() async {
     setState(() => _loading = true);
     final db = context.read<DatabaseService>();
@@ -267,7 +273,7 @@ class _HousingTabState extends State<_HousingTab> {
     final horizontalPadding = isCompact ? 12.0 : 16.0;
 
     final list = RefreshIndicator(
-      onRefresh: _load,
+      onRefresh: _handleRefresh,
       color: AppColors.primary,
       child: ListView(
         padding: EdgeInsets.fromLTRB(horizontalPadding, horizontalPadding, horizontalPadding, 24),
