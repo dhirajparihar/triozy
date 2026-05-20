@@ -79,6 +79,7 @@ class HomeScreenState extends State<HomeScreen> {
         return;
       }
       setState(() {
+        _selectedLocationAddress = locProvider.address;
         _listings = listings;
         _savedIds = saved.map((listing) => listing.id).toSet();
         _hasPublishedRequirement = hasPublishedRequirement;

@@ -32,17 +32,24 @@ class LocationProvider extends ChangeNotifier {
   /// Error message for the last failure.
   String? get errorMessage => _errorMessage;
 
+  Future<void>? _fetchFuture;
+
   /// Fetch current GPS position and reverse-geocode the address.
-  /// Safe to call multiple times — skips if already loaded or loading.
-  Future<void> fetchLocation() async {
-    if (_isLoading) return;
-    if (isAvailable) return; // already have a location
+  /// Safe to call multiple times — waits for the ongoing fetch if already loading.
+  Future<void> fetchLocation() {
+    if (isAvailable) return Future.value();
+    if (_fetchFuture != null) return _fetchFuture!;
 
     _isLoading = true;
     _hasError = false;
     _errorMessage = null;
     notifyListeners();
 
+    _fetchFuture = _performFetch();
+    return _fetchFuture!;
+  }
+
+  Future<void> _performFetch() async {
     try {
       final position = await _locationService.getCurrentPosition();
       _latitude = position.latitude;
@@ -59,6 +66,7 @@ class LocationProvider extends ChangeNotifier {
       _address = 'Location unavailable';
     } finally {
       _isLoading = false;
+      _fetchFuture = null;
       notifyListeners();
     }
   }
@@ -70,6 +78,7 @@ class LocationProvider extends ChangeNotifier {
     _address = 'Locating...';
     _hasError = false;
     _isLoading = false;
+    _fetchFuture = null; // Clear any ongoing fetch so we start a new one
     notifyListeners();
     await fetchLocation();
   }
