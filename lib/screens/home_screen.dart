@@ -477,33 +477,19 @@ class _HeroSection extends StatelessWidget {
               child: Row(
                 children: [
                   Expanded(
-                    child: selectedLocation != null
-                        ? Padding(
-                            padding: const EdgeInsets.only(left: 8.0),
-                            child: Text(
-                              selectedLocation!,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTheme.body(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.textPrimary,
-                              ),
-                            ),
-                          )
-                        : Padding(
-                            padding: const EdgeInsets.only(left: 8.0),
-                            child: Text(
-                              'Search city or locality',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTheme.body(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w500,
-                                color: AppColors.textSecondary,
-                              ),
-                            ),
-                          ),
+                    child: Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: Text(
+                        'Search city or locality',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.body(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w500,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ),
                   ),
                   Container(
                     width: isCompact ? 38 : 42,
