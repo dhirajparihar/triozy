@@ -35,21 +35,51 @@ class LocationProvider extends ChangeNotifier {
   Future<void>? _fetchFuture;
 
   /// Fetch current GPS position and reverse-geocode the address.
+<<<<<<< Updated upstream
   /// Safe to call multiple times — waits for the ongoing fetch if already loading.
   Future<void> fetchLocation() {
     if (isAvailable) return Future.value();
     if (_fetchFuture != null) return _fetchFuture!;
+=======
+  /// Safe to call multiple times — skips if already loaded or loading.
+  Future<void> fetchLocation() async {
+    if (_fetchFuture != null) {
+      return _fetchFuture;
+    }
+    if (isAvailable) return; // already have a location
+>>>>>>> Stashed changes
 
     _isLoading = true;
     _hasError = false;
     _errorMessage = null;
     notifyListeners();
 
+<<<<<<< Updated upstream
     _fetchFuture = _performFetch();
     return _fetchFuture!;
   }
 
   Future<void> _performFetch() async {
+=======
+    _fetchFuture = _doFetchLocation();
+    try {
+      await _fetchFuture;
+    } finally {
+      _fetchFuture = null;
+    }
+  }
+
+  /// Force a fresh GPS location fetch, overriding any custom location.
+  Future<void> forceRefetchLocation() async {
+    _latitude = null;
+    _longitude = null;
+    _address = 'Locating...';
+    notifyListeners();
+    return fetchLocation();
+  }
+
+  Future<void> _doFetchLocation() async {
+>>>>>>> Stashed changes
     try {
       final position = await _locationService.getCurrentPosition();
       _latitude = position.latitude;
@@ -81,6 +111,16 @@ class LocationProvider extends ChangeNotifier {
     _fetchFuture = null; // Clear any ongoing fetch so we start a new one
     notifyListeners();
     await fetchLocation();
+  }
+
+  /// Manually override location data without geocoding.
+  void setLocationData(double lat, double lon, String addressLabel) {
+    _latitude = lat;
+    _longitude = lon;
+    _address = addressLabel;
+    _hasError = false;
+    _errorMessage = null;
+    notifyListeners();
   }
 
   /// Manually set location from user-entered address/city text.

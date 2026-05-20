@@ -52,6 +52,12 @@ class HomeScreenState extends State<HomeScreen> {
 
   Future<void> refreshFromShell() => _loadData();
 
+  Future<void> _handleRefresh() async {
+    final locProvider = context.read<LocationProvider>();
+    await locProvider.forceRefetchLocation();
+    await _loadData();
+  }
+
   Future<void> _loadData() async {
     // Fetch featured listings and per-user flags.
     final db = context.read<DatabaseService>();
@@ -100,22 +106,17 @@ class HomeScreenState extends State<HomeScreen> {
 
   bool _isRoomListing(ListingModel listing) {
     return listing.type == ListingType.housing &&
-        listing.propertyType == PropertyType.room &&
-        !listing.isRequirementPost;
+        listing.purpose == ListingPurpose.needRoommate && !listing.isRequirementPost;
   }
 
   bool _isFlatmateListing(ListingModel listing) {
     return listing.type == ListingType.housing &&
-        (listing.isRequirementPost ||
-            (listing.purpose == ListingPurpose.needRoommate &&
-                listing.propertyType == PropertyType.flat));
+        listing.isRequirementPost;
   }
 
   bool _isPropertyListing(ListingModel listing) {
     return listing.type == ListingType.housing &&
-        listing.purpose == ListingPurpose.offerProperty &&
-        (listing.propertyType == PropertyType.pg ||
-            listing.propertyType == PropertyType.flat);
+        listing.purpose == ListingPurpose.offerProperty;
   }
 
   bool _isMarketplaceListing(ListingModel listing) {
@@ -197,6 +198,9 @@ class HomeScreenState extends State<HomeScreen> {
       context,
       MaterialPageRoute(builder: (_) => const LocationSearchScreen()),
     );
+    if (mounted) {
+      _loadData();
+    }
   }
 
   @override
@@ -217,7 +221,7 @@ class HomeScreenState extends State<HomeScreen> {
         marketplace.isNotEmpty;
 
     return RefreshIndicator(
-      onRefresh: _loadData,
+      onRefresh: _handleRefresh,
       color: AppColors.primary,
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
@@ -902,24 +906,29 @@ class FeaturedListingCard extends StatelessWidget {
                       text: TextSpan(
                         style: AppTheme.headline(
                           fontSize: 14,
-                          fontWeight: FontWeight.w800,
+                          fontWeight: FontWeight.w600,
                           color: AppColors.textPrimary,
                         ),
                         children: [
                           TextSpan(text: displayTitle),
                           if (showProfile && (listing.price > 0 || (listing.requirementDetails?.minBudget ?? 0) > 0 || (listing.requirementDetails?.maxBudget ?? 0) > 0)) ...[
-                            const TextSpan(text: '  |  '),
-                            const TextSpan(text: '₹'),
-                            if (listing.requirementDetails != null && listing.requirementDetails!.minBudget > 0 && listing.requirementDetails!.maxBudget > 0)
-                              TextSpan(text: '${listing.requirementDetails!.minBudget} - ₹${listing.requirementDetails!.maxBudget}')
-                            else if (listing.requirementDetails != null && listing.requirementDetails!.maxBudget > 0)
-                              TextSpan(text: 'Upto ${listing.requirementDetails!.maxBudget}')
-                            else if (listing.requirementDetails != null && listing.requirementDetails!.minBudget > 0)
-                              TextSpan(text: '${listing.requirementDetails!.minBudget} onwards')
-                            else if (listing.price > 0)
-                              TextSpan(text: listing.priceLabel.replaceFirst(RegExp(r'(?:Rs\.?|₹)\s*', caseSensitive: false), '')),
-                            if (listing.price > 0 && !listing.priceLabel.endsWith('/mo'))
-                              TextSpan(text: ' /mo', style: AppTheme.body(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.textSecondary)),
+                            const TextSpan(text: '  |  ', style: TextStyle(color: AppColors.textSecondary)),
+                            TextSpan(
+                              style: const TextStyle(color: AppColors.primary),
+                              children: [
+                                const TextSpan(text: '₹'),
+                                if (listing.requirementDetails != null && listing.requirementDetails!.minBudget > 0 && listing.requirementDetails!.maxBudget > 0)
+                                  TextSpan(text: '${listing.requirementDetails!.minBudget} - ₹${listing.requirementDetails!.maxBudget}')
+                                else if (listing.requirementDetails != null && listing.requirementDetails!.maxBudget > 0)
+                                  TextSpan(text: 'Upto ${listing.requirementDetails!.maxBudget}')
+                                else if (listing.requirementDetails != null && listing.requirementDetails!.minBudget > 0)
+                                  TextSpan(text: '${listing.requirementDetails!.minBudget} onwards')
+                                else if (listing.price > 0)
+                                  TextSpan(text: listing.priceLabel.replaceFirst(RegExp(r'(?:Rs\.?|₹)\s*', caseSensitive: false), '')),
+                                if (listing.price > 0 && !listing.priceLabel.endsWith('/mo'))
+                                  TextSpan(text: ' /mo', style: AppTheme.body(fontSize: 11, fontWeight: FontWeight.w500, color: AppColors.primary.withValues(alpha: 0.8))),
+                              ],
+                            ),
                           ],
                         ],
                       ),
@@ -955,10 +964,10 @@ class FeaturedListingCard extends StatelessWidget {
                             alignment: Alignment.centerRight,
                             child: RichText(
                               text: TextSpan(
-                                style: AppTheme.headline(fontSize: 14, fontWeight: FontWeight.w800, color: AppColors.textPrimary),
+                                style: AppTheme.headline(fontSize: 14, fontWeight: FontWeight.w600, color: AppColors.primary),
                                 children: [
                                   if (listing.price > 0)
-                                    const TextSpan(text: '₹', style: TextStyle(color: AppColors.primary)),
+                                    const TextSpan(text: '₹'),
                                   TextSpan(text: listing.price > 0 ? listing.priceLabel.replaceFirst(RegExp(r'(?:Rs\.?|₹)\s*', caseSensitive: false), '') : listing.priceLabel),
                                 ],
                               ),

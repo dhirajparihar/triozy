@@ -32,6 +32,15 @@ class LocationSearchProvider extends ChangeNotifier {
   /// Listings shown when a location is selected.
   List<ListingModel> get feedListings => _feedListings;
 
+  double? _selectedLat;
+  double? get selectedLat => _selectedLat;
+
+  double? _selectedLon;
+  double? get selectedLon => _selectedLon;
+
+  String? _selectedLocationName;
+  String? get selectedLocationName => _selectedLocationName;
+
   Timer? _debounce;
 
   /// Handles keystroke changes with a debounce.
@@ -88,6 +97,9 @@ class LocationSearchProvider extends ChangeNotifier {
     _results = [];
     _showFeed = true;
     _isLoadingFeed = true;
+    _selectedLat = lat;
+    _selectedLon = lon;
+    _selectedLocationName = locationName;
     notifyListeners();
 
     try {
