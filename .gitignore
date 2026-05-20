@@ -44,8 +44,6 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 
-# Documentation files for personal reference
-PROJECT_STRUCTURE.md
 
 # Environment variables
 .env
