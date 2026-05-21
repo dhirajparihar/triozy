@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -15,16 +18,54 @@ import 'my_listings_screen.dart';
 import 'saved_listings_screen.dart';
 
 /// Profile screen for authenticated or guest users.
-class UserProfileScreen extends StatelessWidget {
+class UserProfileScreen extends StatefulWidget {
   final bool isGuest;
 
   const UserProfileScreen({super.key, this.isGuest = false});
 
   @override
+  State<UserProfileScreen> createState() => _UserProfileScreenState();
+}
+
+class _UserProfileScreenState extends State<UserProfileScreen> {
+  late final StreamSubscription<User?> _userChangesSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    // Listen to Firebase Auth user profile changes so the avatar refreshes
+    // when photoURL or displayName is updated elsewhere in the app.
+    _userChangesSubscription =
+        FirebaseAuth.instance.userChanges().listen((_) {
+      if (mounted) {
+        debugPrint('UserProfileScreen userChanges event fired');
+        setState(() {});
+      }
+    }, onError: (_) {});
+  }
+
+  @override
+  void dispose() {
+    _userChangesSubscription.cancel();
+    super.dispose();
+  }
+
+  Future<void> _handleEditProfile() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const EditProfileScreen()),
+    );
+    await FirebaseAuth.instance.currentUser?.reload();
+    debugPrint('Returned from EditProfileScreen, refreshed photoURL: ${FirebaseAuth.instance.currentUser?.photoURL?.trim()}');
+    if (mounted) setState(() {});
+  }
+
+  @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
+    debugPrint('UserProfileScreen build currentUser photoURL: ${user?.photoURL?.trim()}');
     // Show guest or authenticated profile based on auth state.
-    if (isGuest || user == null) {
+    if (widget.isGuest || user == null) {
       return Container(
         color: const Color(0xFFF3F0FB),
         child: _GuestProfile(
@@ -38,7 +79,10 @@ class UserProfileScreen extends StatelessWidget {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(16, 32, 16, 120),
         children: [
-        _HeaderCard(user: user),
+        _HeaderCard(
+          user: user,
+          onEditProfile: _handleEditProfile,
+        ),
         const SizedBox(height: 24),
         _TileGroup(
           children: [
@@ -192,8 +236,9 @@ class UserProfileScreen extends StatelessWidget {
 class _HeaderCard extends StatelessWidget {
   /// User avatar, name, and edit profile button.
   final User user;
+  final Future<void> Function() onEditProfile;
 
-  const _HeaderCard({required this.user});
+  const _HeaderCard({required this.user, required this.onEditProfile});
 
   @override
   Widget build(BuildContext context) {
@@ -202,26 +247,60 @@ class _HeaderCard extends StatelessWidget {
         ? 'Sarah Jenkins' // Placeholder matching design, since missing
         : user.displayName!.trim();
     final photoUrl = user.photoURL?.trim();
+    assert(() {
+      debugPrint('UserProfileScreen avatar photoUrl: $photoUrl');
+      return true;
+    }());
     final initials = _extractInitials(displayName);
 
     return Column(
       children: [
-        CircleAvatar(
-          radius: 52,
-          backgroundColor: const Color(0xFF5E35B1),
-          backgroundImage: photoUrl?.isNotEmpty == true
-              ? NetworkImage(photoUrl!)
-              : null,
-          child: photoUrl?.isEmpty != false
-              ? Text(
-                  initials,
-                  style: AppTheme.headline(
-                    fontSize: 28,
-                    fontWeight: FontWeight.w500,
-                    color: Colors.white,
+        Container(
+          width: 104,
+          height: 104,
+          decoration: const BoxDecoration(
+            color: Color(0xFF5E35B1),
+            shape: BoxShape.circle,
+          ),
+          clipBehavior: Clip.hardEdge,
+          child: photoUrl?.isNotEmpty == true
+              ? CachedNetworkImage(
+                  imageUrl: photoUrl!,
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) => Center(
+                    child: Text(
+                      initials,
+                      style: AppTheme.headline(
+                        fontSize: 28,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white,
+                      ),
+                    ),
                   ),
+                  errorWidget: (_, error, stackTrace) {
+                    debugPrint('Profile avatar failed to load: $error');
+                    return Center(
+                      child: Text(
+                        initials,
+                        style: AppTheme.headline(
+                          fontSize: 28,
+                          fontWeight: FontWeight.w500,
+                          color: Colors.white,
+                        ),
+                      ),
+                    );
+                  },
                 )
-              : null,
+              : Center(
+                  child: Text(
+                    initials,
+                    style: AppTheme.headline(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
         ),
         const SizedBox(height: 16),
         Text(
@@ -234,12 +313,7 @@ class _HeaderCard extends StatelessWidget {
         ),
         const SizedBox(height: 16),
         OutlinedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (_) => const EditProfileScreen()),
-            );
-          },
+          onPressed: onEditProfile,
           style: OutlinedButton.styleFrom(
             side: const BorderSide(color: Color(0xFF7C5CBF)),
             foregroundColor: const Color(0xFF7C5CBF),
