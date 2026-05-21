@@ -8,6 +8,7 @@ import '../services/auth_service.dart';
 import '../services/session_service.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
+import 'about_triozy_screen.dart';
 import 'edit_profile_screen.dart';
 import 'help_support_screen.dart';
 import 'my_listings_screen.dart';
@@ -82,6 +83,31 @@ class UserProfileScreen extends StatelessWidget {
               icon: Icons.star_border,
               label: 'Rate Us on Play Store',
               onTap: () => _rateUs(context),
+            ),
+            _TileItem(
+              icon: Icons.privacy_tip_outlined,
+              label: 'Privacy Policy',
+              onTap: () async {
+                final uri = Uri.parse('https://triozy.com/privacy');
+                try {
+                  final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
+                  if (!launched) throw Exception('Could not launch');
+                } catch (_) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Could not open Privacy Policy.')),
+                  );
+                }
+              },
+            ),
+            _TileItem(
+              icon: Icons.info_outline,
+              label: 'About Triozy',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => AboutTriozyScreen()),
+                );
+              },
             ),
           ],
         ),
