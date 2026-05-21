@@ -64,7 +64,8 @@ class _ChatListScreenState extends State<ChatListScreen> {
     final uid = _currentUserId;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isCompact = screenWidth < 380;
-    final horizontalPadding = 16.0;
+    // Increase horizontal list padding by ~8px each side for narrower cards.
+    final horizontalPadding = 24.0;
     final listGap = isCompact ? 10.0 : 14.0;
 
     // Signed-out guard: show a friendly message without wiring streams.
@@ -126,7 +127,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF2F0FF),
+      backgroundColor: const Color(0xFFF3F0FB),
       body: SafeArea(child: content),
     );
   }
@@ -187,7 +188,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
     int marketplaceUnreadCount,
   ) {
     return Container(
-      color: const Color(0xFFF2F0FF),
+      color: const Color(0xFFF3F0FB),
       child: Column(
         children: [
           // Header: title, search, and segment filters.
@@ -202,57 +203,7 @@ class _ChatListScreenState extends State<ChatListScreen> {
             housingUnreadCount: housingUnreadCount,
             marketplaceUnreadCount: marketplaceUnreadCount,
           ),
-          if (_selectedSegment == _ChatInboxSegment.all) ...[
-            const SizedBox(height: 12),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF4EDFF),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.shield_outlined,
-                      color: AppColors.primary,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        'Chat with confidence',
-                        style: AppTheme.body(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
-                        ),
-                      ),
-                    ),
-                    OutlinedButton(
-                      onPressed: () {},
-                      style: OutlinedButton.styleFrom(
-                        foregroundColor: AppColors.primary,
-                        side: const BorderSide(color: AppColors.primary),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(18),
-                        ),
-                      ),
-                      child: Text(
-                        'Learn more',
-                        style: AppTheme.body(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ],
+          // (Banner removed per design guidelines)
           const SizedBox(height: 12),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -261,9 +212,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                 Text(
                   'Recent',
                   style: AppTheme.headline(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w700,
-                    color: const Color(0xFF1A1A2E),
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF5E4AAE),
                   ),
                 ),
                 const Spacer(),
@@ -272,23 +223,23 @@ class _ChatListScreenState extends State<ChatListScreen> {
                     await _markAllRead(filtered, chatProvider, uid);
                   },
                   child: Row(
-                    children: const [
-                      Icon(
-                        Icons.check_circle_outline_rounded,
-                        size: 16,
-                        color: Color(0xFF5B4FCF),
-                      ),
-                      SizedBox(width: 6),
-                      Text(
-                        'Mark all as read',
-                        style: TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: Color(0xFF5B4FCF),
+                      children: const [
+                        Icon(
+                          Icons.check_circle_outline_rounded,
+                          size: 16,
+                          color: Color(0xFF7C5CBF),
                         ),
-                      ),
-                    ],
-                  ),
+                        SizedBox(width: 6),
+                        Text(
+                          'Mark all as read',
+                          style: TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: Color(0xFF7C5CBF),
+                          ),
+                        ),
+                      ],
+                    ),
                 ),
               ],
             ),
@@ -318,6 +269,9 @@ class _ChatListScreenState extends State<ChatListScreen> {
                   );
                 }
 
+                // Avatar color logic removed per request — avatars use a single
+                // hardcoded background color. (No index precomputation.)
+
                 return RefreshIndicator(
                   color: AppColors.primary,
                   onRefresh: () async {
@@ -335,14 +289,11 @@ class _ChatListScreenState extends State<ChatListScreen> {
                       horizontalPadding,
                       24,
                     ),
-                    itemCount: filtered.length + 1,
+                    itemCount: filtered.length,
                     separatorBuilder: (_, _) => SizedBox(height: listGap),
                     itemBuilder: (context, index) {
-                      if (index == filtered.length) {
-                        return _ChatListFooter(isCompact: isCompact);
-                      }
                       final conversation = filtered[index];
-                      return _ConversationTile(
+                        return _ConversationTile(
                         conversation: conversation,
                         currentUserId: uid,
                         referencePropertyType: _referenceTypeCache[conversation.referenceId],
@@ -430,7 +381,7 @@ class _ChatListHeader extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: const Color(0xFFEDE8F9),
         boxShadow: [
           BoxShadow(
             color: const Color(0x14000000),
@@ -457,18 +408,11 @@ class _ChatListHeader extends StatelessWidget {
             Container(
               height: isCompact ? 50 : 56,
               decoration: BoxDecoration(
-                color: AppColors.surfaceContainerLowest,
+                color: const Color(0xFFFAF8FF),
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(
-                  color: AppColors.outlineVariant.withValues(alpha: 0.48),
+                  color: const Color(0xFFD4C8F0),
                 ),
-                boxShadow: [
-                  BoxShadow(
-                    color: AppColors.primary.withValues(alpha: 0.05),
-                    blurRadius: 16,
-                    offset: const Offset(0, 6),
-                  ),
-                ],
               ),
               child: TextField(
                 controller: controller,
@@ -566,16 +510,10 @@ class _FilterChip extends StatelessWidget {
         duration: const Duration(milliseconds: 180),
         curve: Curves.easeOut,
         alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFF5B4FCF) : Colors.white,
+          color: selected ? const Color(0xFF7C5CBF) : const Color(0xFFF0ECFA),
           borderRadius: BorderRadius.circular(999),
-          border: selected
-              ? null
-              : Border.all(
-                  color: const Color(0xFF5B4FCF),
-                  width: 1.5,
-                ),
         ),
         child: Row(
           mainAxisSize: MainAxisSize.min,
@@ -583,15 +521,15 @@ class _FilterChip extends StatelessWidget {
             Icon(
               _iconForLabel(label),
               size: isCompact ? 16 : 18,
-              color: selected ? Colors.white : const Color(0xFF5B4FCF),
+              color: selected ? Colors.white : const Color(0xFF7C5CBF),
             ),
             const SizedBox(width: 6),
             Text(
               label,
               style: AppTheme.body(
-                fontSize: 11,
+                fontSize: 13,
                 fontWeight: FontWeight.w700,
-                color: selected ? Colors.white : const Color(0xFF5B4FCF),
+                color: selected ? Colors.white : const Color(0xFF7C5CBF),
               ),
             ),
             if (badgeCount > 0) ...[
@@ -602,7 +540,7 @@ class _FilterChip extends StatelessWidget {
                   vertical: 3,
                 ),
                 decoration: BoxDecoration(
-                  color: selected ? Colors.white : const Color(0xFF5B4FCF),
+                  color: selected ? Colors.white : const Color(0xFF7C5CBF),
                   borderRadius: BorderRadius.circular(999),
                 ),
                 child: Text(
@@ -610,7 +548,7 @@ class _FilterChip extends StatelessWidget {
                   style: AppTheme.body(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
-                    color: selected ? const Color(0xFF5B4FCF) : Colors.white,
+                    color: selected ? const Color(0xFF7C5CBF) : Colors.white,
                   ),
                 ),
               ),
@@ -689,8 +627,8 @@ class _ConversationCategoryChip extends StatelessWidget {
   _ChipColors _chipColors() {
     if (chatType == ChatType.marketplace || propertyType == PropertyType.item) {
       return const _ChipColors(
-        background: Color(0xFFEDE7F6),
-        text: Color(0xFF5B4FCF),
+        background: Color(0xFFE8EAF6),
+        text: Color(0xFF3949AB),
       );
     }
     switch (propertyType) {
@@ -701,8 +639,8 @@ class _ConversationCategoryChip extends StatelessWidget {
         );
       case PropertyType.room:
         return const _ChipColors(
-          background: Color(0xFFE4F0FF),
-          text: Color(0xFF0D6EFD),
+          background: Color(0xFFEDE8F9),
+          text: Color(0xFF5E35B1),
         );
       case PropertyType.flat:
       default:
@@ -760,20 +698,24 @@ class _ConversationTile extends StatelessWidget {
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         onTap: onTap,
         child: Ink(
           padding: EdgeInsets.symmetric(
             horizontal: isCompact ? 12 : 16,
-            vertical: isCompact ? 12 : 16,
+            vertical: isCompact ? 8 : 10,
           ),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: const Color(0xFFE0D7F5),
+              width: 0.5,
+            ),
             boxShadow: const [
               BoxShadow(
-                color: Color(0x14000000),
-                blurRadius: 6,
+                color: Color(0x14A78BCA),
+                blurRadius: 4,
                 offset: Offset(0, 2),
               ),
             ],
@@ -784,7 +726,8 @@ class _ConversationTile extends StatelessWidget {
               _Avatar(
                 name: name,
                 photoUrl: photoUrl,
-                showPresence: isUnread || isPeerTyping,
+                isTyping: isPeerTyping,
+                isUnread: isUnread,
               ),
               SizedBox(width: isCompact ? 10 : 14),
               Expanded(
@@ -800,7 +743,7 @@ class _ConversationTile extends StatelessWidget {
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                             style: AppTheme.headline(
-                              fontSize: isCompact ? 18 : 22,
+                              fontSize: isCompact ? 14 : 15,
                               fontWeight: isUnread
                                   ? FontWeight.w700
                                   : FontWeight.w600,
@@ -815,9 +758,9 @@ class _ConversationTile extends StatelessWidget {
                         Text(
                           _formatConversationTime(conversation.lastMessageTime),
                           style: AppTheme.body(
-                            fontSize: 11,
+                            fontSize: 12,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFFAAAAAA),
+                            color: const Color(0xFF9E8FBF),
                           ),
                         ),
                       ],
@@ -847,7 +790,7 @@ class _ConversationTile extends StatelessWidget {
                             maxLines: 2,
                             overflow: TextOverflow.ellipsis,
                             style: AppTheme.body(
-                              fontSize: 13,
+                              fontSize: 12,
                               fontWeight: FontWeight.w500,
                               color: const Color(0xFF888888),
                             ),
@@ -859,7 +802,7 @@ class _ConversationTile extends StatelessWidget {
                             width: 22,
                             height: 22,
                             decoration: const BoxDecoration(
-                              color: Color(0xFF5B4FCF),
+                              color: Color(0xFF7C5CBF),
                               shape: BoxShape.circle,
                             ),
                             alignment: Alignment.center,
@@ -1004,12 +947,13 @@ class _ChatListFooter extends StatelessWidget {
 class _Avatar extends StatelessWidget {
   final String name;
   final String photoUrl;
-  final bool showPresence;
-
+  final bool isTyping;
+  final bool isUnread;
   const _Avatar({
     required this.name,
     required this.photoUrl,
-    required this.showPresence,
+    this.isTyping = false,
+    this.isUnread = false,
   });
 
   @override
@@ -1023,18 +967,18 @@ class _Avatar extends StatelessWidget {
         Container(
           width: size,
           height: size,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             shape: BoxShape.circle,
-            color: _avatarColor(name),
+            color: Color(0xFF5E35B1),
           ),
-          child: ClipOval(
+            child: ClipOval(
             child: photoUrl.isEmpty
                 // Fallback to initials when no photo exists.
                 ? Center(
                     child: Text(
                       initial,
                       style: AppTheme.headline(
-                        fontSize: isCompact ? 18 : 20,
+                        fontSize: 18,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
@@ -1048,7 +992,7 @@ class _Avatar extends StatelessWidget {
                       child: Text(
                         initial,
                         style: AppTheme.headline(
-                          fontSize: isCompact ? 18 : 20,
+                          fontSize: 18,
                           fontWeight: FontWeight.w600,
                           color: Colors.white,
                         ),
@@ -1057,7 +1001,7 @@ class _Avatar extends StatelessWidget {
                   ),
           ),
         ),
-        if (showPresence)
+        if (isTyping || isUnread)
           Positioned(
             right: 1,
             bottom: 1,
@@ -1065,7 +1009,7 @@ class _Avatar extends StatelessWidget {
               width: 16,
               height: 16,
               decoration: BoxDecoration(
-                color: const Color(0xFF4CAF50),
+                color: const Color(0xFF7C5CBF),
                 shape: BoxShape.circle,
                 border: Border.all(
                   color: Colors.white,
@@ -1078,18 +1022,7 @@ class _Avatar extends StatelessWidget {
     );
   }
 
-  Color _avatarColor(String name) {
-    const colors = [
-      Color(0xFF7C3AED),
-      Color(0xFF0D6EFD),
-      Color(0xFFD63384),
-      Color(0xFF2E7D32),
-      Color(0xFFE65100),
-      Color(0xFF0097A7),
-    ];
-    if (name.isEmpty) return colors[0];
-    return colors[name.codeUnitAt(0) % colors.length];
-  }
+  // Removed dynamic avatar palette — avatars use a single hardcoded color.
 }
 
 
