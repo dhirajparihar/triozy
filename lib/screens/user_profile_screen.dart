@@ -1,6 +1,8 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:share_plus/share_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../services/auth_service.dart';
 import '../services/session_service.dart';
@@ -22,14 +24,19 @@ class UserProfileScreen extends StatelessWidget {
     final user = FirebaseAuth.instance.currentUser;
     // Show guest or authenticated profile based on auth state.
     if (isGuest || user == null) {
-      return _GuestProfile(
-        onExitGuest: () => context.read<SessionService>().exitGuestMode(),
+      return Container(
+        color: const Color(0xFFF3F0FB),
+        child: _GuestProfile(
+          onExitGuest: () => context.read<SessionService>().exitGuestMode(),
+        ),
       );
     }
 
-    return ListView(
-      padding: const EdgeInsets.fromLTRB(20, 32, 20, 120),
-      children: [
+    return Container(
+      color: const Color(0xFFF3F0FB),
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(16, 32, 16, 120),
+        children: [
         _HeaderCard(user: user),
         const SizedBox(height: 24),
         _TileGroup(
@@ -57,16 +64,6 @@ class UserProfileScreen extends StatelessWidget {
               },
             ),
             _TileItem(
-              icon: Icons.person_outline_rounded,
-              label: 'Personal Info',
-              onTap: () {},
-            ),
-            _TileItem(
-              icon: Icons.account_balance_wallet_outlined,
-              label: 'Payments',
-              onTap: () {},
-            ),
-            _TileItem(
               icon: Icons.help_outline_rounded,
               label: 'Help & Support',
               onTap: () {
@@ -76,24 +73,35 @@ class UserProfileScreen extends StatelessWidget {
                 );
               },
             ),
+            _TileItem(
+              icon: Icons.share,
+              label: 'Share App',
+              onTap: () => _shareApp(context),
+            ),
+            _TileItem(
+              icon: Icons.star_border,
+              label: 'Rate Us on Play Store',
+              onTap: () => _rateUs(context),
+            ),
           ],
         ),
         const SizedBox(height: 48),
         Center(
           child: TextButton.icon(
             onPressed: () => _showLogoutDialog(context),
-            icon: const Icon(Icons.logout_rounded, color: AppColors.error),
+            icon: const Icon(Icons.logout_rounded, color: Color(0xFFD32F2F)),
             label: Text(
               'Log Out',
               style: AppTheme.body(
                 fontSize: 16,
                 fontWeight: FontWeight.w600,
-                color: AppColors.error,
+                color: const Color(0xFFD32F2F),
               ),
             ),
           ),
         ),
       ],
+      ),
     );
   }
 
@@ -125,6 +133,34 @@ class UserProfileScreen extends StatelessWidget {
       },
     );
   }
+
+  Future<void> _shareApp(BuildContext context) async {
+    const shareText =
+        'Hey! Check out Triozy — the all-in-one app for city movers. Find rooms, PGs, flatmates & second-hand items easily. Download here: https://play.google.com/store/apps/details?id=com.triozy.triozy_app';
+    await Share.share(shareText);
+  }
+
+  Future<void> _rateUs(BuildContext context) async {
+    final uri = Uri.parse(
+      'https://play.google.com/store/apps/details?id=com.triozy.triozy_app',
+    );
+
+    try {
+      final launched = await launchUrl(
+        uri,
+        mode: LaunchMode.externalApplication,
+      );
+      if (!launched) {
+        throw Exception('Could not open Play Store');
+      }
+    } catch (_) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Could not open Play Store. Please try again later.'),
+        ),
+      );
+    }
+  }
 }
 
 class _HeaderCard extends StatelessWidget {
@@ -139,60 +175,83 @@ class _HeaderCard extends StatelessWidget {
     final displayName = (user.displayName ?? '').trim().isEmpty
         ? 'Sarah Jenkins' // Placeholder matching design, since missing
         : user.displayName!.trim();
+    final photoUrl = user.photoURL?.trim();
+    final initials = _extractInitials(displayName);
 
     return Column(
       children: [
         CircleAvatar(
-          radius: 56,
-          backgroundColor: AppColors.surfaceContainerHigh,
-          backgroundImage: user.photoURL != null
-              ? NetworkImage(user.photoURL!)
+          radius: 52,
+          backgroundColor: const Color(0xFF5E35B1),
+          backgroundImage: photoUrl?.isNotEmpty == true
+              ? NetworkImage(photoUrl!)
               : null,
-          child: user.photoURL == null
-              ? const Icon(
-                  Icons.person_rounded,
-                  color: AppColors.primary,
-                  size: 50,
+          child: photoUrl?.isEmpty != false
+              ? Text(
+                  initials,
+                  style: AppTheme.headline(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.white,
+                  ),
                 )
               : null,
         ),
         const SizedBox(height: 16),
         Text(
           displayName,
-          style: AppTheme.headline(fontSize: 28, color: AppColors.primary),
-        ),
-        const SizedBox(height: 6),
-        Text(
-          'Member since October 2023',
-          style: AppTheme.body(fontSize: 15, color: AppColors.onSurfaceVariant),
+          style: AppTheme.headline(
+            fontSize: 20,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF3D1F8C),
+          ),
         ),
         const SizedBox(height: 16),
-        FilledButton(
+        OutlinedButton(
           onPressed: () {
             Navigator.push(
               context,
               MaterialPageRoute(builder: (_) => const EditProfileScreen()),
             );
           },
-          style: FilledButton.styleFrom(
-            backgroundColor: AppColors.surfaceContainerHigh.withValues(
-              alpha: 0.5,
-            ),
-            foregroundColor: AppColors.onSurface,
-            elevation: 0,
+          style: OutlinedButton.styleFrom(
+            side: const BorderSide(color: Color(0xFF7C5CBF)),
+            foregroundColor: const Color(0xFF7C5CBF),
             padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(20),
             ),
           ),
           child: Text(
             'Edit Profile',
-            style: AppTheme.body(fontSize: 15, fontWeight: FontWeight.w600),
+            style: AppTheme.body(
+              fontSize: 13,
+              fontWeight: FontWeight.w500,
+              color: const Color(0xFF7C5CBF),
+            ),
           ),
         ),
       ],
     );
   }
+}
+
+String _extractInitials(String fullName) {
+  final parts = fullName
+      .trim()
+      .split(RegExp(r'\s+'))
+      .where((part) => part.isNotEmpty)
+      .toList();
+
+  if (parts.isEmpty) {
+    return '';
+  }
+
+  if (parts.length == 1) {
+    return parts.first.substring(0, 1).toUpperCase();
+  }
+
+  return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
 class _TileGroup extends StatelessWidget {
@@ -205,11 +264,9 @@ class _TileGroup extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: AppColors.surfaceContainerLowest,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: AppColors.outlineVariant.withValues(alpha: 0.3),
-        ),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE0D7F5), width: 0.5),
       ),
       child: Column(
         children: children
@@ -217,9 +274,10 @@ class _TileGroup extends StatelessWidget {
               (item) => [
                 item,
                 if (item != children.last)
-                  Divider(
+                  const Divider(
                     height: 1,
-                    color: AppColors.outlineVariant.withValues(alpha: 0.3),
+                    thickness: 0.5,
+                    color: Color(0xFFF0ECFA),
                   ),
               ],
             )
@@ -246,14 +304,18 @@ class _TileItem extends StatelessWidget {
     return ListTile(
       onTap: onTap,
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      leading: Icon(icon, color: AppColors.onSurfaceVariant),
+      leading: Icon(icon, color: const Color(0xFF7C5CBF)),
       title: Text(
         label,
-        style: AppTheme.body(fontSize: 16, fontWeight: FontWeight.w500),
+        style: AppTheme.body(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: const Color(0xFF2D2D2D),
+        ),
       ),
-      trailing: Icon(
+      trailing: const Icon(
         Icons.chevron_right_rounded,
-        color: AppColors.onSurfaceVariant,
+        color: Color(0xFFB0A0D0),
         size: 20,
       ),
     );
