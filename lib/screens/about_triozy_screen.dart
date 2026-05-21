@@ -48,16 +48,14 @@ class _AboutTriozyScreenState extends State<AboutTriozyScreen> {
             Center(
               child: Column(
                 children: [
-                  // Logo or fallback avatar
-                  CircleAvatar(
-                    radius: 52,
-                    backgroundColor: const Color(0xFF5E35B1),
-                    child: const Text(
-                      'T',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 32,
-                        fontWeight: FontWeight.w600,
+                  // Logo image inside a circular frame
+                  SizedBox(
+                    width: 104,
+                    height: 104,
+                    child: ClipOval(
+                      child: Image.asset(
+                        'assets/logo.png',
+                        fit: BoxFit.cover,
                       ),
                     ),
                   ),
