@@ -26,6 +26,11 @@ class ChatDetailScreen extends StatefulWidget {
   State<ChatDetailScreen> createState() => _ChatDetailScreenState();
 }
 
+Color _avatarColorFromName(String name) {
+  // Per request, use a single hardcoded lavender color for all chat avatars.
+  return const Color(0xFF5E35B1);
+}
+
 class _ChatDetailScreenState extends State<ChatDetailScreen> {
   late final TextEditingController _messageController;
   late final ScrollController _scrollController;
@@ -224,7 +229,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
         }
 
         return Scaffold(
-          backgroundColor: const Color(0xFFF2F0FF),
+          backgroundColor: const Color(0xFFF3F0FB),
           body: SafeArea(
             bottom: false,
             child: Column(
@@ -615,11 +620,11 @@ class _DetailHeader extends StatelessWidget {
     final peerName = (peer?.name ?? '').trim();
     final name = peerName.isEmpty ? 'Messages' : peerName;
     final photoUrl = (peer?.photoUrl ?? '').trim();
-
-    return Padding(
+    return Container(
+      color: const Color(0xFFEDE8F9),
       padding: EdgeInsets.fromLTRB(
         isCompact ? 8 : 14,
-        isCompact ? 4 : 6,
+        isCompact ? 6 : 8,
         isCompact ? 8 : 14,
         isCompact ? 6 : 8,
       ),
@@ -630,7 +635,7 @@ class _DetailHeader extends StatelessWidget {
             onPressed: () => Navigator.of(context).maybePop(),
             icon: const Icon(
               Icons.arrow_back_rounded,
-              color: Color(0xFF5B4FCF),
+              color: Color(0xFF7C5CBF),
               size: 28,
             ),
           ),
@@ -650,12 +655,12 @@ class _DetailHeader extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTheme.headline(
-                          fontSize: isCompact ? 18 : 22,
+                          fontSize: isCompact ? 14 : 15,
                           fontWeight: FontWeight.w700,
-                          color: AppColors.primary,
+                          color: const Color(0xFF2D2D2D),
                         ),
                       ),
-                      SizedBox(height: isCompact ? 3 : 4),
+                      SizedBox(height: isCompact ? 4 : 6),
                       Wrap(
                         spacing: 8,
                         runSpacing: 8,
@@ -696,8 +701,8 @@ class _DetailHeader extends StatelessWidget {
                             ),
                             decoration: BoxDecoration(
                               color: conversation?.chatType == ChatType.marketplace
-                                  ? const Color(0xFFEDE7F6)
-                                  : const Color(0xFFE4F0FF),
+                                  ? const Color(0xFFE8EAF6)
+                                  : const Color(0xFFEDE8F9),
                               borderRadius: BorderRadius.circular(999),
                             ),
                             child: Text(
@@ -708,8 +713,8 @@ class _DetailHeader extends StatelessWidget {
                                 fontSize: isCompact ? 10 : 12,
                                 fontWeight: FontWeight.w700,
                                 color: conversation?.chatType == ChatType.marketplace
-                                    ? const Color(0xFF5B4FCF)
-                                    : const Color(0xFF0D6EFD),
+                                    ? const Color(0xFF3949AB)
+                                    : const Color(0xFF5E35B1),
                               ),
                             ),
                           ),
@@ -732,7 +737,7 @@ class _DetailHeader extends StatelessWidget {
             color: Colors.white,
             icon: const Icon(
               Icons.more_vert_rounded,
-              color: Color(0xFF5B4FCF),
+              color: Color(0xFF7C5CBF),
               size: 26,
             ),
             itemBuilder: (context) => [
@@ -774,19 +779,22 @@ class _ListingPreview extends StatelessWidget {
         : Icons.home_work_outlined;
 
     return Container(
+      margin: EdgeInsets.symmetric(
+        horizontal: MediaQuery.sizeOf(context).width < 380 ? 12 : 16,
+      ),
       width: double.infinity,
       padding: EdgeInsets.fromLTRB(
-        MediaQuery.sizeOf(context).width < 380 ? 12 : 16,
-        8,
-        MediaQuery.sizeOf(context).width < 380 ? 12 : 16,
-        MediaQuery.sizeOf(context).width < 380 ? 12 : 16,
+        12,
+        10,
+        12,
+        12,
       ),
       decoration: BoxDecoration(
         color: Colors.white,
-        border: Border(
-          bottom: BorderSide(
-            color: AppColors.outlineVariant.withValues(alpha: 0.42),
-          ),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: const Color(0xFFE0D7F5),
+          width: 0.5,
         ),
       ),
       child: LayoutBuilder(
@@ -865,11 +873,11 @@ class _ListingPreview extends StatelessWidget {
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                       style: AppTheme.headline(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF5B4FCF),
-                        height: 1.15,
-                      ),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF7C5CBF),
+                          height: 1.15,
+                        ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -879,7 +887,7 @@ class _ListingPreview extends StatelessWidget {
                       style: AppTheme.body(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
-                        color: const Color(0xFF00897B),
+                        color: const Color(0xFF7C5CBF),
                       ),
                     ),
                     const SizedBox(height: 10),
@@ -890,10 +898,10 @@ class _ListingPreview extends StatelessWidget {
                         style: FilledButton.styleFrom(
                           backgroundColor: isDeleted
                               ? const Color(0xFFF4F3F8)
-                              : const Color(0xFFEDE7F6),
+                              : const Color(0xFF7C5CBF),
                           foregroundColor: isDeleted
                               ? const Color(0xFF888888)
-                              : const Color(0xFF5B4FCF),
+                              : Colors.white,
                           elevation: 0,
                           minimumSize: Size.zero,
                           padding: const EdgeInsets.symmetric(
@@ -902,7 +910,7 @@ class _ListingPreview extends StatelessWidget {
                           ),
                           tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(20),
                           ),
                         ),
                         child: Text(
@@ -912,7 +920,7 @@ class _ListingPreview extends StatelessWidget {
                             fontWeight: FontWeight.w700,
                             color: isDeleted
                                 ? const Color(0xFF888888)
-                                : const Color(0xFF5B4FCF),
+                                : Colors.white,
                           ),
                         ),
                       ),
@@ -960,7 +968,8 @@ class _Composer extends StatelessWidget {
           color: Colors.white,
           border: Border(
             top: BorderSide(
-              color: Color(0xFFE0D8FF),
+              color: Color(0xFFE0D7F5),
+              width: 0.5,
             ),
           ),
         ),
@@ -972,7 +981,7 @@ class _Composer extends StatelessWidget {
               onPressed: () {},
               icon: const Icon(
                 Icons.add_circle_outline_rounded,
-                color: Color(0xFF888888),
+                color: Color(0xFF7C5CBF),
                 size: 32,
               ),
             ),
@@ -985,10 +994,11 @@ class _Composer extends StatelessWidget {
                   vertical: 6,
                 ),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF8F5FF),
-                  borderRadius: BorderRadius.circular(18),
+                  color: const Color(0xFFF3F0FB),
+                  borderRadius: BorderRadius.circular(24),
                   border: Border.all(
-                    color: const Color(0xFFE0D8FF),
+                    color: const Color(0xFFD4C8F0),
+                    width: 0.5,
                   ),
                 ),
                 child: Center(
@@ -1006,7 +1016,7 @@ class _Composer extends StatelessWidget {
                       hintText: 'Type a message...',
                       hintStyle: AppTheme.body(
                         fontSize: isCompact ? 14 : 16,
-                        color: const Color(0xFF888888),
+                        color: const Color(0xFFB0A0D0),
                       ),
                       border: InputBorder.none,
                       enabledBorder: InputBorder.none,
@@ -1024,18 +1034,18 @@ class _Composer extends StatelessWidget {
               onTap: canSend ? onSend : null,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
-                width: isCompact ? 50 : 56,
-                height: isCompact ? 50 : 56,
+                width: isCompact ? 48 : 52,
+                height: isCompact ? 48 : 52,
                 decoration: BoxDecoration(
                   color: canSend
-                      ? const Color(0xFF5B4FCF)
-                      : const Color(0xFF5B4FCF).withValues(alpha: 0.35),
-                  borderRadius: BorderRadius.circular(18),
+                      ? const Color(0xFF7C5CBF)
+                      : const Color(0xFF7C5CBF).withOpacity(0.35),
+                  shape: BoxShape.circle,
                 ),
                 child: const Icon(
                   Icons.send_rounded,
                   color: Colors.white,
-                  size: 26,
+                  size: 22,
                 ),
               ),
             ),
@@ -1062,32 +1072,36 @@ class _PeerAvatar extends StatelessWidget {
       height: size,
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
-        color: AppColors.surfaceContainerHigh,
+        // color overridden by inner container to allow hashed palette
       ),
       child: ClipOval(
         child: photoUrl.isEmpty
             // Initials fallback.
-            ? Center(
-                child: Text(
-                  initial,
-                  style: AppTheme.headline(
-                    fontSize: isCompact ? 18 : 22,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
+            ? Container(
+                color: _avatarColorFromName(name),
+                child: Center(
+                  child: Text(
+                    initial,
+                    style: AppTheme.headline(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               )
             : CachedNetworkImage(
                 imageUrl: photoUrl,
                 fit: BoxFit.cover,
-                errorWidget: (_, _, _) => Center(
-                  // Initials fallback on load error.
+                errorWidget: (_, _, _) => Container(
+                  color: _avatarColorFromName(name),
+                  alignment: Alignment.center,
                   child: Text(
                     initial,
                     style: AppTheme.headline(
-                      fontSize: isCompact ? 18 : 22,
+                      fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -1114,7 +1128,7 @@ class _DateChip extends StatelessWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
           decoration: BoxDecoration(
-            color: const Color(0xFFEDE7F6),
+            color: const Color(0xFFE8E0F5),
             borderRadius: BorderRadius.circular(999),
           ),
           child: Text(
@@ -1122,7 +1136,7 @@ class _DateChip extends StatelessWidget {
             style: AppTheme.body(
               fontSize: 12,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF5B4FCF),
+              color: const Color(0xFF7C5CBF),
             ),
           ),
         ),
@@ -1157,13 +1171,11 @@ class _MessageBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isCompact = MediaQuery.sizeOf(context).width < 380;
-    final bubbleColor = isOwn
-        ? const Color(0xFF5B4FCF)
-        : Colors.white;
-    final textColor = isOwn ? Colors.white : const Color(0xFF1A1A2E);
+    final bubbleColor = isOwn ? const Color(0xFF7C5CBF) : Colors.white;
+    final textColor = isOwn ? Colors.white : const Color(0xFF2D2D2D);
     final timeColor = message.isFailed
-        ? AppColors.error
-        : (isOwn ? const Color(0xFFDDD5FF) : const Color(0xFFAAAAAA));
+      ? AppColors.error
+      : const Color(0xFF9E8FBF);
     final maxWidth = MediaQuery.of(context).size.width * (isCompact ? 0.75 : 0.72);
 
     // Avatars appear for the last bubble in a peer group.
@@ -1206,23 +1218,36 @@ class _MessageBubble extends StatelessWidget {
                       onTap: message.isFailed ? onRetry : null,
                       child: Container(
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 13,
+                          horizontal: 14,
+                          vertical: 12,
                         ),
                         decoration: BoxDecoration(
                           color: bubbleColor,
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(isOwn ? 20 : 6),
-                            topRight: Radius.circular(isOwn ? 6 : 20),
-                            bottomLeft: const Radius.circular(20),
-                            bottomRight: const Radius.circular(20),
-                          ),
+                          border: isOwn
+                              ? null
+                              : Border.all(
+                                  color: const Color(0xFFE0D7F5),
+                                  width: 0.5,
+                                ),
+                          borderRadius: isOwn
+                              ? const BorderRadius.only(
+                                  topLeft: Radius.circular(18),
+                                  topRight: Radius.circular(18),
+                                  bottomLeft: Radius.circular(18),
+                                  bottomRight: Radius.circular(4),
+                                )
+                              : const BorderRadius.only(
+                                  topLeft: Radius.circular(18),
+                                  topRight: Radius.circular(18),
+                                  bottomLeft: Radius.circular(4),
+                                  bottomRight: Radius.circular(18),
+                                ),
                           boxShadow: [
                             BoxShadow(
                               color: isOwn
-                                  ? const Color(0xFF5B4FCF).withValues(alpha: 0.2)
-                                  : Colors.black12,
-                              blurRadius: isOwn ? 12 : 6,
+                                  ? const Color(0x147C5CBF)
+                                  : const Color(0x14000000),
+                              blurRadius: isOwn ? 8 : 4,
                               offset: Offset(0, isOwn ? 4 : 2),
                             ),
                           ],
@@ -1295,34 +1320,35 @@ class _SmallAvatar extends StatelessWidget {
     return Container(
       width: 28,
       height: 28,
-      decoration: const BoxDecoration(
-        shape: BoxShape.circle,
-        color: AppColors.surfaceContainerHigh,
-      ),
+      decoration: const BoxDecoration(shape: BoxShape.circle),
       child: ClipOval(
         child: photoUrl.isEmpty
             // Initials fallback.
-            ? Center(
-                child: Text(
-                  initial,
-                  style: AppTheme.headline(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.primary,
+            ? Container(
+                color: _avatarColorFromName(name),
+                child: Center(
+                  child: Text(
+                    initial,
+                    style: AppTheme.headline(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               )
             : CachedNetworkImage(
                 imageUrl: photoUrl,
                 fit: BoxFit.cover,
-                errorWidget: (_, _, _) => Center(
-                  // Initials fallback on load error.
+                errorWidget: (_, _, _) => Container(
+                  color: _avatarColorFromName(name),
+                  alignment: Alignment.center,
                   child: Text(
                     initial,
                     style: AppTheme.headline(
-                      fontSize: 12,
+                      fontSize: 18,
                       fontWeight: FontWeight.w700,
-                      color: AppColors.primary,
+                      color: Colors.white,
                     ),
                   ),
                 ),
@@ -1362,7 +1388,7 @@ class _StatusIcon extends StatelessWidget {
       return const Icon(
         Icons.done_all_rounded,
         size: 16,
-        color: AppColors.primary,
+        color: Color(0xFF7C5CBF),
       );
     }
     return const Icon(
@@ -1380,12 +1406,13 @@ class _SafetyTip extends StatelessWidget {
   Widget build(BuildContext context) {
     // Static safety reminder shown at top of chat.
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        color: const Color(0xFFF0ECFA),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFFE8E0FF),
+          color: const Color(0xFFD4C8F0),
+          width: 0.5,
         ),
       ),
       child: Row(
@@ -1395,27 +1422,27 @@ class _SafetyTip extends StatelessWidget {
             padding: EdgeInsets.only(top: 2),
             child: Icon(
               Icons.shield_outlined,
-              color: Color(0xFF5B4FCF),
+              color: Color(0xFF7C5CBF),
               size: 26,
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: RichText(
               text: TextSpan(
                 style: AppTheme.body(
-                  fontSize: 15,
+                  fontSize: 13,
                   fontWeight: FontWeight.w500,
-                  color: const Color(0xFF666666),
-                  height: 1.55,
+                  color: const Color(0xFF6D5B8E),
+                  height: 1.45,
                 ),
                 children: [
                   TextSpan(
                     text: 'Safety Tip: ',
                     style: AppTheme.body(
-                      fontSize: 15,
+                      fontSize: 13,
                       fontWeight: FontWeight.w700,
-                      color: const Color(0xFF5B4FCF),
+                      color: const Color(0xFF5E35B1),
                     ),
                   ),
                   const TextSpan(
