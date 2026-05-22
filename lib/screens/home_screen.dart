@@ -799,10 +799,13 @@ class FeaturedListingCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-            Expanded(
+      child: Container(
+        // Remove white background and shadow so text sits directly on scaffold
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AspectRatio(
+              aspectRatio: 1.35,
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
                 child: Stack(
@@ -965,6 +968,7 @@ class FeaturedListingCard extends StatelessWidget {
             ),
           ],
         ),
+      ),
     );
   }
 }

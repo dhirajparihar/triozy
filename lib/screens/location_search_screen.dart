@@ -511,7 +511,7 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
           builder: (context, constraints) {
             final isCompact = MediaQuery.sizeOf(context).width < 380;
             return SizedBox(
-              height: isCompact ? 265 : 280,
+              height: isCompact ? 190 : 210,
               child: ListView.separated(
                 padding: const EdgeInsets.symmetric(horizontal: 20),
                 scrollDirection: Axis.horizontal,
