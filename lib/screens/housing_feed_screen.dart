@@ -2,6 +2,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../models/listing_model.dart';
 import '../providers/location_provider.dart';
@@ -10,6 +12,9 @@ import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 import '../widgets/listing_card.dart';
 import 'listing_detail_screen.dart';
+import '../providers/chat_provider.dart';
+import '../models/chat_model.dart';
+import 'chat_detail_screen.dart';
 
 class HousingFeedScreen extends StatelessWidget {
   final int initialTabIndex;
@@ -49,13 +54,7 @@ class HousingFeedScreen extends StatelessWidget {
                       'Housing',
                       style: AppTheme.headline(fontSize: headerSize, fontWeight: FontWeight.w800, color: AppColors.inverseSurface),
                     ),
-                    _IconBtn(
-                      icon: Icons.tune_rounded,
-                      color: AppColors.primary,
-                      onTap: () {},
-                      padding: isCompact ? 8 : 10,
-                      size: isCompact ? 18 : 20,
-                    ),
+                    SizedBox(width: isCompact ? 34 : 40),
                   ],
                 ),
               ),
@@ -91,14 +90,19 @@ class HousingFeedScreen extends StatelessWidget {
               Expanded(
                 child: const TabBarView(
                   children: [
-                    _HousingTab(propertyTypes: [PropertyType.room]),
+                    _HousingTab(
+                      propertyTypes: [PropertyType.room],
+                      filters: ['Male', 'Female', 'Furnished', 'Unfurnished'],
+                    ),
                     _HousingTab(
                       purpose: ListingPurpose.needRoommate,
                       includeRoomRequirements: true,
+                      filters: ['Male', 'Female'],
                     ),
                     _HousingTab(
                       propertyTypes: [PropertyType.pg, PropertyType.flat],
                       purpose: ListingPurpose.offerProperty,
+                      filters: ['Flat', 'PG/Hostel', '1 BHK', '2 BHK', 'Furnished'],
                     ),
                   ],
                 ),
@@ -146,11 +150,13 @@ class _HousingTab extends StatefulWidget {
   final List<PropertyType>? propertyTypes;
   final ListingPurpose? purpose;
   final bool includeRoomRequirements;
+  final List<String> filters;
 
   const _HousingTab({
     this.propertyTypes,
     this.purpose,
     this.includeRoomRequirements = false,
+    this.filters = const [],
   });
 
   @override
@@ -158,9 +164,11 @@ class _HousingTab extends StatefulWidget {
 }
 
 class _HousingTabState extends State<_HousingTab> {
+  List<ListingModel> _allListings = [];
   List<ListingModel> _listings = [];
   Set<String> _savedIds = <String>{};
   bool _loading = true;
+  String? _selectedFilter;
 
   @override
   void initState() {
@@ -199,7 +207,7 @@ class _HousingTabState extends State<_HousingTab> {
     }
 
     setState(() {
-      _listings = listings.where(_matchesTab).toList()
+      _allListings = listings.where(_matchesTabType).toList()
         ..sort(
           (a, b) => (b.createdAt ?? DateTime(0)).compareTo(
             a.createdAt ?? DateTime(0),
@@ -207,10 +215,11 @@ class _HousingTabState extends State<_HousingTab> {
         );
       _savedIds = saved.map((listing) => listing.id).toSet();
       _loading = false;
+      _applyFilter();
     });
   }
 
-  bool _matchesTab(ListingModel listing) {
+  bool _matchesTabType(ListingModel listing) {
     if (widget.includeRoomRequirements) {
       return listing.isRequirementPost ||
           (listing.purpose == ListingPurpose.needRoommate &&
@@ -227,6 +236,41 @@ class _HousingTabState extends State<_HousingTab> {
       return false;
     }
     return true;
+  }
+
+  void _applyFilter() {
+    if (_selectedFilter == null) {
+      _listings = List.from(_allListings);
+      return;
+    }
+    _listings = _allListings.where((listing) {
+      final f = _selectedFilter!;
+      if (f == 'Male') {
+        return _matchesGender(listing, 'male') || _matchesGender(listing, 'boys');
+      } else if (f == 'Female') {
+        return _matchesGender(listing, 'female') || _matchesGender(listing, 'girls');
+      } else if (f == 'Furnished') {
+        return listing.furnishing?.toLowerCase() == 'furnished' || listing.highlights.any((h) => h.toLowerCase() == 'furnished');
+      } else if (f == 'Unfurnished') {
+        return listing.furnishing?.toLowerCase() == 'unfurnished' || listing.highlights.any((h) => h.toLowerCase() == 'unfurnished');
+      } else if (f == 'Flat') {
+        return listing.propertyType == PropertyType.flat;
+      } else if (f == 'PG/Hostel') {
+        return listing.propertyType == PropertyType.pg;
+      } else if (f == '1 BHK') {
+        return listing.highlights.any((h) => h.contains('1 BHK'));
+      } else if (f == '2 BHK') {
+        return listing.highlights.any((h) => h.contains('2 BHK'));
+      }
+      return true;
+    }).toList();
+  }
+
+  bool _matchesGender(ListingModel listing, String target) {
+    if (listing.genderPreference?.toLowerCase() == target) return true;
+    if (listing.requirementDetails?.genderPreference.toLowerCase() == target) return true;
+    if (listing.highlights.any((h) => h.toLowerCase().contains(target))) return true;
+    return false;
   }
 
   Future<void> _toggleSave(String listingId) async {
@@ -272,54 +316,182 @@ class _HousingTabState extends State<_HousingTab> {
     final isCompact = screenWidth < 380;
     final horizontalPadding = isCompact ? 12.0 : 16.0;
 
-    final list = RefreshIndicator(
-      onRefresh: _handleRefresh,
-      color: AppColors.primary,
-      child: ListView(
-        padding: EdgeInsets.fromLTRB(horizontalPadding, horizontalPadding, horizontalPadding, 24),
-        children: [
-          if (_loading)
-            const _HousingLoadingState()
-          else if (_listings.isEmpty)
-            _HousingEmptyState(
-              propertyTypes: widget.propertyTypes,
-              purpose: widget.purpose,
-              includeRoomRequirements: widget.includeRoomRequirements,
-            )
-          else
-            ..._listings.map((listing) {
-              return Padding(
-                padding: EdgeInsets.only(bottom: isCompact ? 12 : 16),
-                child: widget.includeRoomRequirements
-                    ? _FlatmateFeedCard(
-                        listing: listing,
-                        onTap: () => _openListing(listing),
-                      )
-                    : ListingCard(
-                        listing: listing,
-                        compact: true,
-                        onTap: () => _openListing(listing),
-                        onSaveTap: () => _toggleSave(listing.id),
-                        isSaved: _savedIds.contains(listing.id),
-                      ),
-              );
-            }),
-        ],
-      ),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (widget.filters.isNotEmpty)
+          Container(
+            height: 50,
+            width: double.infinity,
+            padding: const EdgeInsets.only(bottom: 12),
+            child: ListView.separated(
+              padding: EdgeInsets.symmetric(horizontal: horizontalPadding),
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: widget.filters.length,
+              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final filter = widget.filters[index];
+                final isSelected = _selectedFilter == filter;
+                return FilterChip(
+                  label: Text(filter),
+                  selected: isSelected,
+                  onSelected: (selected) {
+                    setState(() {
+                      _selectedFilter = selected ? filter : null;
+                      _applyFilter();
+                    });
+                  },
+                  showCheckmark: false,
+                  selectedColor: AppColors.primaryContainer,
+                  labelStyle: AppTheme.label(
+                    color: isSelected ? AppColors.onPrimaryContainer : AppColors.onSurfaceVariant,
+                    fontWeight: isSelected ? FontWeight.w800 : FontWeight.w600,
+                  ),
+                  backgroundColor: Colors.white,
+                  side: BorderSide(
+                    color: isSelected ? AppColors.primaryContainer : AppColors.outlineVariant,
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                );
+              },
+            ),
+          ),
+        Expanded(
+          child: RefreshIndicator(
+            onRefresh: _handleRefresh,
+            color: AppColors.primary,
+            child: ListView(
+              padding: EdgeInsets.fromLTRB(horizontalPadding, 4, horizontalPadding, 24),
+              children: [
+                if (_loading)
+                  const _HousingLoadingState()
+                else if (_listings.isEmpty)
+                  _HousingEmptyState(
+                    propertyTypes: widget.propertyTypes,
+                    purpose: widget.purpose,
+                    includeRoomRequirements: widget.includeRoomRequirements,
+                  )
+                else
+                  ..._listings.map((listing) {
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: isCompact ? 12 : 16),
+                      child: widget.includeRoomRequirements
+                          ? _FlatmateFeedCard(
+                              listing: listing,
+                              onTap: () => _openListing(listing),
+                            )
+                          : ListingCard(
+                              listing: listing,
+                              compact: true,
+                              onTap: () => _openListing(listing),
+                              onSaveTap: () => _toggleSave(listing.id),
+                              isSaved: _savedIds.contains(listing.id),
+                            ),
+                    );
+                  }),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
-
-    return list;
   }
 }
 
-class _FlatmateFeedCard extends StatelessWidget {
+class _FlatmateFeedCard extends StatefulWidget {
   final ListingModel listing;
   final VoidCallback onTap;
 
-  const _FlatmateFeedCard({required this.listing, required this.onTap});
+  const _FlatmateFeedCard({super.key, required this.listing, required this.onTap});
+
+  @override
+  State<_FlatmateFeedCard> createState() => _FlatmateFeedCardState();
+}
+
+class _FlatmateFeedCardState extends State<_FlatmateFeedCard> {
+  String? _ownerPhone;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOwnerPhone();
+  }
+
+  Future<void> _loadOwnerPhone() async {
+    if (widget.listing.phonePublic != true) return;
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.listing.ownerId)
+          .get();
+      if (!mounted) return;
+      final phone = userDoc.data()?['phoneNumber'] as String?;
+      if (phone != null && phone.isNotEmpty) {
+        setState(() => _ownerPhone = phone);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _launchPhone() async {
+    if (_ownerPhone == null) return;
+    final uri = Uri.parse('tel:$_ownerPhone');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _startChat() async {
+    final listing = widget.listing;
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign in to contact the listing owner')),
+      );
+      return;
+    }
+    if (currentUser.uid == listing.ownerId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This is your listing')),
+      );
+      return;
+    }
+
+    try {
+      final conversationId = await context.read<ChatProvider>().createOrGetChat(
+        otherUserId: listing.ownerId,
+        chatType: listing.isMarketplacePost
+            ? ChatType.marketplace.value
+            : ChatType.listing.value,
+        referenceId: listing.id,
+        listingTitle: listing.title,
+        otherUserName: listing.ownerName,
+        otherUserPhotoUrl: listing.ownerPhotoUrl,
+        currentUserName: currentUser.displayName,
+        currentUserPhotoUrl: currentUser.photoURL,
+      );
+
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatDetailScreen(conversationId: conversationId),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open chat: $error')),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
+    final listing = widget.listing;
+    final onTap = widget.onTap;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isCompact = screenWidth < 380;
     final imageSize = isCompact ? 116.0 : 132.0;
@@ -441,16 +613,18 @@ class _FlatmateFeedCard extends StatelessWidget {
                         )
                       else
                         const Spacer(),
-                      _FlatmateActionButton(
-                        icon: Icons.phone_rounded,
-                        enabled: false,
-                        onTap: null,
-                      ),
-                      SizedBox(width: isCompact ? 10 : 14),
+                      if (_ownerPhone != null) ...[
+                        _FlatmateActionButton(
+                          icon: Icons.phone_rounded,
+                          enabled: true,
+                          onTap: _launchPhone,
+                        ),
+                        SizedBox(width: isCompact ? 10 : 14),
+                      ],
                       _FlatmateActionButton(
                         icon: Icons.chat_bubble_rounded,
                         enabled: true,
-                        onTap: onTap,
+                        onTap: _startChat,
                       ),
                     ],
                   ),
@@ -464,15 +638,15 @@ class _FlatmateFeedCard extends StatelessWidget {
   }
 
   String get _displayName {
-    final ownerName = listing.ownerName.trim();
+    final ownerName = widget.listing.ownerName.trim();
     if (ownerName.isNotEmpty) {
       return ownerName;
     }
-    return listing.title.trim();
+    return widget.listing.title.trim();
   }
 
   String get _rentLabel {
-    final requirement = listing.requirementDetails;
+    final requirement = widget.listing.requirementDetails;
     if (requirement != null) {
       if (requirement.minBudget > 0 && requirement.maxBudget > 0) {
         return '${_formatAmount(requirement.minBudget)} - ${_formatAmount(requirement.maxBudget)} Rent';
@@ -484,14 +658,14 @@ class _FlatmateFeedCard extends StatelessWidget {
         return '${_formatAmount(requirement.minBudget)} Rent';
       }
     }
-    if (listing.price <= 0) {
+    if (widget.listing.price <= 0) {
       return '';
     }
-    return '${_formatAmount(listing.price.round())} Rent';
+    return '${_formatAmount(widget.listing.price.round())} Rent';
   }
 
   String get _lookingForLabel {
-    final value = (listing.genderPreference ?? listing.requirementDetails?.genderPreference ?? '').trim();
+    final value = (widget.listing.genderPreference ?? widget.listing.requirementDetails?.genderPreference ?? '').trim();
     if (value.isEmpty) {
       return '';
     }
@@ -499,11 +673,11 @@ class _FlatmateFeedCard extends StatelessWidget {
   }
 
   String get _bottomLabel {
-    final availableFrom = (listing.availableFrom ?? '').trim();
+    final availableFrom = (widget.listing.availableFrom ?? '').trim();
     if (availableFrom.isNotEmpty) {
       return availableFrom;
     }
-    final moveInWhen = listing.requirementDetails?.moveInWhen.trim() ?? '';
+    final moveInWhen = widget.listing.requirementDetails?.moveInWhen.trim() ?? '';
     return moveInWhen;
   }
 
