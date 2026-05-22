@@ -66,6 +66,7 @@ class ChatService {
       'lastReadAt': {currentUserId: now, otherUserId: now},
       'unreadCountByUser': {currentUserId: 0, otherUserId: 0},
       'typingByUser': {currentUserId: false, otherUserId: false},
+      'hiddenBy': [],
       'createdAt': now,
     };
   }
@@ -99,6 +100,7 @@ class ChatService {
       'listingTitle': listingTitle.trim(),
       'unreadCountByUser': {currentUserId: 0, otherUserId: 0},
       'typingByUser': {currentUserId: false, otherUserId: false},
+      'hiddenBy': [],
     };
   }
 

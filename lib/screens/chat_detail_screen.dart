@@ -555,9 +555,9 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
       context: context,
       builder: (dialogContext) {
         return AlertDialog(
-          title: const Text('Hide conversation'),
+          title: const Text('Delete conversation'),
           content: const Text(
-            'This will hide the conversation for you only. The other person will not be affected.',
+            'This will delete the conversation for you only. The other person will not be affected.',
           ),
           actions: [
             TextButton(
@@ -570,7 +570,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
                 backgroundColor: AppColors.primary,
                 foregroundColor: Colors.white,
               ),
-              child: const Text('Hide'),
+              child: const Text('Delete'),
             ),
           ],
         );
@@ -590,7 +590,7 @@ class _ChatDetailScreenState extends State<ChatDetailScreen> {
     } catch (error) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Could not hide conversation: $error')),
+          SnackBar(content: Text('Could not delete conversation: $error')),
         );
       }
     }
@@ -730,7 +730,7 @@ class _DetailHeader extends StatelessWidget {
             onSelected: (value) {
               if (value == 'details') {
                 onViewDetails();
-              } else if (value == 'hide') {
+              } else if (value == 'delete') {
                 onHideConversation();
               }
             },
@@ -746,8 +746,8 @@ class _DetailHeader extends StatelessWidget {
                 child: Text('View listing details'),
               ),
               const PopupMenuItem(
-                value: 'hide',
-                child: Text('Hide conversation'),
+                value: 'delete',
+                child: Text('Delete conversation'),
               ),
             ],
           ),

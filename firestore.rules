@@ -47,6 +47,9 @@ service cloud.firestore {
         'lastReadAt',
         'unreadCountByUser',
         'typingByUser',
+        'hiddenBy',
+        'referenceDeleted',
+        'referenceDeletedAt',
         'createdAt',
       ]) &&
           hasValidChatParticipants(data) &&
@@ -59,7 +62,10 @@ service cloud.firestore {
           data.lastSenderId is string &&
           data.lastReadAt is map &&
           (!('unreadCountByUser' in data) || data.unreadCountByUser is map) &&
-          (!('typingByUser' in data) || data.typingByUser is map);
+          (!('typingByUser' in data) || data.typingByUser is map) &&
+          isValidHiddenByField(data) &&
+          isValidReferenceDeletionFields(data) &&
+          isValidReferenceDeletedAtField(data);
     }
 
     function isValidMessagePayload(data) {
@@ -77,6 +83,53 @@ service cloud.firestore {
           data.text is string &&
           data.timestamp is timestamp &&
           data.status in ['sent', 'read'];
+    }
+
+    function normalizeUid(value) {
+      let parts = value.split('_');
+      return parts.size() > 1 ? parts[parts.size() - 1] : value;
+    }
+
+    function isParticipantId(value, participants) {
+      return value in participants || normalizeUid(value) in participants;
+    }
+
+    function isValidHiddenByField(data) {
+      return !('hiddenBy' in data) || (
+        data.hiddenBy is list &&
+        data.hiddenBy.size() <= 2 &&
+        (data.hiddenBy.size() == 0 || data.hiddenBy[0] is string) &&
+        (data.hiddenBy.size() < 2 || data.hiddenBy[1] is string) &&
+        (data.hiddenBy.size() == 0 || isParticipantId(data.hiddenBy[0], data.participants)) &&
+        (data.hiddenBy.size() < 2 || isParticipantId(data.hiddenBy[1], data.participants))
+      );
+    }
+
+    function isValidHiddenByUpdate(requestData, oldData) {
+      return requestData.participants == oldData.participants &&
+          requestData.participantMeta == oldData.participantMeta &&
+          requestData.chatType == oldData.chatType &&
+          requestData.referenceId == oldData.referenceId &&
+          requestData.listingTitle == oldData.listingTitle &&
+          requestData.lastMessage == oldData.lastMessage &&
+          requestData.lastMessageType == oldData.lastMessageType &&
+          requestData.lastMessageTime == oldData.lastMessageTime &&
+          requestData.lastSenderId == oldData.lastSenderId &&
+          requestData.lastReadAt == oldData.lastReadAt &&
+          requestData.unreadCountByUser == oldData.unreadCountByUser &&
+          requestData.typingByUser == oldData.typingByUser &&
+          requestData.createdAt == oldData.createdAt &&
+          ( !('referenceDeleted' in requestData) || requestData.referenceDeleted == oldData.referenceDeleted ) &&
+          ( !('referenceDeletedAt' in requestData) || requestData.referenceDeletedAt == oldData.referenceDeletedAt ) &&
+          isValidHiddenByField(requestData);
+    }
+
+    function isValidReferenceDeletionFields(data) {
+      return !('referenceDeleted' in data) || data.referenceDeleted is bool;
+    }
+
+    function isValidReferenceDeletedAtField(data) {
+      return !('referenceDeletedAt' in data) || data.referenceDeletedAt is timestamp;
     }
 
     function normalizedUserId() {
@@ -239,12 +292,15 @@ service cloud.firestore {
           (currentUserId() in request.resource.data.participants ||
            normalizedUserId() in request.resource.data.participants);
 
-      allow update: if isParticipantData(resource.data) &&
-          isChatPayloadShapeValid(request.resource.data) &&
-          request.resource.data.participants == resource.data.participants &&
-          request.resource.data.chatType == resource.data.chatType &&
-          request.resource.data.referenceId == resource.data.referenceId &&
-          request.resource.data.createdAt == resource.data.createdAt;
+      allow update: if isParticipantData(resource.data) && (
+            (isChatPayloadShapeValid(request.resource.data) &&
+              request.resource.data.participants == resource.data.participants &&
+              request.resource.data.chatType == resource.data.chatType &&
+              request.resource.data.referenceId == resource.data.referenceId &&
+              request.resource.data.createdAt == resource.data.createdAt)
+            ||
+            isValidHiddenByUpdate(request.resource.data, resource.data)
+          );
 
       allow delete: if false;
 
