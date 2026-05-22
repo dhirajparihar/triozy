@@ -5,7 +5,7 @@ import '../models/listing_model.dart';
 import '../theme/app_colors.dart';
 import '../theme/app_theme.dart';
 
-class ListingCard extends StatelessWidget {
+class ListingCard extends StatefulWidget {
   final ListingModel listing;
   final VoidCallback onTap;
   final VoidCallback? onSaveTap;
@@ -22,7 +22,22 @@ class ListingCard extends StatelessWidget {
   });
 
   @override
+  State<ListingCard> createState() => _ListingCardState();
+}
+
+class _ListingCardState extends State<ListingCard> {
+  final PageController _pageController = PageController();
+  int _pageIndex = 0;
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final listing = widget.listing;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isCompactScreen = screenWidth < 380;
 
@@ -30,28 +45,244 @@ class ListingCard extends StatelessWidget {
       builder: (context, constraints) {
         final width = constraints.maxWidth;
         final isNarrow = isCompactScreen || width < 360;
-        final imageHeight = compact
+        final imageHeight = widget.compact
             ? (isNarrow ? 108.0 : 120.0)
             : (width < 380 ? 170.0 : 184.0);
         final horizontalPadding = isNarrow ? 12.0 : 16.0;
-        final verticalPadding = compact ? (isNarrow ? 12.0 : 14.0) : 16.0;
-        final titleSize = compact ? (isNarrow ? 13.0 : 14.0) : 16.0;
-        final priceSize = compact ? (isNarrow ? 18.0 : 20.0) : 22.0;
-        final maxHighlights = compact ? (isNarrow ? 1 : 2) : 3;
+        final verticalPadding = widget.compact ? (isNarrow ? 12.0 : 14.0) : 16.0;
+        final titleSize = widget.compact ? (isNarrow ? 13.0 : 14.0) : 16.0;
+        final priceSize = widget.compact ? (isNarrow ? 18.0 : 20.0) : 22.0;
+        final maxHighlights = widget.compact ? (isNarrow ? 1 : 2) : 3;
         final highlights = listing.highlights.take(maxHighlights).toList();
 
-        if (listing.isRequirementPost || (listing.needsRoommate && listing.propertyType != PropertyType.room)) {
+        if (listing.isRequirementPost ||
+            (listing.needsRoommate && listing.propertyType != PropertyType.room)) {
           return _FlatmateCard(
             listing: listing,
-            onTap: onTap,
-            onSaveTap: onSaveTap,
-            isSaved: isSaved,
-            compact: compact,
+            onTap: widget.onTap,
+            onSaveTap: widget.onSaveTap,
+            isSaved: widget.isSaved,
+            compact: widget.compact,
+          );
+        }
+
+        final useAirbnbStyle = listing.type == ListingType.housing;
+
+        if (useAirbnbStyle) {
+          final loc = listing.location.trim();
+          final String displayTitle;
+          if (listing.propertyType == PropertyType.room) {
+            final gender = (listing.genderPreference ?? '').trim();
+            displayTitle = gender.isEmpty ||
+                    gender.toLowerCase() == 'anyone' ||
+                    gender.toLowerCase() == 'any'
+                ? (loc.isNotEmpty ? 'Roommate needed in $loc' : 'Roommate needed')
+                : (loc.isNotEmpty ? '$gender roommate needed in $loc' : '$gender roommate needed');
+          } else {
+            displayTitle = listing.title;
+          }
+
+          final detailsList = <String>[];
+          if (listing.furnishing != null && listing.furnishing!.trim().isNotEmpty) {
+            detailsList.add(listing.furnishing!.trim());
+          }
+          if (listing.highlights.isNotEmpty) {
+            detailsList.addAll(
+              listing.highlights
+                  .where((h) =>
+                      !h.contains('Looking for') &&
+                      !h.contains('Mobile') &&
+                      !h.contains('Chat'))
+                  .take(6),
+            );
+          }
+          final defaultLabel = listing.propertyType == PropertyType.room
+              ? '1 room'
+              : listing.propertyTypeLabel;
+          final amenitiesText = detailsList.isEmpty ? defaultLabel : detailsList.join(' · ');
+
+          final detailsParts = <String>[];
+          if (loc.isNotEmpty) detailsParts.add(loc);
+          detailsParts.add(amenitiesText);
+          final detailsText = detailsParts.join(' | ');
+
+          return GestureDetector(
+            onTap: widget.onTap,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                AspectRatio(
+                  aspectRatio: 1.35,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: listing.imageUrls.isEmpty
+                        ? _imageFallback()
+                        : Stack(
+                            children: [
+                              PageView.builder(
+                                controller: _pageController,
+                                itemCount: listing.imageUrls.length,
+                                onPageChanged: (i) => setState(() => _pageIndex = i),
+                                itemBuilder: (context, index) {
+                                  return CachedNetworkImage(
+                                    imageUrl: listing.imageUrls[index],
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: double.infinity,
+                                    errorWidget: (_, __, ___) => _imageFallback(),
+                                  );
+                                },
+                              ),
+                              Positioned(
+                                left: 12,
+                                top: 12,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 10,
+                                    vertical: 5,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withOpacity(0.55),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Text(
+                                    listing.propertyTypeLabel,
+                                    style: AppTheme.label(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w800,
+                                      color: Colors.white,
+                                      letterSpacing: 0.2,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                              if (widget.onSaveTap != null)
+                                Positioned(
+                                  right: 12,
+                                  top: 12,
+                                  child: GestureDetector(
+                                    onTap: widget.onSaveTap,
+                                    behavior: HitTestBehavior.opaque,
+                                    child: Icon(
+                                      widget.isSaved
+                                          ? Icons.favorite_rounded
+                                          : Icons.favorite_border_rounded,
+                                      color: widget.isSaved
+                                          ? const Color(0xFFFF385C)
+                                          : Colors.white,
+                                      size: 26,
+                                      shadows: const [
+                                        Shadow(
+                                          blurRadius: 6.0,
+                                          color: Colors.black38,
+                                          offset: Offset(0, 1),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              if (listing.imageUrls.length > 1)
+                                Positioned(
+                                  bottom: 12,
+                                  left: 0,
+                                  right: 0,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: List.generate(
+                                      listing.imageUrls.length,
+                                      (i) {
+                                        final selected = i == _pageIndex;
+                                        return AnimatedContainer(
+                                          duration: const Duration(
+                                            milliseconds: 200,
+                                          ),
+                                          margin: const EdgeInsets.symmetric(
+                                            horizontal: 3,
+                                          ),
+                                          width: selected ? 7 : 5,
+                                          height: selected ? 7 : 5,
+                                          decoration: BoxDecoration(
+                                            color: selected
+                                                ? Colors.white
+                                                : Colors.white.withOpacity(0.6),
+                                            shape: BoxShape.circle,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                            ],
+                          ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        displayTitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.headline(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        detailsText,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.body(
+                          fontSize: 12.5,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text.rich(
+                        TextSpan(
+                          children: [
+                            TextSpan(
+                              text: '₹${listing.price.toInt().toString().replaceAllMapped(
+                                    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+                                    (Match m) => '${m[1]},',
+                                  )}',
+                              style: AppTheme.headline(
+                                fontSize: 14,
+                                fontWeight: FontWeight.w800,
+                                color: AppColors.textPrimary,
+                              ).copyWith(
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                            TextSpan(
+                              text: ' / month',
+                              style: AppTheme.body(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: AppColors.textPrimary,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           );
         }
 
         return GestureDetector(
-          onTap: onTap,
+          onTap: widget.onTap,
           child: Container(
             decoration: AppTheme.cardDecoration(
               color: AppColors.surfaceContainerLowest,
@@ -64,79 +295,116 @@ class ListingCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
-                Stack(
-                  children: [
-                    SizedBox(
-                      height: imageHeight,
-                      width: double.infinity,
-                      child: ClipRRect(
-                        borderRadius: const BorderRadius.vertical(
-                          top: Radius.circular(20),
-                        ),
-                        child: SizedBox(
-                          height: imageHeight,
-                          width: double.infinity,
-                          child: listing.imageUrls.isEmpty
-                              ? _imageFallback()
-                              : CachedNetworkImage(
-                                  imageUrl: listing.imageUrls.first,
-                                  fit: BoxFit.cover,
-                                  errorWidget: (_, _, _) => _imageFallback(),
-                                ),
-                        ),
-                      ),
-                    ),
-                    Positioned(
-                      left: 12,
-                      top: 12,
-                      child: _Badge(
-                        label: listing.propertyTypeLabel,
-                        background: AppColors.surfaceContainerLowest.withValues(
-                          alpha: 0.94,
-                        ),
-                        foreground: AppColors.primary,
-                      ),
-                    ),
-                    if (onSaveTap != null)
-                      Positioned(
-                        right: 12,
-                        top: 12,
-                        child: GestureDetector(
-                          onTap: onSaveTap,
-                          child: Container(
-                            width: 38,
-                            height: 38,
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceContainerLowest
-                                  .withValues(alpha: 0.96),
-                              shape: BoxShape.circle,
-                              boxShadow: AppTheme.shadow(
-                                blur: 12,
-                                offsetY: 4,
-                                alpha: 0.05,
+                // Image carousel
+                SizedBox(
+                  height: imageHeight,
+                  width: double.infinity,
+                  child: ClipRRect(
+                    borderRadius:
+                        const BorderRadius.vertical(top: Radius.circular(20)),
+                    child: listing.imageUrls.isEmpty
+                        ? _imageFallback()
+                        : Stack(
+                            children: [
+                              // Images
+                              PageView.builder(
+                                controller: _pageController,
+                                itemCount: listing.imageUrls.length,
+                                onPageChanged: (i) => setState(() => _pageIndex = i),
+                                itemBuilder: (context, index) {
+                                  return CachedNetworkImage(
+                                    imageUrl: listing.imageUrls[index],
+                                    fit: BoxFit.cover,
+                                    width: double.infinity,
+                                    height: imageHeight,
+                                    errorWidget: (_, __, ___) => _imageFallback(),
+                                  );
+                                },
                               ),
-                            ),
-                            child: Icon(
-                              isSaved
-                                  ? Icons.favorite_rounded
-                                  : Icons.favorite_border_rounded,
-                              color: isSaved
-                                  ? AppColors.tertiary
-                                  : AppColors.onSurface,
-                              size: 20,
-                            ),
+
+                              // Top-left badge overlay
+                              Positioned(
+                                left: 12,
+                                top: 12,
+                                child: listing.isFeatured
+                                    ? _Badge(
+                                        label: 'Superhost',
+                                        background: AppColors.surfaceContainerLowest
+                                            .withValues(alpha: 0.9),
+                                        foreground: AppColors.onSurface,
+                                      )
+                                    : _Badge(
+                                        label: listing.propertyTypeLabel,
+                                        background: AppColors.surfaceContainerLowest
+                                            .withValues(alpha: 0.94),
+                                        foreground: AppColors.primary,
+                                      ),
+                              ),
+
+                              // Top-right save (heart) overlay
+                              if (widget.onSaveTap != null)
+                                Positioned(
+                                  right: 12,
+                                  top: 12,
+                                  child: GestureDetector(
+                                    onTap: widget.onSaveTap,
+                                    child: Container(
+                                      width: 38,
+                                      height: 38,
+                                      decoration: BoxDecoration(
+                                        color: AppColors.surfaceContainerLowest
+                                            .withValues(alpha: 0.96),
+                                        shape: BoxShape.circle,
+                                        boxShadow: AppTheme.shadow(
+                                            blur: 12, offsetY: 4, alpha: 0.05),
+                                      ),
+                                      child: Icon(
+                                        widget.isSaved
+                                            ? Icons.favorite_rounded
+                                            : Icons.favorite_border_rounded,
+                                        color: widget.isSaved ? AppColors.tertiary : AppColors.onSurface,
+                                        size: 20,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+
+                              // Dots indicator bottom center
+                              if (listing.imageUrls.length > 1)
+                                Positioned(
+                                  bottom: 10,
+                                  left: 0,
+                                  right: 0,
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: List.generate(
+                                      listing.imageUrls.length,
+                                      (i) {
+                                        final selected = i == _pageIndex;
+                                        return AnimatedContainer(
+                                          duration: const Duration(milliseconds: 200),
+                                          margin: const EdgeInsets.symmetric(horizontal: 4),
+                                          width: selected ? 10 : 8,
+                                          height: selected ? 10 : 8,
+                                          decoration: BoxDecoration(
+                                            color: selected ? Colors.white : Colors.white54,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        );
+                                      },
+                                    ),
+                                  ),
+                                ),
+                            ],
                           ),
-                        ),
-                      ),
-                  ],
+                  ),
                 ),
+                
+
+                // Textual details
                 Padding(
                   padding: EdgeInsets.fromLTRB(
-                    horizontalPadding,
-                    verticalPadding,
-                    horizontalPadding,
-                    verticalPadding,
-                  ),
+                      horizontalPadding, verticalPadding, horizontalPadding, verticalPadding),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
@@ -144,60 +412,35 @@ class ListingCard extends StatelessWidget {
                       Text(
                         listing.priceLabel,
                         style: AppTheme.headline(
-                          fontSize: priceSize,
-                          color: AppColors.primary,
-                          fontWeight: FontWeight.w700,
-                        ),
+                            fontSize: priceSize,
+                            color: AppColors.primary,
+                            fontWeight: FontWeight.w700),
                       ),
                       const SizedBox(height: 6),
                       Text(
                         listing.title,
-                        maxLines: compact ? 1 : 2,
+                        maxLines: widget.compact ? 1 : 2,
                         overflow: TextOverflow.ellipsis,
                         style: AppTheme.body(
-                          fontSize: titleSize,
-                          fontWeight: FontWeight.w700,
-                          height: 1.35,
-                        ),
+                            fontSize: titleSize, fontWeight: FontWeight.w700, height: 1.35),
                       ),
                       const SizedBox(height: 10),
-                      Row(
-                        children: [
-                          const Icon(
-                            Icons.location_on_outlined,
-                            size: 16,
-                            color: AppColors.secondary,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              listing.location,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: AppTheme.body(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w600,
-                                color: AppColors.secondary,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                      if (highlights.isNotEmpty) ...[
-                        const SizedBox(height: 12),
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: highlights.map((highlight) {
-                            return _Badge(
-                              label: highlight,
-                              background: AppColors.secondaryContainer
-                                  .withValues(alpha: 0.7),
-                              foreground: AppColors.secondary,
-                            );
-                          }).toList(),
-                        ),
-                      ],
+                      Builder(builder: (context) {
+                        final loc = listing.location.trim();
+                        final amenities = highlights;
+                        final detailsParts = <String>[];
+                        if (loc.isNotEmpty) detailsParts.add(loc);
+                        if (amenities.isNotEmpty) detailsParts.add(amenities.join(' · '));
+                        final detailsText = detailsParts.join(' | ');
+
+                        return Text(
+                          detailsText,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.body(
+                              fontSize: 13, fontWeight: FontWeight.w600, color: AppColors.secondary),
+                        );
+                      }),
                     ],
                   ),
                 ),
@@ -208,19 +451,19 @@ class ListingCard extends StatelessWidget {
       },
     );
   }
+}
 
-  Widget _imageFallback() {
-    return Container(
-      color: AppColors.surfaceContainerHigh,
-      child: const Center(
-        child: Icon(
-          Icons.home_work_rounded,
-          size: 40,
-          color: AppColors.outline,
-        ),
+Widget _imageFallback() {
+  return Container(
+    color: AppColors.surfaceContainerHigh,
+    child: const Center(
+      child: Icon(
+        Icons.home_work_rounded,
+        size: 40,
+        color: AppColors.outline,
       ),
-    );
-  }
+    ),
+  );
 }
 
 class _FlatmateCard extends StatelessWidget {
@@ -241,12 +484,12 @@ class _FlatmateCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.sizeOf(context).width;
-    final isCompactScreen = screenWidth < 380;
-    final isNarrow = isCompactScreen || compact;
+    final isCompact = screenWidth < 380;
+    final isNarrow = isCompact || compact;
 
     final displayName = listing.ownerName.trim().isEmpty ? 'User' : listing.ownerName.trim();
     final isLooking = listing.isRequirementPost;
-    
+
     // Determine dynamic avatar background color based on ID
     final colors = [
       AppColors.pastelPurple,
@@ -256,12 +499,12 @@ class _FlatmateCard extends StatelessWidget {
     final avatarBgColor = colors[listing.id.hashCode % colors.length];
 
     // Badge configuration
-    final typeBadgeColor = listing.propertyTypeLabel.toLowerCase() == 'flat' 
-      ? const Color(0xFFFFF2EC) 
-      : const Color(0xFFF0F5FF);
-    final typeBadgeTextColor = listing.propertyTypeLabel.toLowerCase() == 'flat' 
-      ? const Color(0xFFF97316) 
-      : const Color(0xFF3B82F6);
+    final typeBadgeColor = listing.propertyTypeLabel.toLowerCase() == 'flat'
+        ? const Color(0xFFFFF2EC)
+        : const Color(0xFFF0F5FF);
+    final typeBadgeTextColor = listing.propertyTypeLabel.toLowerCase() == 'flat'
+        ? const Color(0xFFF97316)
+        : const Color(0xFF3B82F6);
 
     return GestureDetector(
       onTap: onTap,
@@ -274,166 +517,212 @@ class _FlatmateCard extends StatelessWidget {
           blur: 24,
           offsetY: 8,
         ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
           children: [
-            // Left Column: Avatar & Type Badge
-            Column(
-              children: [
-                Container(
-                  width: isNarrow ? 64 : 80,
-                  height: isNarrow ? 64 : 80,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.06),
-                        blurRadius: 10,
-                        offset: const Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                  padding: const EdgeInsets.all(3),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      color: avatarBgColor,
-                      shape: BoxShape.circle,
-                    ),
-                    child: ClipOval(
-                      child: listing.ownerPhotoUrl.isEmpty
-                          ? Center(
-                              child: Text(
-                                displayName[0].toUpperCase(),
-                                style: AppTheme.headline(fontSize: isNarrow ? 24 : 28, color: AppColors.primary),
-                              ),
-                            )
-                          : CachedNetworkImage(
-                              imageUrl: listing.ownerPhotoUrl,
-                              fit: BoxFit.cover,
-                              errorWidget: (_, _, _) => Center(
-                                child: Text(
-                                  displayName[0].toUpperCase(),
-                                  style: AppTheme.headline(fontSize: isNarrow ? 24 : 28, color: AppColors.primary),
-                                ),
-                              ),
-                            ),
-                    ),
-                  ),
-                ),
-                SizedBox(height: isNarrow ? 8 : 12),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: isNarrow ? 12 : 16, vertical: isNarrow ? 4 : 6),
-                  decoration: BoxDecoration(
-                    color: typeBadgeColor,
-                    borderRadius: BorderRadius.circular(99),
-                  ),
-                  child: Text(
-                    listing.propertyTypeLabel,
-                    style: AppTheme.label(
-                      fontSize: isNarrow ? 10 : 12,
-                      fontWeight: FontWeight.w800,
-                      color: typeBadgeTextColor,
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            SizedBox(width: isNarrow ? 12 : 16),
-            // Right Column: Details
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(
-                        child: Text(
-                          displayName,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTheme.headline(
-                            fontSize: isNarrow ? 16 : 18,
-                            fontWeight: FontWeight.w800,
-                            color: AppColors.textPrimary,
-                          ),
-                        ),
+                  SizedBox(
+                    width: isNarrow ? 116.0 : 132.0,
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(12),
                       ),
-                      if (onSaveTap != null)
-                        GestureDetector(
-                          onTap: onSaveTap,
-                          child: Container(
-                            padding: const EdgeInsets.all(4),
-                            child: Icon(
-                              isSaved ? Icons.favorite_rounded : Icons.favorite_border_rounded,
-                              color: isSaved ? AppColors.tertiary : AppColors.textPrimary,
-                                size: isNarrow ? 20 : 22,
-                            ),
-                          ),
-                        ),
-                    ],
-                  ),
-                    SizedBox(height: isNarrow ? 2 : 4),
-                  Row(
-                    children: [
-                        Icon(Icons.person_outline_rounded, size: isNarrow ? 12 : 14, color: AppColors.textSecondary),
-                      const SizedBox(width: 4),
-                      Text(
-                          '${listing.requirementDetails?.genderPreference.isNotEmpty == true ? listing.requirementDetails!.genderPreference : 'Male'} • ',
-                          style: AppTheme.body(fontSize: isNarrow ? 11 : 12, color: AppColors.textSecondary),
+                      child: AspectRatio(
+                        aspectRatio: 1,
+                        child: _FlatmatePhoto(listing: listing),
                       ),
-                        Icon(Icons.work_outline_rounded, size: isNarrow ? 12 : 14, color: AppColors.textSecondary),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          'Professional',
-                            style: AppTheme.body(fontSize: isNarrow ? 11 : 12, color: AppColors.textSecondary),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                      ),
-                    ],
-                  ),
-                    SizedBox(height: isNarrow ? 4 : 6),
-                  Row(
-                    children: [
-                        Icon(Icons.location_on_outlined, size: isNarrow ? 12 : 14, color: AppColors.textSecondary),
-                      const SizedBox(width: 4),
-                      Expanded(
-                        child: Text(
-                          listing.location,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                            style: AppTheme.body(fontSize: isNarrow ? 11 : 12, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
-                        ),
-                      ),
-                    ],
-                  ),
-                    SizedBox(height: isNarrow ? 8 : 12),
-                  Container(
-                      padding: EdgeInsets.symmetric(horizontal: isNarrow ? 8 : 10, vertical: isNarrow ? 4 : 6),
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceSecondary,
-                      borderRadius: BorderRadius.circular(99),
                     ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                          Icon(Icons.currency_rupee_rounded, size: isNarrow ? 12 : 14, color: AppColors.primary),
-                          SizedBox(width: isNarrow ? 2 : 4),
-                        Text(
-                          isLooking ? 'Up to ₹${listing.price.toInt()}' : '₹${listing.price.toInt()}',
-                            style: AppTheme.label(fontSize: isNarrow ? 12 : 13, fontWeight: FontWeight.w800, color: AppColors.primary),
-                        ),
-                      ],
+                  ),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.fromLTRB(
+                        isNarrow ? 10 : 12,
+                        isNarrow ? 10 : 14,
+                        isNarrow ? 8 : 10,
+                        isNarrow ? 8 : 10,
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          if (displayName.isNotEmpty) ...[
+                            Text(
+                              displayName,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: AppTheme.headline(
+                                fontSize: isCompact ? 14 : 16,
+                                fontWeight: FontWeight.w700,
+                                color: const Color(0xFF3F3F3F),
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                          ],
+                          if (listing.location.trim().isNotEmpty) ...[
+                            _FlatmateInfoLine(
+                              icon: Icons.location_on_rounded,
+                              text: listing.location.trim(),
+                              fontSize: isCompact ? 11 : 12,
+                            ),
+                            const SizedBox(height: 5),
+                          ],
+                          if (listing.price > 0) ...[
+                            _FlatmateInfoLine(
+                              icon: Icons.currency_rupee_rounded,
+                              text: '${listing.price.toInt()} Rent',
+                              fontSize: isCompact ? 11 : 12,
+                            ),
+                            const SizedBox(height: 5),
+                          ],
+                          if ((listing.genderPreference ?? '').trim().isNotEmpty)
+                            _FlatmateInfoLine(
+                              icon: Icons.person_rounded,
+                              text: 'Looking for ${(listing.genderPreference ?? '').trim()}',
+                              fontSize: isCompact ? 11 : 12,
+                            ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
+            const Divider(height: 1, color: Color(0xFFEDEDED)),
+            SizedBox(
+              height: isNarrow ? 42 : 46,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: isNarrow ? 10 : 12),
+                child: Row(
+                  children: [
+                    if ((listing.availableFrom ?? '').trim().isNotEmpty)
+                      Expanded(
+                        child: Text(
+                          (listing.availableFrom ?? '').trim(),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: AppTheme.body(
+                            fontSize: isCompact ? 11 : 12,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF8E8E8E),
+                          ),
+                        ),
+                      )
+                    else
+                      const Spacer(),
+                    _FlatmateActionButton(
+                      icon: Icons.phone_rounded,
+                      enabled: false,
+                      onTap: null,
+                    ),
+                    SizedBox(width: isNarrow ? 10 : 14),
+                    _FlatmateActionButton(
+                      icon: Icons.chat_bubble_rounded,
+                      enabled: true,
+                      onTap: onTap,
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FlatmatePhoto extends StatelessWidget {
+  final ListingModel listing;
+
+  const _FlatmatePhoto({required this.listing});
+
+  @override
+  Widget build(BuildContext context) {
+    final photoUrl = listing.ownerPhotoUrl.trim().isNotEmpty
+        ? listing.ownerPhotoUrl.trim()
+        : (listing.imageUrls.isNotEmpty ? listing.imageUrls.first.trim() : '');
+
+    if (photoUrl.isNotEmpty) {
+      return CachedNetworkImage(
+        imageUrl: photoUrl,
+        fit: BoxFit.cover,
+        errorWidget: (_, _, __) => _fallback(),
+      );
+    }
+    return _fallback();
+  }
+
+  Widget _fallback() {
+    final initial = listing.ownerName.trim().isNotEmpty
+        ? listing.ownerName.trim()[0].toUpperCase()
+        : '';
+    return Container(
+      color: const Color(0xFFF6F2EE),
+      alignment: Alignment.center,
+      child: initial.isEmpty
+          ? const Icon(Icons.person_rounded, size: 48, color: Color(0xFFB0B0B0))
+          : Text(
+              initial,
+              style: AppTheme.headline(
+                fontSize: 36,
+                fontWeight: FontWeight.w800,
+                color: AppColors.primary,
+              ),
+            ),
+    );
+  }
+}
+
+class _FlatmateInfoLine extends StatelessWidget {
+  final IconData icon;
+  final String text;
+  final double fontSize;
+
+  const _FlatmateInfoLine({required this.icon, required this.text, required this.fontSize});
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: fontSize + 5, color: AppColors.primary),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text(
+            text,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: AppTheme.body(fontSize: fontSize, color: AppColors.textSecondary),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _FlatmateActionButton extends StatelessWidget {
+  final IconData icon;
+  final bool enabled;
+  final VoidCallback? onTap;
+
+  const _FlatmateActionButton({required this.icon, required this.enabled, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    return InkWell(
+      customBorder: const CircleBorder(),
+      onTap: enabled ? onTap : null,
+      child: Container(
+        width: 36,
+        height: 36,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF8F8F8),
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          icon,
+          color: enabled ? AppColors.primary : AppColors.outline,
         ),
       ),
     );
@@ -445,11 +734,7 @@ class _Badge extends StatelessWidget {
   final Color background;
   final Color foreground;
 
-  const _Badge({
-    required this.label,
-    required this.background,
-    required this.foreground,
-  });
+  const _Badge({required this.label, required this.background, required this.foreground});
 
   @override
   Widget build(BuildContext context) {
@@ -463,11 +748,7 @@ class _Badge extends StatelessWidget {
       ),
       child: Text(
         label,
-        style: AppTheme.label(
-          fontSize: isCompact ? 10 : 11,
-          fontWeight: FontWeight.w800,
-          color: foreground,
-        ),
+        style: AppTheme.label(fontSize: isCompact ? 10 : 11, fontWeight: FontWeight.w800, color: foreground),
       ),
     );
   }
