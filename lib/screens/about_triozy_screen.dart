@@ -140,6 +140,13 @@ class _AboutTriozyScreenState extends State<AboutTriozyScreen> {
                       title: const Text('LinkedIn', style: TextStyle(color: Color(0xFF2D2D2D))),
                       trailing: const Text('Triozy', style: TextStyle(color: Color(0xFF7C5CBF))),
                     ),
+                    const Divider(height: 1, thickness: 0.5, color: Color(0xFFF0ECFA)),
+                    ListTile(
+                      onTap: () => _launchUrl('https://www.instagram.com/triozy.app'),
+                      leading: const Icon(Icons.camera_alt_outlined, color: Color(0xFF7C5CBF)),
+                      title: const Text('Instagram', style: TextStyle(color: Color(0xFF2D2D2D))),
+                      trailing: const Text('@triozy.app', style: TextStyle(color: Color(0xFF7C5CBF))),
+                    ),
                   ],
                 ),
               ),
