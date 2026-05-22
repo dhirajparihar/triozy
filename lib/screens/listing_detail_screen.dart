@@ -286,11 +286,28 @@ class _FlatDetailScaffoldState extends State<_FlatDetailScaffold> {
   final PageController _imageController = PageController();
   int _imageIndex = 0;
   bool _saved = false;
+  String? _ownerPhone;
 
   @override
   void initState() {
     super.initState();
     _initSavedState();
+    _loadOwnerPhone();
+  }
+
+  Future<void> _loadOwnerPhone() async {
+    if (widget.listing.phonePublic != true) return;
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.listing.ownerId)
+          .get();
+      if (!mounted) return;
+      final phone = userDoc.data()?['phoneNumber'] as String?;
+      if (phone != null && phone.isNotEmpty) {
+        setState(() => _ownerPhone = phone);
+      }
+    } catch (_) {}
   }
 
   Future<void> _initSavedState() async {
@@ -387,7 +404,7 @@ class _FlatDetailScaffoldState extends State<_FlatDetailScaffold> {
                 const SizedBox(height: 10),
                 _PgOwnerCard(
                   listing: listing,
-                  phone: details.contact,
+                  phone: details.contact.isNotEmpty ? details.contact : (_ownerPhone ?? ''),
                   onStartChat: widget.onStartChat,
                 ),
               ]),
@@ -939,11 +956,28 @@ class _PgDetailScaffoldState extends State<_PgDetailScaffold> {
   final PageController _imageController = PageController();
   int _imageIndex = 0;
   bool _saved = false;
+  String? _ownerPhone;
 
   @override
   void initState() {
     super.initState();
     _initSavedState();
+    _loadOwnerPhone();
+  }
+
+  Future<void> _loadOwnerPhone() async {
+    if (widget.listing.phonePublic != true) return;
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.listing.ownerId)
+          .get();
+      if (!mounted) return;
+      final phone = userDoc.data()?['phoneNumber'] as String?;
+      if (phone != null && phone.isNotEmpty) {
+        setState(() => _ownerPhone = phone);
+      }
+    } catch (_) {}
   }
 
   Future<void> _initSavedState() async {
@@ -1047,7 +1081,7 @@ class _PgDetailScaffoldState extends State<_PgDetailScaffold> {
                 const SizedBox(height: 10),
                 _PgOwnerCard(
                   listing: listing,
-                  phone: details.contact,
+                  phone: details.contact.isNotEmpty ? details.contact : (_ownerPhone ?? ''),
                   onStartChat: widget.onStartChat,
                 ),
               ]),
@@ -2500,7 +2534,7 @@ class _FullscreenImageViewerState extends State<_FullscreenImageViewer> {
   }
 }
 
-class _RequirementDetailScaffold extends StatelessWidget {
+class _RequirementDetailScaffold extends StatefulWidget {
   final ListingModel listing;
   final VoidCallback onStartChat;
 
@@ -2510,7 +2544,37 @@ class _RequirementDetailScaffold extends StatelessWidget {
   });
 
   @override
+  State<_RequirementDetailScaffold> createState() =>
+      _RequirementDetailScaffoldState();
+}
+
+class _RequirementDetailScaffoldState extends State<_RequirementDetailScaffold> {
+  String? _ownerPhone;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOwnerPhone();
+  }
+
+  Future<void> _loadOwnerPhone() async {
+    if (widget.listing.phonePublic != true) return;
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.listing.ownerId)
+          .get();
+      if (!mounted) return;
+      final phone = userDoc.data()?['phoneNumber'] as String?;
+      if (phone != null && phone.isNotEmpty) {
+        setState(() => _ownerPhone = phone);
+      }
+    } catch (_) {}
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final listing = widget.listing;
     final details = listing.requirementDetails!;
     final gender = (listing.genderPreference ?? details.genderPreference)
         .trim();
@@ -2688,13 +2752,14 @@ class _RequirementDetailScaffold extends StatelessWidget {
       ),
       bottomNavigationBar: _RequirementContactBar(
         listing: listing,
-        onStartChat: onStartChat,
+        onStartChat: widget.onStartChat,
+        onCall: _ownerPhone == null ? null : () => _launchUri('tel:$_ownerPhone'),
       ),
     );
   }
 
   String get _ownerName {
-    final name = listing.ownerName.trim();
+    final name = widget.listing.ownerName.trim();
     return name.isEmpty ? 'Triozy user' : name;
   }
 }

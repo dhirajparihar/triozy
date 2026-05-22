@@ -1,5 +1,13 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:url_launcher/url_launcher.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:provider/provider.dart';
+
+import '../providers/chat_provider.dart';
+import '../models/chat_model.dart';
+import '../screens/chat_detail_screen.dart';
 
 import '../models/listing_model.dart';
 import '../theme/app_colors.dart';
@@ -466,7 +474,7 @@ Widget _imageFallback() {
   );
 }
 
-class _FlatmateCard extends StatelessWidget {
+class _FlatmateCard extends StatefulWidget {
   final ListingModel listing;
   final VoidCallback onTap;
   final VoidCallback? onSaveTap;
@@ -474,6 +482,7 @@ class _FlatmateCard extends StatelessWidget {
   final bool compact;
 
   const _FlatmateCard({
+    super.key,
     required this.listing,
     required this.onTap,
     this.onSaveTap,
@@ -482,7 +491,91 @@ class _FlatmateCard extends StatelessWidget {
   });
 
   @override
+  State<_FlatmateCard> createState() => _FlatmateCardState();
+}
+
+class _FlatmateCardState extends State<_FlatmateCard> {
+  String? _ownerPhone;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadOwnerPhone();
+  }
+
+  Future<void> _loadOwnerPhone() async {
+    if (widget.listing.phonePublic != true) return;
+    try {
+      final userDoc = await FirebaseFirestore.instance
+          .collection('users')
+          .doc(widget.listing.ownerId)
+          .get();
+      if (!mounted) return;
+      final phone = userDoc.data()?['phoneNumber'] as String?;
+      if (phone != null && phone.isNotEmpty) {
+        setState(() => _ownerPhone = phone);
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _launchPhone() async {
+    if (_ownerPhone == null) return;
+    final uri = Uri.parse('tel:$_ownerPhone');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  Future<void> _startChat() async {
+    final listing = widget.listing;
+    final currentUser = FirebaseAuth.instance.currentUser;
+    if (currentUser == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Sign in to contact the listing owner')),
+      );
+      return;
+    }
+    if (currentUser.uid == listing.ownerId) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('This is your listing')),
+      );
+      return;
+    }
+
+    try {
+      final conversationId = await context.read<ChatProvider>().createOrGetChat(
+        otherUserId: listing.ownerId,
+        chatType: listing.isMarketplacePost
+            ? ChatType.marketplace.value
+            : ChatType.listing.value,
+        referenceId: listing.id,
+        listingTitle: listing.title,
+        otherUserName: listing.ownerName,
+        otherUserPhotoUrl: listing.ownerPhotoUrl,
+        currentUserName: currentUser.displayName,
+        currentUserPhotoUrl: currentUser.photoURL,
+      );
+
+      if (!mounted) return;
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ChatDetailScreen(conversationId: conversationId),
+        ),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Could not open chat: $error')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final listing = widget.listing;
+    final onTap = widget.onTap;
+    final compact = widget.compact;
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isCompact = screenWidth < 380;
     final isNarrow = isCompact || compact;
@@ -611,16 +704,18 @@ class _FlatmateCard extends StatelessWidget {
                       )
                     else
                       const Spacer(),
-                    _FlatmateActionButton(
-                      icon: Icons.phone_rounded,
-                      enabled: false,
-                      onTap: null,
-                    ),
-                    SizedBox(width: isNarrow ? 10 : 14),
+                    if (_ownerPhone != null) ...[
+                      _FlatmateActionButton(
+                        icon: Icons.phone_rounded,
+                        enabled: true,
+                        onTap: _launchPhone,
+                      ),
+                      SizedBox(width: isNarrow ? 10 : 14),
+                    ],
                     _FlatmateActionButton(
                       icon: Icons.chat_bubble_rounded,
                       enabled: true,
-                      onTap: onTap,
+                      onTap: _startChat,
                     ),
                   ],
                 ),
