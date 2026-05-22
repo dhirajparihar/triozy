@@ -209,7 +209,7 @@ class HomeScreenState extends State<HomeScreen> {
     final screenWidth = MediaQuery.sizeOf(context).width;
     final isCompact = screenWidth < 380;
     final horizontalPadding = isCompact ? 16.0 : 20.0;
-    final cardHeight = isCompact ? 265.0 : 280.0;
+    final cardHeight = isCompact ? 190.0 : 210.0;
     final cardWidth = isCompact ? 180.0 : 200.0;
     final rooms = _sectionListings(_isRoomListing);
     final flatmates = _sectionListings(_isFlatmateListing);
@@ -799,10 +799,20 @@ class FeaturedListingCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: onTap,
+<<<<<<< Updated upstream
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
             Expanded(
+=======
+      child: Container(
+        // Remove white background and shadow so text sits directly on scaffold
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            AspectRatio(
+              aspectRatio: 1.35,
+>>>>>>> Stashed changes
               child: ClipRRect(
                 borderRadius: BorderRadius.circular(16),
                 child: Stack(

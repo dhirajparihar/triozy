@@ -507,6 +507,7 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
             ],
           ),
         ),
+<<<<<<< Updated upstream
         LayoutBuilder(
           builder: (context, constraints) {
             final isCompact = MediaQuery.sizeOf(context).width < 380;
@@ -523,6 +524,21 @@ class _LocationSearchScreenState extends State<LocationSearchScreen> {
                   width: isCompact ? 180 : 200,
                   child: itemBuilder(listings[index]),
                 ),
+=======
+        LayoutBuilder(builder: (context, constraints) {
+          final isCompact = MediaQuery.sizeOf(context).width < 380;
+          return SizedBox(
+            height: isCompact ? 190 : 210,
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 20),
+              scrollDirection: Axis.horizontal,
+              physics: const BouncingScrollPhysics(),
+              itemCount: listings.length,
+              separatorBuilder: (context, index) => SizedBox(width: isCompact ? 12 : 14),
+              itemBuilder: (context, index) => SizedBox(
+                width: isCompact ? 180 : 200,
+                child: itemBuilder(listings[index]),
+>>>>>>> Stashed changes
               ),
             );
           },
