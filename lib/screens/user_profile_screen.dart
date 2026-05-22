@@ -142,6 +142,18 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
               },
             ),
             _TileItem(
+              icon: Icons.description_outlined,
+              label: 'Terms of Service',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const PolicyScreen(type: PolicyType.terms),
+                  ),
+                );
+              },
+            ),
+            _TileItem(
               icon: Icons.info_outline,
               label: 'About Triozy',
               onTap: () {
