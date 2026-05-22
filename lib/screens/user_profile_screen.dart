@@ -15,6 +15,7 @@ import 'about_triozy_screen.dart';
 import 'edit_profile_screen.dart';
 import 'help_support_screen.dart';
 import 'my_listings_screen.dart';
+import 'policy_screen.dart';
 import 'saved_listings_screen.dart';
 
 /// Profile screen for authenticated or guest users.
@@ -131,16 +132,25 @@ class _UserProfileScreenState extends State<UserProfileScreen> {
             _TileItem(
               icon: Icons.privacy_tip_outlined,
               label: 'Privacy Policy',
-              onTap: () async {
-                final uri = Uri.parse('https://triozy.com/privacy');
-                try {
-                  final launched = await launchUrl(uri, mode: LaunchMode.externalApplication);
-                  if (!launched) throw Exception('Could not launch');
-                } catch (_) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Could not open Privacy Policy.')),
-                  );
-                }
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const PolicyScreen(type: PolicyType.privacy),
+                  ),
+                );
+              },
+            ),
+            _TileItem(
+              icon: Icons.description_outlined,
+              label: 'Terms of Service',
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const PolicyScreen(type: PolicyType.terms),
+                  ),
+                );
               },
             ),
             _TileItem(
