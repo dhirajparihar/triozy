@@ -82,7 +82,7 @@ class PolicyScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Last updated: April 8, 2026',
+                                'Last updated: May 25, 2026',
                                 style: GoogleFonts.inter(
                                   fontSize: 11,
                                   color: Colors.white.withValues(alpha: 0.65),
@@ -279,7 +279,7 @@ class PolicyScreen extends StatelessWidget {
   /// Full Terms of Service content tree.
   List<Widget> _termsContent() => [
         _intro(
-          'Welcome to Triozy — the platform built around three pillars: Workers, Requests, and Mates. '
+          'Welcome to Triozy — the all-in-one solution for city movers. '
           'By accessing or using Triozy, you agree to be bound by these Terms of Service. '
           'Please read them carefully before proceeding.',
         ),
@@ -293,93 +293,68 @@ class PolicyScreen extends StatelessWidget {
           _bullet(
               'Keep your sign-in credentials secure and notify us of unauthorised access'),
         ]),
-        _section('2', 'The Three Pillars', [
+        _section('2', 'Our Core Services', [
           _body(
-              'Triozy operates around three core features. Your use of each is subject to the following:'),
+              'Triozy provides a platform to facilitate your move and settlement in a new city. Your use of each feature is subject to the following:'),
           const SizedBox(height: 8),
-          _highlight('Workers — Find & Hire Service Professionals'),
+          _highlight('Accommodations & Flatmates'),
           _bullet(
-              'Workers are independent professionals, not employees of Triozy'),
+              'Triozy allows users to list and search for PGs, hostels, flats, and flatmates'),
           _bullet(
-              'Triozy displays worker profiles but does not guarantee availability, quality, or results'),
-          _bullet(
-              'All agreements, pricing, and arrangements are made directly between you and the worker'),
+              'We do not own, manage, or endorse any properties listed. All rental agreements and disputes are strictly between the user and the lister/landlord'),
           const SizedBox(height: 6),
-          _highlight('Requests — Post Work or Service Jobs'),
+          _highlight('Marketplace (2nd Hand Items)'),
           _bullet(
-              'You may post requests for services that workers and professionals can respond to'),
+              'Users can buy and sell second-hand goods (e.g., furniture, utensils)'),
           _bullet(
-              'Requests must be lawful, genuine, and not misleading or offensive'),
-          _bullet(
-              'Triozy reserves the right to remove requests that violate these terms'),
+              'Triozy is not a party to these transactions. We do not handle shipping, payment processing for items, or guarantee the quality/safety of goods sold'),
           const SizedBox(height: 6),
-          _highlight('Mates — Connect with People Nearby'),
+          _highlight('Essential Services (Maids & Tiffins)'),
           _bullet(
-              'Mates allows you to connect with people in your local area for community purposes'),
+              'We list independent local service providers for household chores and food delivery'),
           _bullet(
-              'Connections must be used respectfully — harassment or misuse will result in account suspension'),
-          _bullet(
-              'Do not use Mates for spam, solicitation, or commercial purposes without consent'),
+              'Triozy does not prepare food or employ maids. We are not liable for the quality of food, health concerns, or the conduct of independent providers'),
         ]),
-        _section('3', 'Worker Listings & Verification', [
+        _section('3', 'Interactions & Payments', [
           _body(
-              'Triozy performs basic identity checks but cannot guarantee every worker profile is 100% verified. '
-              'Users are encouraged to review profiles, ratings, and conduct due diligence before engaging.'),
+              'Triozy connects you with resources, but transactions happen offline or via direct user-to-user agreement.'),
           _bullet(
-              'Workers may optionally undergo identity or credential verification'),
+              'Direct payments for rent, marketplace items, and services are made directly between users — Triozy is not liable for lost funds or scams'),
           _bullet(
-              'Verified badges indicate a completed check — not an endorsement by Triozy'),
-          _bullet(
-              'Falsifying credentials or reviews is strictly prohibited and may result in permanent ban'),
+              'Always exercise caution and verify items or properties in person before transferring money'),
         ]),
-        _section('4', 'Fees & Payments', [
-          _body(
-              'Triozy is free for users to browse and connect. Certain features may carry optional fees.'),
-          _bullet(
-              'Worker subscriptions may be required to receive leads or boost visibility'),
-          _bullet(
-              'Direct payments for services are made between the user and the worker — Triozy is not a party to those transactions'),
-          _bullet(
-              'Any in-app purchases are processed via secure third-party payment providers'),
-          _highlight(
-              'Triozy charges zero commission on worker-user transactions.'),
-        ]),
-        _section('5', 'Prohibited Conduct', [
+        _section('4', 'Prohibited Conduct', [
           _body('You must NOT:'),
           _bullet(
-              'Provide false, misleading, or fraudulent information in profiles, requests, or reviews'),
+              'Post fraudulent property listings or counterfeit/stolen marketplace items'),
           _bullet(
-              'Harass, threaten, discriminate against, or abuse any user or worker'),
+              'Harass, threaten, or abuse any user, landlord, or service provider'),
           _bullet(
-              'Use the platform for illegal activities, scams, or unsolicited marketing'),
+              'Use the platform for unsolicited marketing or illegal activities'),
           _bullet(
               'Scrape, reverse-engineer, or attempt to access platform data without permission'),
-          _bullet(
-              'Create fake reviews, ratings, or impersonate another person or business'),
           _highlight(
               'Violations may result in immediate account suspension or permanent ban.',
               isWarning: true),
         ]),
-        _section('6', 'Content & Intellectual Property', [
+        _section('5', 'Content & Intellectual Property', [
           _body(
-              'You retain ownership of content you submit (profile info, photos, requests). '
+              'You retain ownership of content you submit (listings, photos, requests). '
               'By posting, you grant Triozy a non-exclusive licence to display that content within the platform.'),
           _bullet(
               'Do not post content that infringes copyright, trademarks, or privacy rights of others'),
           _bullet(
               'Triozy\'s branding, design, and code are protected intellectual property'),
         ]),
-        _section('7', 'Disclaimer & Liability', [
+        _section('6', 'Disclaimer & Liability', [
           _body(
-              'Triozy is a marketplace platform. We connect users and workers but do not directly provide any service.'),
+              'Triozy is a discovery platform. We do not directly provide housing, goods, or services.'),
           _bullet(
-              'We are not liable for the quality, safety, or outcome of any service delivered by a worker'),
+              'We are not liable for the condition of rental properties, the safety of marketplace transactions, or the quality of independent services'),
           _bullet(
-              'We are not responsible for disputes, damages, or losses arising from user-worker interactions'),
-          _bullet(
-              'Use of the Mates feature is entirely at your own discretion and risk'),
+              'We are not responsible for disputes, damages, or losses arising from user-to-user interactions'),
         ]),
-        _section('8', 'Changes & Termination', [
+        _section('7', 'Changes & Termination', [
           _body(
               'We may update these Terms at any time. Changes will be notified via the app or email. '
               'Continued use after changes constitutes acceptance.'),
@@ -387,7 +362,7 @@ class PolicyScreen extends StatelessWidget {
               'We reserve the right to suspend or terminate any account that violates these Terms '
               'without prior notice.'),
         ]),
-        _section('9', 'Contact', [
+        _section('8', 'Contact', [
           _body('For questions or disputes regarding these Terms:'),
           _highlight('triozyapp@gmail.com'),
         ]),
@@ -398,61 +373,47 @@ class PolicyScreen extends StatelessWidget {
   /// Full Privacy Policy content tree.
   List<Widget> _privacyContent() => [
         _intro(
-          'Triozy is built on trust. This Privacy Policy explains what data we collect, '
-          'why we collect it, how we use it, and your rights over it. '
-          'Our platform — Workers, Requests, and Mates — requires certain data to function well. '
-          'We collect only what is necessary.',
+          'Triozy is built to make moving to a new city seamless. '
+          'This Privacy Policy explains what data we collect to power our Accommodations, Marketplace, and Services features, '
+          'and how we protect it. We collect only what is necessary.',
         ),
         _section('1', 'Data We Collect', [
           _body('When you use Triozy, we may collect:'),
           _bullet('Identity: name, profile photo, email address'),
           _bullet(
-              'Contact: phone number (optional, for direct worker-user calls)'),
+              'Contact: phone number (optional, for direct connections)'),
           _bullet(
-              'Location: your approximate or precise location to match nearby workers, requests, and mates'),
+              'Location: approximate or precise location to show you relevant local properties, items, and services'),
+          _bullet(
+              'Listings: photos, prices, descriptions, and addresses of properties or marketplace items you choose to upload'),
           _bullet(
               'Usage: pages visited, searches performed, features used, session duration'),
           _bullet(
-              'Device: device model, OS version, app version, unique device identifiers'),
-          _bullet(
-              'Workers: service category, service area, availability, portfolio photos, subscription status'),
-          _bullet(
-              'Requests: job title, description, category, location, and any attached media'),
+              'Device & Usage: device model, app version, unique identifiers and feature usage to improve performance'),
         ]),
         _section('2', 'How We Use Your Data', [
-          _highlight('Workers Pillar'),
+          _highlight('Accommodations & Marketplace'),
           _bullet(
-              'To show your profile to users searching for your service in your area'),
+              'To display your property or item listings to users in your specific city or area'),
           _bullet(
-              'To notify you of matching service requests in real time'),
-          _bullet(
-              'To manage your subscription and lead access'),
+              'To allow interested buyers or tenants to contact you'),
           const SizedBox(height: 6),
-          _highlight('Requests Pillar'),
+          _highlight('Essential Services'),
           _bullet(
-              'To surface your request to relevant workers nearby'),
-          _bullet(
-              'To allow workers to contact you directly via call or chat'),
+              'To match you with nearby tiffin providers and cleaning services'),
           const SizedBox(height: 6),
-          _highlight('Mates Pillar'),
-          _bullet(
-              'To show nearby users you can connect with based on proximity'),
-          _bullet(
-              'To facilitate safe, community-driven local connections'),
-          const SizedBox(height: 6),
-          _body('Across all pillars, we also use data to:'),
+          _body('Across the app, we also use data to:'),
           _bullet('Personalise your experience and surface relevant content'),
-          _bullet('Investigate abuse, fraud, or violations of our Terms'),
-          _bullet('Improve app performance, fix bugs, and develop new features'),
+          _bullet('Investigate fraud, maintain safety, and fix bugs'),
         ]),
         _section('3', 'Permissions', [
           _body('Triozy may request the following device permissions:'),
           _bullet(
-              'Location (required) — to match workers, requests, and mates near you'),
+              'Location (required) — to ensure you only see listings and services relevant to your new city'),
           _bullet(
-              'Camera / Photo Library (optional) — for uploading profile photos or portfolio images'),
+              'Camera / Photo Library (optional) — for uploading profile pictures or photos of marketplace items/properties'),
           _bullet(
-              'Phone (optional) — to enable one-tap direct calls to workers'),
+              'Phone (optional) — to enable one-tap direct calls to sellers, landlords, or service providers'),
           _body(
               'Permissions are only requested when you use the relevant feature. '
               'You can revoke permissions at any time in your device settings.'),
@@ -464,33 +425,25 @@ class PolicyScreen extends StatelessWidget {
           _bullet(
               'Google Sign-In — secure, password-free account creation'),
           _bullet(
-              'Google Maps / Geolocation — worker and request proximity matching'),
-          _bullet(
-              'Payment providers (e.g., Razorpay) — secure subscription billing for workers'),
+              'Google Maps / Geolocation — proximity matching for properties and services'),
           _body(
               'Each provider operates under their own privacy policy. We recommend reviewing them.'),
         ]),
         _section('5', 'Data Sharing', [
-          _body('We share data only in the following circumstances:'),
+          _body('We share data only to make the app work for you:'),
           _bullet(
-              'With workers — your request details and contact info when you choose to connect'),
+              'Publicly on the platform: details of items or properties you actively choose to list'),
           _bullet(
-              'With users — a worker\'s profile, rating, and contact when you search'),
+              'With users: your contact info when you mutually agree to connect for a listing or service'),
           _bullet(
-              'With payment providers — billing info strictly for subscription processing'),
-          _bullet(
-              'With legal authorities — when required by applicable law or court order'),
+              'With legal authorities: strictly when required by law or court order'),
           _highlight(
               'We do NOT sell, rent, or trade your personal data to advertisers or data brokers.'),
         ]),
         _section('6', 'Location Data', [
           _body(
-              'Location is central to Triozy\'s value — it powers all three pillars. '
-              'We use location to match you with the most relevant workers, requests, and mates nearby.'),
-          _bullet(
-              'Precise location is used only when the app is active in the foreground'),
-          _bullet(
-              'We do not track your location in the background without explicit consent'),
+              'Location is central to finding local housing and goods. '
+              'Precise location is used only when the app is active in the foreground. We do not track your location in the background.'),
           _bullet(
               'Location data is never shared with third parties for advertising purposes'),
         ]),
@@ -502,9 +455,9 @@ class PolicyScreen extends StatelessWidget {
         ]),
         _section('8', 'Your Rights', [
           _body('You have the right to:'),
-          _bullet('Access the personal data we hold about you'),
-          _bullet('Correct inaccurate or outdated information'),
-          _bullet('Request deletion of your account and associated data'),
+          _bullet('Access, correct, or delete the personal data we hold about you'),
+          _bullet(
+              'Request complete deletion of your account via in-app settings or email'),
           _bullet(
               'Withdraw consent for optional data processing (e.g., marketing communications)'),
           _body(
