@@ -707,6 +707,13 @@ class _FlatmatePhoto extends StatelessWidget {
         : (listing.imageUrls.isNotEmpty ? listing.imageUrls.first.trim() : '');
 
     if (photoUrl.isNotEmpty) {
+      if (photoUrl.startsWith('assets/')) {
+        return Image.asset(
+          photoUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _fallback(),
+        );
+      }
       return CachedNetworkImage(
         imageUrl: photoUrl,
         fit: BoxFit.cover,
