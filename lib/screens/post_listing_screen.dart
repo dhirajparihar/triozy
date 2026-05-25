@@ -192,7 +192,7 @@ class _PostListingScreenState extends State<PostListingScreen> {
       if (!mounted) {
         return;
       }
-      messenger.showSnackBar(const SnackBar(content: Text('Listing posted')));
+      messenger.showSnackBar(const SnackBar(content: Text('Your listing will be published once approved.')));
       navigator.pop(true);
     } catch (e) {
       if (!mounted) {

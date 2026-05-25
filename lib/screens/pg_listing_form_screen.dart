@@ -616,7 +616,7 @@ class _PgListingFormScreenState extends State<PgListingFormScreen> {
       await db.createListing(listing);
       await _clearDraft();
       if (!mounted) return;
-      messenger.showSnackBar(const SnackBar(content: Text('PG published')));
+      messenger.showSnackBar(const SnackBar(content: Text('PG posted and sent to admin for approval. It will be published once approved.')));
       navigator.pop(true);
     } catch (error) {
       if (!mounted) return;

@@ -230,7 +230,7 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
         return;
       }
       messenger.showSnackBar(
-        const SnackBar(content: Text('Room details added')),
+        const SnackBar(content: Text('Room details will be published once approved.')),
       );
       navigator.pop(true);
     } catch (e) {

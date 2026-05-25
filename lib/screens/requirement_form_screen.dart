@@ -485,7 +485,7 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Requirement published')));
+      ).showSnackBar(const SnackBar(content: Text('Your requirement will be published once approved.')));
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;

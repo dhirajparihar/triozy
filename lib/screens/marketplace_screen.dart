@@ -710,6 +710,9 @@ class _SellItemScreenState extends State<SellItemScreen> {
       if (!mounted) {
         return;
       }
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Your item will be published once approved.')),
+      );
       navigator.pop(true);
     } catch (error) {
       if (!mounted) {
