@@ -26,16 +26,44 @@ class DatabaseService {
   }
 
   /// Fetches up to 300 listings and sorts them by newest first.
-  Future<List<ListingModel>> getAllListings() async {
-    final snapshot = await _firestore.collection('listings').limit(300).get();
+  /// If [fetchAll] is false, only approved listings are returned.
+  Future<List<ListingModel>> getAllListings({bool fetchAll = false}) async {
+    Query query = _firestore.collection('listings');
+    if (!fetchAll) {
+      query = query.where('isApproved', isEqualTo: true);
+    }
+    final snapshot = await query.limit(300).get();
     final listings = snapshot.docs
-        .map((doc) => ListingModel.fromMap(doc.data(), doc.id))
+        .map((doc) => ListingModel.fromMap(doc.data() as Map<String, dynamic>, doc.id))
         .toList();
     listings.sort(
       (a, b) =>
           (b.createdAt ?? DateTime(0)).compareTo(a.createdAt ?? DateTime(0)),
     );
     return listings;
+  }
+
+  /// Marks a listing as approved (Admin only).
+  Future<void> adminApproveListing(String listingId) async {
+    await _firestore.collection('listings').doc(listingId).update({
+      'isApproved': true,
+    });
+  }
+
+  /// Deletes a listing regardless of ownership (Admin only).
+  Future<void> adminDeleteListing(String listingId) async {
+    await _firestore.collection('listings').doc(listingId).delete();
+    await markChatsAsListingDeleted(listingId);
+  }
+
+  /// Fetches all users (Admin only)
+  Future<List<Map<String, dynamic>>> adminGetAllUsers() async {
+    final snapshot = await _firestore.collection('users').get();
+    return snapshot.docs.map((doc) {
+      final data = doc.data();
+      data['id'] = doc.id;
+      return data;
+    }).toList();
   }
 
   /// Returns featured listings, falling back to recent ones if none match.

@@ -459,7 +459,7 @@ class _FlatListingFormScreenState extends State<FlatListingFormScreen> {
       await db.createListing(listing);
       await _clearDraft();
       if (!mounted) return;
-      messenger.showSnackBar(const SnackBar(content: Text('Flat published')));
+      messenger.showSnackBar(const SnackBar(content: Text('Your listing will be published once approved.')));
       navigator.pop(true);
     } catch (error) {
       if (!mounted) return;

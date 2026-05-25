@@ -22,6 +22,7 @@ import 'screens/onboarding_screen.dart';
 import 'screens/welcome_screen.dart';
 import 'screens/complete_profile_screen.dart';
 import 'screens/main_shell.dart';
+import 'screens/admin/admin_shell.dart';
 import 'screens/account_deletion_screen.dart';
 
 // === App bootstrap ===========================================================
@@ -274,16 +275,21 @@ class _RoleRouterState extends State<_RoleRouter> {
 
   /// Derive a simple key from the routing-relevant fields
   String _routeKey(Map<String, dynamic> userData) {
-    // Today, routing only depends on profile completeness.
     final isComplete = userData['isProfileComplete'] as bool? ?? false;
-    return '$isComplete';
+    final isAdmin = userData['isAdmin'] as bool? ?? false;
+    return '$isComplete-$isAdmin';
   }
 
   Widget _buildScreen(Map<String, dynamic> userData) {
     final isProfileComplete = userData['isProfileComplete'] as bool? ?? false;
+    final isAdmin = userData['isAdmin'] as bool? ?? false;
 
     if (!isProfileComplete) {
       return const CompleteProfileScreen();
+    }
+
+    if (isAdmin) {
+      return const AdminShell();
     }
 
     return const MainShell(isWorker: false);

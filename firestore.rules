@@ -9,6 +9,12 @@ service cloud.firestore {
       return request.auth.uid;
     }
 
+    function isAdmin() {
+      return isAuthenticated() && 
+             exists(/databases/$(database)/documents/users/$(currentUserId())) &&
+             get(/databases/$(database)/documents/users/$(currentUserId())).data.get('isAdmin', false) == true;
+    }
+
     function isSelfDoc(docId) {
       return isAuthenticated() && docId == currentUserId();
     }
@@ -227,6 +233,7 @@ service cloud.firestore {
         'availableFrom',
         'isFeatured',
         'phonePublic',
+        'isApproved',
         'createdAt',
       ]) &&
           data.ownerId is string &&
@@ -253,19 +260,22 @@ service cloud.firestore {
           isValidOptionalString(data, 'furnishing') &&
           isValidOptionalString(data, 'availableFrom') &&
           (!('isFeatured' in data) || data.isFeatured is bool) &&
-          (!('phonePublic' in data) || data.phonePublic is bool);
+          (!('phonePublic' in data) || data.phonePublic is bool) &&
+          (!('isApproved' in data) || data.isApproved is bool);
     }
 
     match /users/{userId} {
-      allow read: if isSelfDoc(userId);
+      allow read: if isSelfDoc(userId) || isAdmin();
 
       allow create: if isSelfDoc(userId) &&
-          request.resource.data.get('uid', currentUserId()) == currentUserId();
+          request.resource.data.get('uid', currentUserId()) == currentUserId() &&
+          request.resource.data.get('isAdmin', false) == false;
 
-      allow update: if isSelfDoc(userId) &&
-          request.resource.data.get('uid', currentUserId()) == currentUserId();
+      allow update: if (isSelfDoc(userId) &&
+          request.resource.data.get('uid', currentUserId()) == currentUserId() &&
+          request.resource.data.get('isAdmin', false) == resource.data.get('isAdmin', false)) || isAdmin();
 
-      allow delete: if false;
+      allow delete: if isAdmin();
     }
 
     match /listings/{listingId} {
@@ -274,14 +284,16 @@ service cloud.firestore {
       allow create: if isAuthenticated() &&
           isValidListingPayload(request.resource.data) &&
           request.resource.data.ownerId == currentUserId() &&
-          request.resource.data.ownerName is string;
+          request.resource.data.ownerName is string &&
+          request.resource.data.get('isApproved', false) == false;
 
-      allow update: if isOwnerByOwnerIdField() &&
+      allow update: if isAdmin() || (isOwnerByOwnerIdField() &&
           isValidListingPayload(request.resource.data) &&
           request.resource.data.ownerId == resource.data.ownerId &&
-          request.resource.data.get('createdAt', resource.data.createdAt) == resource.data.createdAt;
+          request.resource.data.get('createdAt', resource.data.createdAt) == resource.data.createdAt &&
+          request.resource.data.get('isApproved', false) == resource.data.get('isApproved', false));
 
-      allow delete: if isOwnerByOwnerIdField();
+      allow delete: if isAdmin() || isOwnerByOwnerIdField();
     }
 
     match /chats/{chatId} {
