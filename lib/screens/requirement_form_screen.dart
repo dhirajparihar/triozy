@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:typed_data';
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show rootBundle;
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
@@ -152,6 +154,9 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
         folder: 'profile_photos/${user.uid}',
       );
       await _saveProfilePhotoUrl(user, photoUrl);
+      if (mounted) {
+        setState(() => _profilePhotoUrl = photoUrl);
+      }
     } catch (e) {
       if (!mounted) {
         return;
@@ -179,14 +184,32 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
       return;
     }
 
-    // Use local asset path for preview; store a generated URL in Firestore.
+    final cloudinaryService = context.read<CloudinaryService>();
     final assetPath = avatarKey == 'female' ? _kFemaleAvatarAsset : _kMaleAvatarAsset;
     final previousPhotoUrl = _profilePhotoUrl;
-    setState(() => _profilePhotoUrl = assetPath);
+    
+    setState(() {
+      _uploadingProfilePhoto = true;
+      _profilePhotoUrl = assetPath;
+    });
 
     try {
-      final remoteUrl = _avatarUrl(avatarKey, user.uid);
+      final ByteData data = await rootBundle.load(assetPath);
+      final Uint8List bytes = data.buffer.asUint8List();
+
+      final remoteUrl = await cloudinaryService.uploadImage(
+        bytes: bytes,
+        fileName: 'avatar_$avatarKey.png',
+        folder: 'profile_photos/${user.uid}',
+      );
+      
       await _saveProfilePhotoUrl(user, remoteUrl);
+      
+      if (mounted) {
+        setState(() {
+          _profilePhotoUrl = remoteUrl;
+        });
+      }
     } catch (e) {
       if (!mounted) {
         return;
@@ -195,6 +218,10 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Could not choose avatar: $e')));
+    } finally {
+      if (mounted) {
+        setState(() => _uploadingProfilePhoto = false);
+      }
     }
   }
 
@@ -209,7 +236,6 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
     if (!mounted) {
       return;
     }
-    // Keep asset path in local state for preview; remote URL is already saved.
   }
 
   String _avatarUrl(String avatarKey, String userId) {
@@ -382,7 +408,12 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
 
   Future<void> _publish() async {
     // Validate, build a requirement listing, and persist to Firestore.
-    if (!_formKey.currentState!.validate()) return;
+    if (!_formKey.currentState!.validate()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please fill all required fields')),
+      );
+      return;
+    }
     if (_maxBudget <= 0 || _minBudget > _maxBudget) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Choose a valid budget range')),
@@ -898,23 +929,33 @@ class _RequirementFormScreenState extends State<RequirementFormScreen> {
             child: SizedBox(
               width: double.infinity,
               height: isCompact ? 50 : 54,
-              child: ElevatedButton(
-                onPressed: _publish,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppColors.primary,
-                  foregroundColor: AppColors.onPrimary,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: Text(
-                  'Publish Requirement',
-                  style: AppTheme.body(
-                    fontSize: isCompact ? 15 : 16,
-                    fontWeight: FontWeight.w800,
-                    color: AppColors.onPrimary,
-                  ),
-                ),
+              child: AnimatedBuilder(
+                animation: Listenable.merge([_locationController, _descController]),
+                builder: (context, _) {
+                  final isValid = _locationController.text.trim().isNotEmpty &&
+                      _descController.text.trim().isNotEmpty;
+                  
+                  return ElevatedButton(
+                    onPressed: isValid ? _publish : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primary,
+                      foregroundColor: AppColors.onPrimary,
+                      disabledBackgroundColor: AppColors.surfaceContainerHigh,
+                      disabledForegroundColor: AppColors.outline,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                    child: Text(
+                      'Publish Requirement',
+                      style: AppTheme.body(
+                        fontSize: isCompact ? 15 : 16,
+                        fontWeight: FontWeight.w800,
+                        color: isValid ? AppColors.onPrimary : AppColors.outline,
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
           ),

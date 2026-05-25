@@ -133,8 +133,18 @@ class _ListingCardState extends State<ListingCard> {
                                 itemCount: listing.imageUrls.length,
                                 onPageChanged: (i) => setState(() => _pageIndex = i),
                                 itemBuilder: (context, index) {
+                                  final url = listing.imageUrls[index];
+                                  if (url.startsWith('assets/')) {
+                                    return Image.asset(
+                                      url,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: double.infinity,
+                                      errorBuilder: (_, __, ___) => _imageFallback(),
+                                    );
+                                  }
                                   return CachedNetworkImage(
-                                    imageUrl: listing.imageUrls[index],
+                                    imageUrl: url,
                                     fit: BoxFit.cover,
                                     width: double.infinity,
                                     height: double.infinity,
@@ -320,8 +330,18 @@ class _ListingCardState extends State<ListingCard> {
                                 itemCount: listing.imageUrls.length,
                                 onPageChanged: (i) => setState(() => _pageIndex = i),
                                 itemBuilder: (context, index) {
+                                  final url = listing.imageUrls[index];
+                                  if (url.startsWith('assets/')) {
+                                    return Image.asset(
+                                      url,
+                                      fit: BoxFit.cover,
+                                      width: double.infinity,
+                                      height: imageHeight,
+                                      errorBuilder: (_, __, ___) => _imageFallback(),
+                                    );
+                                  }
                                   return CachedNetworkImage(
-                                    imageUrl: listing.imageUrls[index],
+                                    imageUrl: url,
                                     fit: BoxFit.cover,
                                     width: double.infinity,
                                     height: imageHeight,
@@ -740,6 +760,13 @@ class _FlatmatePhoto extends StatelessWidget {
         : (listing.imageUrls.isNotEmpty ? listing.imageUrls.first.trim() : '');
 
     if (photoUrl.isNotEmpty) {
+      if (photoUrl.startsWith('assets/')) {
+        return Image.asset(
+          photoUrl,
+          fit: BoxFit.cover,
+          errorBuilder: (_, __, ___) => _fallback(),
+        );
+      }
       return CachedNetworkImage(
         imageUrl: photoUrl,
         fit: BoxFit.cover,

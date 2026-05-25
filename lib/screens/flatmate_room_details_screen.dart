@@ -182,6 +182,9 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
       return;
     }
     if (!_formKey.currentState!.validate()) {
+      messenger.showSnackBar(
+        const SnackBar(content: Text('Please fill all required fields')),
+      );
       return;
     }
 
@@ -425,32 +428,43 @@ class _FlatmateRoomDetailsScreenState extends State<FlatmateRoomDetailsScreen> {
           child: SizedBox(
             width: double.infinity,
             height: isCompact ? 50 : 54,
-            child: ElevatedButton(
-              onPressed: _submitting ? null : _submit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.onPrimary,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: _submitting
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(
-                        strokeWidth: 2,
-                        color: AppColors.onPrimary,
-                      ),
-                    )
-                  : Text(
-                      'Add Room Details',
-                      style: AppTheme.body(
-                        fontSize: isCompact ? 15 : 16,
-                        fontWeight: FontWeight.w800,
-                        color: AppColors.onPrimary,
-                      ),
+            child: AnimatedBuilder(
+              animation: Listenable.merge([_locationController, _descriptionController, _rentController]),
+              builder: (context, _) {
+                final isValid = _locationController.text.trim().isNotEmpty &&
+                    _descriptionController.text.trim().isNotEmpty &&
+                    _rentController.text.trim().isNotEmpty;
+
+                return ElevatedButton(
+                  onPressed: _submitting || !isValid ? null : _submit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.onPrimary,
+                    disabledBackgroundColor: AppColors.surfaceContainerHigh,
+                    disabledForegroundColor: AppColors.outline,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
+                  ),
+                  child: _submitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: AppColors.outline,
+                          ),
+                        )
+                      : Text(
+                          'Add Room Details',
+                          style: AppTheme.body(
+                            fontSize: isCompact ? 15 : 16,
+                            fontWeight: FontWeight.w800,
+                            color: isValid ? AppColors.onPrimary : AppColors.outline,
+                          ),
+                        ),
+                );
+              },
             ),
           ),
         ),
